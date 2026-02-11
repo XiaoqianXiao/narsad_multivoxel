@@ -3827,13 +3827,13 @@ scores_oxt_2d = (
     else scores_oxt
 )
 
-acc_sad_plc = compute_subject_forced_choice_accs(
+acc_sad_plc = compute_subject_forced_choice_accuracy(
     y_sad_plc_filtered,
     scores_plc_2d,
     sub_sad_plc_filtered,
     list(gold_model.classes_)
 )
-acc_sad_oxt = compute_subject_forced_choice_accs(
+acc_sad_oxt = compute_subject_forced_choice_accuracy(
     y_sad_oxt_filtered,
     scores_oxt_2d,
     sub_sad_oxt_filtered,
@@ -3982,13 +3982,13 @@ scores_hc_oxt_2d = (
     else scores_hc_oxt
 )
 
-acc_hc_plc = compute_subject_forced_choice_accs(
+acc_hc_plc = compute_subject_forced_choice_accuracy(
     y_hc_plc_filtered,
     scores_hc_plc_2d,
     sub_hc_plc_filtered,
     list(sad_model.classes_)
 )
-acc_hc_oxt = compute_subject_forced_choice_accs(
+acc_hc_oxt = compute_subject_forced_choice_accuracy(
     y_hc_oxt_filtered,
     scores_hc_oxt_2d,
     sub_hc_oxt_filtered,
