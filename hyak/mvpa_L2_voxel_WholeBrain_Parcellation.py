@@ -4103,7 +4103,7 @@ else:
     # =============================================================================
     LOAD_RAW_NPZ = True
     if LOAD_RAW_NPZ:
-    project_root = "/gscratch/fang/NARSAD"
+        project_root = "/gscratch/fang/NARSAD"
         data_root = os.path.join(project_root, "MRI/derivatives/fMRI_analysis/LSS", "firstLevel", "all_subjects/fear_network")
         phase2_npz_path = os.path.join(data_root, "phase2_X_ext_y_ext_roi_voxels.npz")
         phase3_npz_path = os.path.join(data_root, "phase3_X_reinst_y_reinst_roi_voxels.npz")
