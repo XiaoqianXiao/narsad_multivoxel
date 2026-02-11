@@ -792,7 +792,7 @@ def compute_subject_forced_choice_accs(
 
     accs = []
     for sub, sub_df in df_scores.groupby("sub"):
-        mean_scores = sub_df.groupby("y").mean().reset_index()
+        mean_scores = sub_df.groupby("y")[class_labels].mean().reset_index()
         acc = compute_pairwise_forced_choice(
             mean_scores["y"].values,
             mean_scores[class_labels].values,
@@ -3096,6 +3096,33 @@ if 'subject_best_params' not in locals():
     # Fallback default
     subject_best_params = {}
 
+# Use best C from Analysis 1.1 when phase/labels/group match
+best_c_sad = locals().get("best_c_sad", None)
+best_c_hc = locals().get("best_c_hc", None)
+
+def get_group_for_sub(sub_id):
+    if 'sub_to_meta' not in locals():
+        return None
+    s_str = str(sub_id).strip()
+    conds = None
+    if s_str in sub_to_meta:
+        conds = sub_to_meta[s_str]
+    elif f"sub-{s_str}" in sub_to_meta:
+        conds = sub_to_meta[f"sub-{s_str}"]
+    elif s_str.replace("sub-", "") in sub_to_meta:
+        conds = sub_to_meta[s_str.replace("sub-", "")]
+    if conds:
+        return conds.get("Group")
+    return None
+
+def get_default_c_for_sub(sub_id):
+    group = get_group_for_sub(sub_id)
+    if group == "SAD" and best_c_sad is not None:
+        return float(best_c_sad)
+    if group == "HC" and best_c_hc is not None:
+        return float(best_c_hc)
+    return 1.0
+
 # =============================================================================
 # 1. Calculation Helper (Entropy, Kurtosis, Variance)
 # =============================================================================
@@ -3107,7 +3134,7 @@ def calculate_distribution_stats(X, y, subjects, feature_mask, best_params_dict)
     res = {'sub': [], 'entropy': [], 'kurtosis': [], 'variance': [], 'probabilities': [], 'brier': [], 'calib': []}
     
     for sub in unique_subs:
-        c_val = best_params_dict.get(sub, 1.0)
+        c_val = best_params_dict.get(sub, get_default_c_for_sub(sub))
         mask_sub = (subjects == sub)
         X_sub = X_masked[mask_sub]; y_sub = y[mask_sub]
         
