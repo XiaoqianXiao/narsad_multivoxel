@@ -332,7 +332,7 @@ def run_perm_simple(X, y, groups, n_iters):
         )
         class_labels = list(np.unique(y))
         scores.append(
-            compute_subject_forced_choice_accuracy(
+            compute_subject_forced_choice_mean_acc(
                 y_shuffled,
                 scores_2d,
                 groups,
@@ -716,7 +716,7 @@ def compute_subject_mean_accuracy(
     return float(np.mean(sub_accs)) if sub_accs else 0.0
 
 
-def compute_subject_forced_choice_accuracy(
+def compute_subject_forced_choice_mean_acc(
     y_true: np.ndarray,
     scores: np.ndarray,
     subjects: np.ndarray,
@@ -734,6 +734,30 @@ def compute_subject_forced_choice_accuracy(
             class_labels
         )
     )
+
+def compute_subject_forced_choice_accs(
+    y_true: np.ndarray,
+    scores: np.ndarray,
+    subjects: np.ndarray,
+    class_labels: list[str]
+) -> np.ndarray:
+    """Compute per-subject forced-choice accuracies from decision scores."""
+    df_scores = pd.DataFrame(scores, columns=class_labels)
+    df_scores["sub"] = subjects
+    df_scores["y"] = y_true
+
+    accs = []
+    for sub, sub_df in df_scores.groupby("sub"):
+        mean_scores = sub_df.groupby("y").mean().reset_index()
+        acc = compute_pairwise_forced_choice(
+            mean_scores["y"].values,
+            mean_scores[class_labels].values,
+            class_labels
+        )
+        accs.append(acc)
+
+    return np.array(accs)
+
 
 #------------------------------
 
@@ -3827,13 +3851,13 @@ scores_oxt_2d = (
     else scores_oxt
 )
 
-acc_sad_plc = compute_subject_forced_choice_accuracy(
+acc_sad_plc = compute_subject_forced_choice_accs(
     y_sad_plc_filtered,
     scores_plc_2d,
     sub_sad_plc_filtered,
     list(gold_model.classes_)
 )
-acc_sad_oxt = compute_subject_forced_choice_accuracy(
+acc_sad_oxt = compute_subject_forced_choice_accs(
     y_sad_oxt_filtered,
     scores_oxt_2d,
     sub_sad_oxt_filtered,
@@ -3982,13 +4006,13 @@ scores_hc_oxt_2d = (
     else scores_hc_oxt
 )
 
-acc_hc_plc = compute_subject_forced_choice_accuracy(
+acc_hc_plc = compute_subject_forced_choice_accs(
     y_hc_plc_filtered,
     scores_hc_plc_2d,
     sub_hc_plc_filtered,
     list(sad_model.classes_)
 )
-acc_hc_oxt = compute_subject_forced_choice_accuracy(
+acc_hc_oxt = compute_subject_forced_choice_accs(
     y_hc_oxt_filtered,
     scores_hc_oxt_2d,
     sub_hc_oxt_filtered,
