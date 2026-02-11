@@ -2,6 +2,7 @@
 # Cell 1: Imports & basic config
 
 import os
+import argparse
 import numpy as np
 import pandas as pd
 import glob
@@ -83,6 +84,14 @@ C_MIN_EXP = -2
 C_MAX_EXP = 2
 C_POINTS = 20
 
+# Argument parsing (allow run_mvpa.sh to override paths)
+_parser = argparse.ArgumentParser(add_help=False)
+_parser.add_argument("--project_root", default=os.environ.get("PROJECT_ROOT", "/gscratch/fang/NARSAD"))
+_parser.add_argument("--output_dir", default=os.environ.get("OUTPUT_DIR"))
+_args, _ = _parser.parse_known_args()
+PROJECT_ROOT = _args.project_root
+OUTPUT_DIR = _args.output_dir
+
 # %% [cell 2]
 # Cell 2: Load phase2 (extinction) and phase3 (reinstatement) data
 # Whole-brain parcellation (Glasser + Tian) feature space.
@@ -92,7 +101,7 @@ import os
 
 print("--- Cell 2: Data Loading (Whole-Brain Parcellation) ---")
 
-project_root = "/gscratch/fang/NARSAD"
+project_root = PROJECT_ROOT
 data_root = os.path.join(
     project_root,
     "MRI/derivatives/fMRI_analysis/LSS",
@@ -4137,7 +4146,9 @@ else:
     ALPHA_FDR = 0.05
 
     # Output
-    if 'project_root' in locals():
+    if OUTPUT_DIR:
+        out_dir = OUTPUT_DIR
+    elif 'project_root' in locals():
         out_dir = os.path.join(project_root, "MRI/derivatives/fMRI_analysis/LSS", "results", "searchlight_rsm")
     else:
         out_dir = "/tmp/searchlight_rsm"
@@ -4154,7 +4165,7 @@ else:
     # =============================================================================
     LOAD_RAW_NPZ = True
     if LOAD_RAW_NPZ:
-        project_root = "/gscratch/fang/NARSAD"
+        project_root = PROJECT_ROOT
         data_root = os.path.join(project_root, "MRI/derivatives/fMRI_analysis/LSS", "firstLevel", "all_subjects/fear_network")
         phase2_npz_path = os.path.join(data_root, "phase2_X_ext_y_ext_roi_voxels.npz")
         phase3_npz_path = os.path.join(data_root, "phase3_X_reinst_y_reinst_roi_voxels.npz")
