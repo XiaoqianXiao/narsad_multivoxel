@@ -11,8 +11,8 @@
 
 project_ROOT=/gscratch/fang/NARSAD
 CONTAINER_SIF=/gscratch/fang/images/jupyter.sif
-APP_PATH=/gscratch/scrubbed/fanglab/xiaoqian/repo/hyak_narsad_0917/hyak
-OUT_PATH=/gscratch/scrubbed/fanglab/xiaoqian/NARSAD/LSS/ElasticNet
+APP_PATH=/gscratch/scrubbed/fanglab/xiaoqian/repo/narsad_multivoxel/hyak
+OUT_PATH=/gscratch/scrubbed/fanglab/xiaoqian/NARSAD/LSS/WholeBrain_Parcellation
 
 # 1. Load the container module
 module load apptainer 2>/dev/null || true
@@ -24,4 +24,4 @@ apptainer exec \
     -B "${project_ROOT}:/gscratch/fang/NARSAD" \
     -B "${APP_PATH}:/app" \
     -B "${OUT_PATH}:/output_dir" \
-    "${CONTAINER_SIF}" python3 /app/mvpa_ElasticNet_voxel_FearNetwork_All.py --output_dir /output_dir --project_root /gscratch/fang/NARSAD
+    "${CONTAINER_SIF}" python3 /app/mvpa_L2_voxel_WholeBrain_Parcellation.py --output_dir /output_dir --project_root /gscratch/fang/NARSAD
