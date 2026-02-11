@@ -783,7 +783,7 @@ def compute_subject_forced_choice_accs(
     y_true: np.ndarray,
     scores: np.ndarray,
     subjects: np.ndarray,
-    class_labels: list[str]
+    class_labels: List[str]
 ) -> np.ndarray:
     """Compute per-subject forced-choice accuracies from decision scores."""
     df_scores = pd.DataFrame(scores, columns=class_labels)
