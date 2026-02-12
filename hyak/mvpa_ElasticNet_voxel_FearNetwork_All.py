@@ -297,27 +297,24 @@ def get_top_percentile_mask(scores, percentile):
 
 def run_cross_decoding(model, X, y, groups, classes=None):
     """
-    Applies a pre-trained model to a new dataset and calculates accuracy 
-    per subject (group).
+    Applies a pre-trained model to a new dataset and computes subject-level
+    forced-choice accuracy.
+
+    Returns
+    -------
+    accuracies : np.ndarray
+        Array of forced-choice accuracy scores, one per subject.
     """
-    unique_subjects = np.unique(groups)
-    accuracies = []
+    scores = model.decision_function(X)
+    scores_2d = (
+        np.column_stack((-scores, scores))
+        if scores.ndim == 1
+        else scores
+    )
+    class_labels = list(classes) if classes is not None else list(model.classes_)
+    return compute_subject_forced_choice_accs(y, scores_2d, groups, class_labels)
 
-    for sub in unique_subjects:
-        # 1. Isolate data for the current subject
-        mask_sub = (groups == sub)
-        X_sub = X[mask_sub]
-        y_sub = y[mask_sub]
-        
-        # 2. Make predictions using the provided (frozen) model
-        y_pred = model.predict(X_sub)
-        
-        # 3. Calculate accuracy for this subject
-        acc = accuracy_score(y_sub, y_pred)
-        accuracies.append(acc)
-
-    return np.array(accuracies)
-
+#------------------------------
 def run_perm_simple(X, y, groups, n_iters):
     """Runs permutation testing iterations for a single job."""
     scores = []
@@ -347,22 +344,28 @@ def run_perm_simple(X, y, groups, n_iters):
     return scores
 
 def run_cross_perm(model, X, y, subs, n_iter):
-    """Cross-Decoding Permutation."""
+    """Cross-decoding permutation using subject-level forced-choice accuracy."""
     null_scores = []
     mask_c = np.isin(y, model.classes_)
     X_f = X[mask_c]
     y_f = y[mask_c]
     s_f = subs[mask_c]
-    has_scaler = any('scaler' in step[0] for step in model.steps) if hasattr(model, 'steps') else False
-    if not has_scaler: 
-        X_f = subject_wise_centering(X_f, s_f)
+
+    scores = model.decision_function(X_f)
+    scores_2d = (
+        np.column_stack((-scores, scores))
+        if scores.ndim == 1
+        else scores
+    )
+    class_labels = list(model.classes_)
 
     for _ in range(n_iter):
         y_shuff = np.random.permutation(y_f)
-        score = model.score(X_f, y_shuff) 
-        null_scores.append(score)
+        accs = compute_subject_forced_choice_accs(y_shuff, scores_2d, s_f, class_labels)
+        null_scores.append(float(np.mean(accs)) if len(accs) > 0 else 0.0)
     return np.array(null_scores)
 
+#------------------------------
 def run_spatial_perm(seed, maps, groups):
     rng = np.random.default_rng(seed)
     shuffled = rng.permutation(groups)
@@ -802,7 +805,12 @@ def calculate_distribution_stats(X, y, subjects, feature_mask, best_params_dict,
                 fixed_model.set_params(classification__C=c_val, classification__l1_ratio=0.5)
             
             cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=RANDOM_STATE)
-            probs_all = cross_val_predict(fixed_model, X_binary, y_binary, cv=cv, method='predict_proba', n_jobs=N_JOBS)
+            calib_model = CalibratedClassifierCV(
+                fixed_model,
+                method="sigmoid",
+                cv=3
+            )
+            probs_all = cross_val_predict(calib_model, X_binary, y_binary, cv=cv, method='predict_proba', n_jobs=N_JOBS)
             
             classes = sorted(np.unique(y_binary))
             if COND_CLASS_THREAT not in classes: 
@@ -850,7 +858,12 @@ def calc_metrics_for_subject(X, y, sub_id, feature_mask, C_param=1.0, COND_CLASS
         else:
             model.set_params(classification__C=C_param, classification__l1_ratio=0.5)
         cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=RANDOM_STATE)
-        probs_all = cross_val_predict(model, X_bin, y_bin, cv=cv, method='predict_proba', n_jobs=1)
+        calib_model = CalibratedClassifierCV(
+            model,
+            method="sigmoid",
+            cv=3
+        )
+        probs_all = cross_val_predict(calib_model, X_bin, y_bin, cv=cv, method='predict_proba', n_jobs=1)
         
         classes = sorted(np.unique(y_bin))
         if COND_CLASS_THREAT not in classes: 

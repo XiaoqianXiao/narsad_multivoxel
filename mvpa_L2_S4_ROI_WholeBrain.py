@@ -308,21 +308,25 @@ def run_perm_simple(X, y, groups, n_iters):
     return scores
 
 def run_cross_decoding(model, X, y, groups, classes=None):
-    """Applies a pre-trained model to a new dataset and calculates accuracy per subject."""
-    unique_subjects = np.unique(groups)
-    accuracies = []
+    """
+    Applies a pre-trained model to a new dataset and computes subject-level
+    forced-choice accuracy.
 
-    for sub in unique_subjects:
-        mask_sub = (groups == sub)
-        X_sub = X[mask_sub]
-        y_sub = y[mask_sub]
-        
-        y_pred = model.predict(X_sub)
-        acc = accuracy_score(y_sub, y_pred)
-        accuracies.append(acc)
+    Returns
+    -------
+    accuracies : np.ndarray
+        Array of forced-choice accuracy scores, one per subject.
+    """
+    scores = model.decision_function(X)
+    scores_2d = (
+        np.column_stack((-scores, scores))
+        if scores.ndim == 1
+        else scores
+    )
+    class_labels = list(classes) if classes is not None else list(model.classes_)
+    return compute_subject_forced_choice_accs(y, scores_2d, groups, class_labels)
 
-    return np.array(accuracies)
-
+#------------------------------
 def compute_haufe_binary_robust(model, X):
     scores = model.decision_function(X)
     return np.dot((X - np.mean(X, axis=0)).T, scores - np.mean(scores)) / (X.shape[0] - 1)
@@ -555,7 +559,12 @@ def calculate_distribution_stats(X, y, subjects, feature_mask, best_params_dict,
             fixed_model.set_params(classification__C=c_val)
             
             cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=RANDOM_STATE)
-            probs_all = cross_val_predict(fixed_model, X_binary, y_binary, cv=cv, method='predict_proba', n_jobs=1)
+            calib_model = CalibratedClassifierCV(
+                fixed_model,
+                method="sigmoid",
+                cv=3
+            )
+            probs_all = cross_val_predict(calib_model, X_binary, y_binary, cv=cv, method='predict_proba', n_jobs=1)
             
             classes = sorted(np.unique(y_binary))
             if COND_CLASS_THREAT not in classes: 
@@ -1177,7 +1186,12 @@ def calc_metrics_for_subject(X, y, sub_id, feature_mask, C_param=1.0, COND_CLASS
         model = build_binary_pipeline()
         model.set_params(classification__C=C_param)
         cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=RANDOM_STATE)
-        probs_all = cross_val_predict(model, X_bin, y_bin, cv=cv, method='predict_proba', n_jobs=1)
+        calib_model = CalibratedClassifierCV(
+            model,
+            method="sigmoid",
+            cv=3
+        )
+        probs_all = cross_val_predict(calib_model, X_bin, y_bin, cv=cv, method='predict_proba', n_jobs=1)
         
         classes = sorted(np.unique(y_bin))
         if COND_CLASS_THREAT not in classes: 
