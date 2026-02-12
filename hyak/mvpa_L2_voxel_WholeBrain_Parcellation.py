@@ -4633,5 +4633,65 @@ else:
 
     print(f"Cell 17 complete: outputs saved to {out_dir}")
 
+# =============================================================================
+# Parcel-level RSM (Whole-Brain Parcellation)
+# =============================================================================
+print("--- Running Parcel-level RSM (Whole-Brain Parcellation) ---")
+
+def build_parcel_stage_vectors(X, y, sub, stage):
+    """Return per-subject 3 x P condition matrices using parcel features."""
+    subjects = np.unique(sub)
+    subj_mats = []
+
+    for s in subjects:
+        rows = []
+        for cond in COND_LIST:
+            idx = np.where((sub == s) & (y == cond))[0]
+            if len(idx) < 2:
+                rows = []
+                break
+            split = len(idx) // 2
+            use_idx = idx[:split] if stage == "early" else idx[split:]
+            if len(use_idx) == 0:
+                rows = []
+                break
+            rows.append(np.mean(X[use_idx], axis=0))
+        if rows:
+            subj_mats.append(np.vstack(rows))
+    return subj_mats
+
+def rdm_from_condition_matrix(cond_mat):
+    # cond_mat: 3 x P
+    return squareform(pdist(cond_mat, metric="correlation"))
+
+def mean_rdm(subj_mats):
+    if not subj_mats:
+        return None
+    rdms = [rdm_from_condition_matrix(m) for m in subj_mats]
+    return np.mean(rdms, axis=0)
+
+parcel_rsm_results = {}
+for phase_key, phase_name in [("ext", "Extinction"), ("rst", "Reinstatement")]:
+    X_p, y_p, sub_p = collect_phase_data(phase_key, group_key="ALL")
+    if X_p is None:
+        print(f"  ! {phase_name} data missing. Skipping parcel RSM.")
+        continue
+
+    early_mats = build_parcel_stage_vectors(X_p, y_p, sub_p, "early")
+    late_mats = build_parcel_stage_vectors(X_p, y_p, sub_p, "late")
+
+    rdm_early = mean_rdm(early_mats)
+    rdm_late = mean_rdm(late_mats)
+    if rdm_early is None or rdm_late is None:
+        print(f"  ! Not enough data for parcel RSM in {phase_name}.")
+        continue
+
+    rdm_delta = rdm_late - rdm_early
+    parcel_rsm_results[f"{phase_key}_early"] = rdm_early
+    parcel_rsm_results[f"{phase_key}_late"] = rdm_late
+    parcel_rsm_results[f"{phase_key}_delta"] = rdm_delta
+
+_save_result("parcel_rsm_results", parcel_rsm_results)
+print("Parcel-level RSM complete.")
     # %% [cell 21]
  
