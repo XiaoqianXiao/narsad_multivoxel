@@ -3,6 +3,7 @@
 
 import os
 import argparse
+import argparse
 import numpy as np
 import pandas as pd
 import glob
@@ -91,6 +92,29 @@ _parser.add_argument("--output_dir", default=os.environ.get("OUTPUT_DIR"))
 _args, _ = _parser.parse_known_args()
 PROJECT_ROOT = _args.project_root
 OUTPUT_DIR = _args.output_dir
+
+# Output root for all analyses
+if OUTPUT_DIR:
+    OUT_DIR_MAIN = OUTPUT_DIR
+else:
+    OUT_DIR_MAIN = os.path.join(PROJECT_ROOT, "MRI/derivatives/fMRI_analysis/LSS", "results", "wholebrain_parcellation")
+os.makedirs(OUT_DIR_MAIN, exist_ok=True)
+
+def _save_result(name: str, obj) -> None:
+    """Persist result objects for each analysis."""
+    from joblib import dump
+    path = os.path.join(OUT_DIR_MAIN, f"{name}.joblib")
+    try:
+        dump(obj, path)
+    except Exception as exc:
+        print(f"  ! Failed to save {name}: {exc}")
+
+def _save_fig(name: str) -> None:
+    """Save current matplotlib figure."""
+    try:
+        plt.savefig(os.path.join(OUT_DIR_MAIN, f"{name}.png"), dpi=300, bbox_inches="tight")
+    except Exception as exc:
+        print(f"  ! Failed to save figure {name}: {exc}")
 
 # %% [cell 2]
 # Cell 2: Load phase2 (extinction) and phase3 (reinstatement) data
@@ -1758,6 +1782,8 @@ results_11 = {
     "map_sad": map_sad, 
     "map_hc": map_hc
 }
+_save_result("results_11", results_11)
+_save_result("results_11", results_11)
 
 # %% [cell 8]
 # # Whole-brain version
@@ -2112,7 +2138,9 @@ for name, data in groups.items():
                     title=f"{name}: FDR < {fdr_alpha}", 
                     figure=fig
                 )
-                plt.show()
+            _save_fig("analysis_11")
+            _save_fig("results_11")
+            plt.show()
                 
         except Exception as e:
             print(f"  ! Visualization failed: {e}")
@@ -2504,6 +2532,8 @@ results_12 = {
     "features_sad": np.sum(mask_sad_top5), "features_hc": np.sum(mask_hc_top5),
     "one_sample_stats": {"p_a_sad": p_a_sad_0, "p_a_hc": p_a_hc_0, "p_b_sad": p_b_sad_0, "p_b_hc": p_b_hc_0}
 }
+_save_result("results_12", results_12)
+_save_result("results_12", results_12)
 
 # %% [cell 12]
 # Cell 10: Analysis 1.3 - Dynamic Representational Drift (Top 5% Features)
@@ -2746,9 +2776,13 @@ else:
     
     axes[1,1].axis('off') # Empty slot
     plt.tight_layout()
-    plt.show()
+_save_fig("analysis_12")
+_save_fig("results_12")
+plt.show()
 
 results_13 = {'safe_sad': df_safe_sad, 'threat_sad': df_threat_sad}
+_save_result("results_13", results_13)
+_save_result("results_13", results_13)
 
 # %% [cell 13]
 # Cell 10: Analysis 1.3 - Dynamic Representational Drift (Single-Trial Trajectories)
@@ -3001,7 +3035,9 @@ else:
         axes[1].legend(loc='upper left')
     
     plt.tight_layout()
-    plt.show()
+_save_fig("analysis_13")
+_save_fig("results_13")
+plt.show()
 
 results_13 = {
     'stats_safe': stats_safe, 
@@ -3009,6 +3045,8 @@ results_13 = {
     'data_safe': df_safe,
     'data_threat': df_threat
 }
+_save_result("results_13b", results_13)
+_save_result("results_13b", results_13)
 
 # %% [cell 14]
 # Cell 11: Analysis 1.4 - Decision Boundary Characteristics (Self-Network with Stats)
@@ -3239,9 +3277,13 @@ if not df_sad_stats.empty and not df_hc_stats.empty:
     ax3.legend()
 
 plt.tight_layout()
+_save_fig("analysis_13")
+_save_fig("results_13")
 plt.show()
 
 results_14_self = {'df_sad': df_sad_stats, 'df_hc': df_hc_stats}
+_save_result("results_14_self", results_14_self)
+_save_result("results_14_self", results_14_self)
 
 # %% [cell 15]
 # Cell 12: Analysis 2.1 - Safety Restoration & Threat Discrimination (Mixed Effects)
@@ -3402,9 +3444,13 @@ if p_int_threat < 0.05:
     axes[1].text(0.5, 0.95, f"Interaction: p={p_int_threat:.3f}", transform=axes[1].transAxes, ha='center', fontweight='bold')
 
 plt.tight_layout()
+_save_fig("analysis_14")
+_save_fig("results_14_self")
 plt.show()
 
 results_21 = {'df': df_topo, 'p_safe': p_int_safe, 'p_threat': p_int_threat}
+_save_result("results_21", results_21)
+_save_result("results_21", results_21)
 
 # %% [cell 16]
 # Cell 13: Analysis 2.2 - Drift Efficiency (Safety & Threat Maintenance)
@@ -3591,10 +3637,14 @@ plot_interaction(axes[1,0], df_drift, "Threat", "Cosine", lme_results.get("Threa
 plot_interaction(axes[1,1], df_drift, "Threat", "Projection", lme_results.get("Threat_Projection", 1.0))
 
 plt.tight_layout()
+_save_fig("analysis_21")
+_save_fig("results_21")
 plt.show()
 
 print("Note: Error bars represent Standard Error of the Mean (SEM).")
 results_22 = {'df': df_drift, 'stats': lme_results}
+_save_result("results_22", results_22)
+_save_result("results_22", results_22)
 
 # %% [cell 17]
 # Cell 14: Analysis 2.3 - The "Probabilistic Opening" Test (Entropy, Kurtosis, Variance)
@@ -3793,9 +3843,13 @@ axes[2].get_legend().remove()
 axes[0].legend(loc='lower left', fontsize=12)
 
 plt.tight_layout()
+_save_fig("analysis_22")
+_save_fig("results_22")
 plt.show()
 
 results_23 = {'df': df_metrics, 'stats': stats_results}
+_save_result("results_23", results_23)
+_save_result("results_23", results_23)
 
 # %% [cell 18]
 # Cell 15: Analysis 2.4 - Spatial Re-Alignment (The "Normalizing" Effect)
@@ -3943,6 +3997,8 @@ ax.set_title(f"Analysis 2.4: Spatial Re-Alignment\n(OXT vs PLC Improvement: p={p
 plt.yticks(rotation=0) 
 
 plt.tight_layout()
+_save_fig("analysis_23")
+_save_fig("results_23")
 plt.show()
 
 print("\nInterpretation:")
@@ -3951,6 +4007,8 @@ print(f" - SAD-Oxytocin Accuracy ({m_oxt:.1%}): How well it fits AFTER treatment
 print(" - A significant increase indicates OXT 'normalizes' the neural code for Threat vs Safety.")
 
 results_24 = {'acc_plc': acc_sad_plc, 'acc_oxt': acc_sad_oxt, 'p_val': p_val, 'model': gold_model}
+_save_result("results_24", results_24)
+_save_result("results_24", results_24)
 
 # %% [cell 19]
 # Cell 16: Analysis 2.5 - Reverse Cross-Decoding (SAD Template -> HC)
@@ -4098,9 +4156,13 @@ ax.set_title("Analysis 2.5: Reverse Cross-Decoding\n(Does SAD 'Disorder' general
 plt.yticks(rotation=0) 
 
 plt.tight_layout()
+_save_fig("analysis_24")
+_save_fig("results_24")
 plt.show()
 
 results_25 = {'acc_hc_plc': acc_hc_plc, 'acc_hc_oxt': acc_hc_oxt, 'model': sad_model}
+_save_result("results_25", results_25)
+_save_result("results_25", results_25)
 
 # %% [cell 20]
 # Cell 17: Searchlight RSM (CSR/CSS/CS-) + Early/Late Dynamics (Extinction & Reinstatement)
@@ -4446,8 +4508,11 @@ else:
     print("[Step 7] Computing maps for Extinction and Reinstatement (by group)...")
 
     results_maps = {}
+    _save_result("results_maps", results_maps)
     results_pvals = {}
+    _save_result("results_pvals", results_pvals)
     results_fdr = {}
+    _save_result("results_fdr", results_fdr)
 
     for group_key in GROUPS_TO_RUN:
         for phase_key, phase_name in [("ext", "Extinction"), ("rst", "Reinstatement")]:

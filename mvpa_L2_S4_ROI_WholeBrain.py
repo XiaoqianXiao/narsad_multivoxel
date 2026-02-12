@@ -78,6 +78,38 @@ matplotlib.use('Agg')  # Use non-interactive backend
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+import argparse
+
+# Argument parsing (allow run_mvpa.sh to override paths)
+_parser = argparse.ArgumentParser(add_help=False)
+_parser.add_argument("--project_root", default=os.environ.get("PROJECT_ROOT", "/gscratch/fang/NARSAD"))
+_parser.add_argument("--output_dir", default=os.environ.get("OUTPUT_DIR"))
+_args, _ = _parser.parse_known_args()
+PROJECT_ROOT = _args.project_root
+OUTPUT_DIR = _args.output_dir
+
+# Output root for all analyses
+if OUTPUT_DIR:
+    OUT_DIR_MAIN = OUTPUT_DIR
+else:
+    OUT_DIR_MAIN = os.path.join(PROJECT_ROOT, "MRI/derivatives/fMRI_analysis/LSS", "results", "mvpa_outputs")
+os.makedirs(OUT_DIR_MAIN, exist_ok=True)
+
+def _save_result(name: str, obj) -> None:
+    from joblib import dump
+    path = os.path.join(OUT_DIR_MAIN, f"{name}.joblib")
+    try:
+        dump(obj, path)
+    except Exception as exc:
+        print(f"  ! Failed to save {name}: {exc}")
+
+def _save_fig(name: str) -> None:
+    try:
+        plt.savefig(os.path.join(OUT_DIR_MAIN, f"{name}.png"), dpi=300, bbox_inches="tight")
+    except Exception as exc:
+        print(f"  ! Failed to save figure {name}: {exc}")
+
+
 from typing import List, Union
 
 # =============================================================================
@@ -984,6 +1016,7 @@ def analysis_1_1_neural_dissociation(data_subsets, output_dir):
         "map_sad": map_sad, 
         "map_hc": map_hc
     }
+    _save_result("results_11", results_11)
     
     # Save results
     results_path = os.path.join(output_dir, "analysis_1_1_results.pkl")
@@ -1310,6 +1343,7 @@ def analysis_1_2_static_topology(data_subsets, X_ext, y_ext, sub_ext, importance
         "features_sad": np.sum(mask_sad_top5), "features_hc": np.sum(mask_hc_top5),
         "one_sample_stats": {"p_a_sad": p_a_sad_0, "p_a_hc": p_a_hc_0, "p_b_sad": p_b_sad_0, "p_b_hc": p_b_hc_0}
     }
+    _save_result("results_12", results_12)
     
     results_path = os.path.join(output_dir, "analysis_1_2_results.pkl")
     with open(results_path, 'wb') as f:
@@ -1446,6 +1480,7 @@ def analysis_1_3_dynamic_drift(data_subsets, X_ext, y_ext, sub_ext, X_reinst, y_
         print(f"Saved figure to {fig_path}")
         
         results_13 = {'safe_sad': df_safe_sad, 'threat_sad': df_threat_sad}
+        _save_result("results_13", results_13)
         results_path = os.path.join(output_dir, "analysis_1_3_drift_results.pkl")
         with open(results_path, 'wb') as f:
             pickle.dump(results_13, f)
@@ -1612,6 +1647,7 @@ def analysis_1_3_trajectories(data_subsets, X_ext, y_ext, sub_ext, X_reinst, y_r
         'data_safe': df_safe,
         'data_threat': df_threat
     }
+    _save_result("results_13b", results_13)
     results_path = os.path.join(output_dir, "analysis_1_3_trajectories_results.pkl")
     with open(results_path, 'wb') as f:
         pickle.dump(results_13, f)
@@ -1718,6 +1754,7 @@ def analysis_1_4_decision_boundary(data_subsets, importance_scores, subject_best
     print(f"Saved figure to {fig_path}")
     
     results_14_self = {'df_sad': df_sad_stats, 'df_hc': df_hc_stats}
+    _save_result("results_14_self", results_14_self)
     results_path = os.path.join(output_dir, "analysis_1_4_results.pkl")
     with open(results_path, 'wb') as f:
         pickle.dump(results_14_self, f)
@@ -1842,6 +1879,7 @@ def analysis_2_1_safety_restoration(data_subsets, X_ext, y_ext, sub_ext, mask_sa
     print(f"Saved figure to {fig_path}")
     
     results_21 = {'df': df_topo, 'p_safe': p_int_safe, 'p_threat': p_int_threat}
+    _save_result("results_21", results_21)
     results_path = os.path.join(output_dir, "analysis_2_1_results.pkl")
     with open(results_path, 'wb') as f:
         pickle.dump(results_21, f)
@@ -1973,6 +2011,7 @@ def analysis_2_2_drift_efficiency(data_subsets, X_ext, y_ext, sub_ext, X_reinst,
     print(f"Saved figure to {fig_path}")
     
     results_22 = {'df': df_drift, 'stats': lme_results}
+    _save_result("results_22", results_22)
     results_path = os.path.join(output_dir, "analysis_2_2_results.pkl")
     with open(results_path, 'wb') as f:
         pickle.dump(results_22, f)
@@ -2088,6 +2127,7 @@ def analysis_2_3_probabilistic_opening(data_subsets, X_ext, y_ext, sub_ext, impo
     print(f"Saved figure to {fig_path}")
     
     results_23 = {'df': df_metrics, 'stats': stats_results}
+    _save_result("results_23", results_23)
     results_path = os.path.join(output_dir, "analysis_2_3_results.pkl")
     with open(results_path, 'wb') as f:
         pickle.dump(results_23, f)
@@ -2211,6 +2251,7 @@ def analysis_2_4_spatial_realignment(data_subsets, res_hc_dict, output_dir):
     print(f"Saved figure to {fig_path}")
     
     results_24 = {'acc_plc': acc_sad_plc, 'acc_oxt': acc_sad_oxt, 'p_val': p_val, 'model': gold_model}
+    _save_result("results_24", results_24)
     results_path = os.path.join(output_dir, "analysis_2_4_results.pkl")
     with open(results_path, 'wb') as f:
         pickle.dump(results_24, f)
@@ -2311,6 +2352,7 @@ def analysis_2_5_reverse_crossdecoding(data_subsets, importance_scores, output_d
     print(f"Saved figure to {fig_path}")
     
     results_25 = {'acc_hc_plc': acc_hc_plc, 'acc_hc_oxt': acc_hc_oxt, 'model': sad_model}
+    _save_result("results_25", results_25)
     results_path = os.path.join(output_dir, "analysis_2_5_results.pkl")
     with open(results_path, 'wb') as f:
         pickle.dump(results_25, f)
