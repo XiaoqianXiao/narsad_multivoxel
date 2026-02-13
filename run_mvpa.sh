@@ -5,7 +5,7 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=32
 #SBATCH --mem=60G
-#SBATCH --time=12:00:00
+#SBATCH --time=20:00:00
 #SBATCH --output=mvpa_output_%j.out
 #SBATCH --error=mvpa_output_%j.err
 
