@@ -4665,6 +4665,9 @@ else:
 # =============================================================================
 print("--- Running Parcel-level RSM (Whole-Brain Parcellation) ---")
 
+# Ensure condition list is defined for parcel-level RSM
+COND_LIST = ["CSR", "CSS", "CS-"]
+
 def build_parcel_stage_vectors(X, y, sub, stage):
     """Return per-subject 3 x P condition matrices using parcel features."""
     subjects = np.unique(sub)
