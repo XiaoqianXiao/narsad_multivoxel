@@ -4655,7 +4655,7 @@ else:
     roi_csv = os.path.join(out_dir, "rsm_roi_summary.csv")
     roi_df.to_csv(roi_csv, index=False)
 
-print(f"Cell 17 complete: outputs saved to {out_dir}")
+    print(f"Cell 17 complete: outputs saved to {out_dir}")
 
 # =============================================================================
 # Shared helper for parcel-level RSM (needs to be top-level)

@@ -4206,7 +4206,7 @@ from tqdm import tqdm
 # =============================================================================
 # 0. Configuration
 # =============================================================================
-    ROI_DIR = os.path.join(PROJECT_ROOT, "ROI", "Gillian_anatomically_constrained")
+ROI_DIR = os.path.join(PROJECT_ROOT, "ROI", "Gillian_anatomically_constrained")
 ROI_ORDER = [
     'left_acc', 'left_amygdala', 'left_hippocampus', 'left_insula', 'left_vmpfc',
     'right_acc', 'right_amygdala', 'right_hippocampus', 'right_insula', 'right_vmpfc'
