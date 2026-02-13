@@ -24,6 +24,8 @@ Environment variables (optional):
 
 Examples:
   ./run_mvpa.sh
+  # WholeBrain only:
+  # ANALYSIS=WholeBrain sbatch run_mvpa.sh
 USAGE
     exit 0
 fi
