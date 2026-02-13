@@ -4660,35 +4660,6 @@ print(f"Cell 17 complete: outputs saved to {out_dir}")
 # =============================================================================
 # Shared helper for parcel-level RSM (needs to be top-level)
 # =============================================================================
-def collect_phase_data(phase_key, group_key=None):
-    # Always use raw arrays loaded in this cell (includes CS-)
-    if phase_key == "ext":
-        X_all, y_all, sub_all = X_ext, y_ext, sub_ext
-    else:
-        X_all, y_all, sub_all = X_reinst, y_reinst, sub_reinst
-
-    if group_key is None or group_key == "ALL":
-        return X_all, y_all, sub_all
-
-    def get_group_key(sub_id):
-        s_str = normalize_subject_id(sub_id)
-        conds = None
-        if 'sub_to_meta_norm' in globals():
-            if s_str in sub_to_meta_norm:
-                conds = sub_to_meta_norm[s_str]
-            elif s_str in sub_to_meta:
-                conds = sub_to_meta[s_str]
-        if conds:
-            return f"{conds['Group']}_{conds['Drug']}"
-        return None
-
-    subjects = np.unique(sub_all)
-    sel_subs = [s for s in subjects if get_group_key(s) == group_key]
-    if not sel_subs:
-        return None, None, None
-    mask = np.isin(sub_all, sel_subs)
-    return X_all[mask], y_all[mask], sub_all[mask]
-
 # =============================================================================
 # Parcel-level RSM (Whole-Brain Parcellation)
 # =============================================================================

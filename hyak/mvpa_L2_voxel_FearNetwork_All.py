@@ -1998,7 +1998,7 @@ print("--- Cell 7: Running Voxel-wise Spatial Analysis (ROI Reconstruction) ---"
 # 0. Setup & Configuration
 # =============================================================================
 # 1. ROI Configuration
-ROI_DIR = "/Users/xiaoqianxiao/tool/parcellation/Gillian_anatomically_constrained"
+ROI_DIR = os.path.join(PROJECT_ROOT, "ROI", "Gillian_anatomically_constrained")
 ROI_ORDER = [
     'left_acc', 'left_amygdala', 'left_hippocampus', 'left_insula', 'left_vmpfc',
     'right_acc', 'right_amygdala', 'right_hippocampus', 'right_insula', 'right_vmpfc'
@@ -4206,7 +4206,7 @@ from tqdm import tqdm
 # =============================================================================
 # 0. Configuration
 # =============================================================================
-ROI_DIR = "/Users/xiaoqianxiao/tool/parcellation/Gillian_anatomically_constrained"
+    ROI_DIR = os.path.join(PROJECT_ROOT, "ROI", "Gillian_anatomically_constrained")
 ROI_ORDER = [
     'left_acc', 'left_amygdala', 'left_hippocampus', 'left_insula', 'left_vmpfc',
     'right_acc', 'right_amygdala', 'right_hippocampus', 'right_insula', 'right_vmpfc'
