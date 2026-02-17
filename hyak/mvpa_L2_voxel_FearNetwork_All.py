@@ -4521,18 +4521,15 @@ def pvals_and_fdr(null_maps, obs_map):
 print("[Step 7] Computing maps for Extinction and Reinstatement (by group)...")
 
 results_maps = {}
-_save_result("results_maps", results_maps)
 results_pvals = {}
-_save_result("results_pvals", results_pvals)
 results_fdr = {}
-_save_result("results_fdr", results_fdr)
 
-for group_key in GROUPS_TO_RUN:
-    for phase_key, phase_name in [("ext", "Extinction"), ("rst", "Reinstatement")]:
-        X_p, y_p, sub_p = collect_phase_data(phase_key, group_key=group_key)
-        if X_p is None:
-            print(f"  ! {phase_name} data missing for {group_key}. Skipping.")
-            continue
+    for group_key in GROUPS_TO_RUN:
+        for phase_key, phase_name in [("ext", "Extinction"), ("rst", "Reinstatement")]:
+            X_p, y_p, sub_p = collect_phase_data(phase_key, group_key=group_key)
+            if X_p is None:
+                print(f"  ! {phase_name} data missing for {group_key}. Skipping.")
+                continue
 
         early_mats = build_stage_vectors(X_p, y_p, sub_p, "early")
         late_mats = build_stage_vectors(X_p, y_p, sub_p, "late")
@@ -4558,10 +4555,24 @@ for group_key in GROUPS_TO_RUN:
             p_early, fdr_early = pvals_and_fdr(null_early, map_early)
             results_pvals[(group_key, phase_key, "early")] = p_early
             results_fdr[(group_key, phase_key, "early")] = fdr_early
-        if null_late is not None:
-            p_late, fdr_late = pvals_and_fdr(null_late, map_late)
-            results_pvals[(group_key, phase_key, "late")] = p_late
-            results_fdr[(group_key, phase_key, "late")] = fdr_late
+            if null_late is not None:
+                p_late, fdr_late = pvals_and_fdr(null_late, map_late)
+                results_pvals[(group_key, phase_key, "late")] = p_late
+                results_fdr[(group_key, phase_key, "late")] = fdr_late
+
+# Save results after population
+if results_maps:
+    _save_result("results_maps", results_maps)
+else:
+    print("  ! No results_maps generated; skipping save.")
+if results_pvals:
+    _save_result("results_pvals", results_pvals)
+else:
+    print("  ! No results_pvals generated; skipping save.")
+if results_fdr:
+    _save_result("results_fdr", results_fdr)
+else:
+    print("  ! No results_fdr generated; skipping save.")
 
 # =============================================================================
 # 8. Group contrasts

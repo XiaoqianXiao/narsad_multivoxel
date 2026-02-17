@@ -4529,12 +4529,9 @@ else:
     # =============================================================================
     print("[Step 7] Computing maps for Extinction and Reinstatement (by group)...")
 
-    results_maps = {}
-    _save_result("results_maps", results_maps)
-    results_pvals = {}
-    _save_result("results_pvals", results_pvals)
-    results_fdr = {}
-    _save_result("results_fdr", results_fdr)
+results_maps = {}
+results_pvals = {}
+results_fdr = {}
 
     for group_key in GROUPS_TO_RUN:
         for phase_key, phase_name in [("ext", "Extinction"), ("rst", "Reinstatement")]:
@@ -4571,6 +4568,20 @@ else:
                 p_late, fdr_late = pvals_and_fdr(null_late, map_late)
                 results_pvals[(group_key, phase_key, "late")] = p_late
                 results_fdr[(group_key, phase_key, "late")] = fdr_late
+
+# Save results after population
+if results_maps:
+    _save_result("results_maps", results_maps)
+else:
+    print("  ! No results_maps generated; skipping save.")
+if results_pvals:
+    _save_result("results_pvals", results_pvals)
+else:
+    print("  ! No results_pvals generated; skipping save.")
+if results_fdr:
+    _save_result("results_fdr", results_fdr)
+else:
+    print("  ! No results_fdr generated; skipping save.")
 
     # =============================================================================
     # 8. Group contrasts
