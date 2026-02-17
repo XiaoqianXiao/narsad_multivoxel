@@ -163,35 +163,20 @@ def subject_wise_centering(X, subjects):
     return X_centered
 
 def compute_pairwise_forced_choice(y_true, scores, class_labels):
-    """Computes accuracy where for each trial, the class with the higher 
-    aggregated decision score is chosen."""
-    classes = sorted(list(set(y_true)))
-    accs = []
-    pairs = list(combinations(classes, 2))
-    
-    for c1, c2 in pairs:
-        idx_c1 = np.where(y_true == c1)[0]
-        idx_c2 = np.where(y_true == c2)[0]
-        if len(idx_c1) == 0 or len(idx_c2) == 0: 
-            continue
-            
-        col_c1 = list(class_labels).index(c1)
-        col_c2 = list(class_labels).index(c2)
-        
-        subset_idx = np.concatenate([idx_c1, idx_c2])
-        subset_y = y_true[subset_idx]
-        subset_scores = scores[subset_idx]
-        
-        # Choice logic: is score for C1 > score for C2?
-        diff = subset_scores[:, col_c1] - subset_scores[:, col_c2]
-        subset_pred = np.where(diff > 0, c1, c2)
-        
-        accs.append(accuracy_score(subset_y, subset_pred))
-        
-    return np.mean(accs) if accs else 0.0
+    """
+    Deprecated: keep for backward compatibility.
+    Use standard accuracy on predicted labels instead of forced-choice.
+    """
+    if scores.ndim == 1:
+        # Binary decision function -> threshold at 0 for class 1
+        pred = np.where(scores > 0, class_labels[1], class_labels[0])
+        return accuracy_score(y_true, pred)
+    pred_idx = np.argmax(scores, axis=1)
+    pred = np.array(class_labels)[pred_idx]
+    return accuracy_score(y_true, pred)
 
 def run_pairwise_decoding_analysis(X, y, subjects, n_repeats=10):
-    """Pairwise forced-choice decoding analysis."""
+    """Pairwise decoding analysis using standard accuracy."""
     X = np.array(X)
     y = np.array(y)
     subjects = np.array(subjects)
@@ -232,27 +217,16 @@ def run_pairwise_decoding_analysis(X, y, subjects, n_repeats=10):
                 
                 best_model = gs.best_estimator_
                 
-                # Forced-Choice logic on the Outer Test Fold
-                raw_val = best_model.decision_function(X_pair[test_idx])
-                scores_2d = np.column_stack((-raw_val, raw_val)) if raw_val.ndim == 1 else raw_val
-                
-                val_df = pd.DataFrame(scores_2d, columns=best_model.classes_)
-                val_df['sub'] = sub_pair[test_idx]
-                val_df['y'] = y_pair[test_idx]
-                mean_val = val_df.groupby(['sub', 'y']).mean().reset_index()
-                
-                fold_fc_acc = compute_pairwise_forced_choice(
-                    mean_val['y'].values, 
-                    mean_val[best_model.classes_].values, 
-                    best_model.classes_
-                )
-                repeat_scores.append(fold_fc_acc)
+                # Standard accuracy on the Outer Test Fold
+                y_pred = best_model.predict(X_pair[test_idx])
+                fold_acc = accuracy_score(y_pair[test_idx], y_pred)
+                repeat_scores.append(fold_acc)
             
             all_repeat_scores.extend(repeat_scores)
             
         avg_cv_acc = np.mean(all_repeat_scores)
         std_cv_acc = np.std(all_repeat_scores)
-        print(f"  > Final Mean Forced-Choice Accuracy ({n_repeats} repeats): {avg_cv_acc:.4f} (+/- {std_cv_acc:.4f})")
+        print(f"  > Final Mean Accuracy ({n_repeats} repeats): {avg_cv_acc:.4f} (+/- {std_cv_acc:.4f})")
 
         # PHASE 2: MODEL GENERATION (Refit on Full Data)
         print("  > Generating final model (Refit on full data for Haufe patterns)...")
@@ -310,21 +284,22 @@ def run_perm_simple(X, y, groups, n_iters):
 def run_cross_decoding(model, X, y, groups, classes=None):
     """
     Applies a pre-trained model to a new dataset and computes subject-level
-    forced-choice accuracy.
+    standard accuracy.
 
     Returns
     -------
     accuracies : np.ndarray
-        Array of forced-choice accuracy scores, one per subject.
+        Array of accuracy scores, one per subject.
     """
-    scores = model.decision_function(X)
-    scores_2d = (
-        np.column_stack((-scores, scores))
-        if scores.ndim == 1
-        else scores
-    )
-    class_labels = list(classes) if classes is not None else list(model.classes_)
-    return compute_subject_forced_choice_accs(y, scores_2d, groups, class_labels)
+    unique_subjects = np.unique(groups)
+    accuracies = []
+    for sub in unique_subjects:
+        mask_sub = (groups == sub)
+        X_sub = X[mask_sub]
+        y_sub = y[mask_sub]
+        y_pred = model.predict(X_sub)
+        accuracies.append(accuracy_score(y_sub, y_pred))
+    return np.array(accuracies)
 
 #------------------------------
 def compute_haufe_binary_robust(model, X):
@@ -639,27 +614,11 @@ def calc_forced_choice_acc(model, X, y, subs, feature_mask, COND_THREAT="CSR", C
 
     X_f = subject_wise_centering(X_f, s_f)
     
-    scores = model.decision_function(X_f)
-    
-    df_scores = pd.DataFrame({'sub': s_f, 'cond': y_f, 'score': scores})
-    means = df_scores.groupby(['sub', 'cond'])['score'].mean().unstack()
-    
-    valid_subs = means.dropna().index
-    means = means.loc[valid_subs]
-    
-    pos_idx = np.where(model.classes_ == COND_THREAT)[0][0]
     accs = []
-    
-    for sub in means.index:
-        s_threat = means.loc[sub, COND_THREAT]
-        s_safe = means.loc[sub, COND_SAFE]
-        
-        if pos_idx == 1: 
-            correct = s_threat > s_safe
-        else: 
-            correct = s_threat < s_safe
-        accs.append(1.0 if correct else 0.0)
-        
+    for sub in np.unique(s_f):
+        mask_sub = (s_f == sub)
+        y_pred = model.predict(X_f[mask_sub])
+        accs.append(accuracy_score(y_f[mask_sub], y_pred))
     return accs
 
 def perm_ttest_ind(data1, data2, n_perm=N_PERMUTATION):
@@ -2181,7 +2140,7 @@ def analysis_2_4_spatial_realignment(data_subsets, res_hc_dict, output_dir):
     X_sad_plc, y_sad_plc, sub_sad_plc = get_ext_data("SAD_Placebo")
     X_sad_oxt, y_sad_oxt, sub_sad_oxt = get_ext_data("SAD_Oxytocin")
     
-    print("\n[Step 1] Cross-Decoding on SAD Subgroups (Forced Choice)...")
+    print("\n[Step 1] Cross-Decoding on SAD Subgroups (Standard Accuracy)...")
     
     def calc_forced_choice_acc(model, X, y, subs):
         mask_c = np.isin(y, LABELS)
@@ -2194,33 +2153,15 @@ def analysis_2_4_spatial_realignment(data_subsets, res_hc_dict, output_dir):
         X_f = subject_wise_centering(X_f, s_f)
         
         try:
-            scores = model.decision_function(X_f)
+            y_pred = model.predict(X_f)
         except ValueError as e:
             print(f"    ! Prediction Error (Shape Mismatch?): {e}")
             return []
         
-        df_scores = pd.DataFrame({'sub': s_f, 'cond': y_f, 'score': scores})
-        means = df_scores.groupby(['sub', 'cond'])['score'].mean().unstack()
-        
-        valid_subs = means.dropna().index
-        means = means.loc[valid_subs]
-        
-        if COND_THREAT not in means.columns or COND_SAFE not in means.columns:
-            return []
-
-        pos_idx = np.where(gold_model.classes_ == COND_THREAT)[0][0]
-        
         accs = []
-        for sub in means.index:
-            s_threat = means.loc[sub, COND_THREAT]
-            s_safe = means.loc[sub, COND_SAFE]
-            
-            if pos_idx == 1:
-                correct = s_threat > s_safe
-            else:
-                correct = s_threat < s_safe
-                
-            accs.append(1.0 if correct else 0.0)
+        for sub in np.unique(s_f):
+            mask_sub = (s_f == sub)
+            accs.append(accuracy_score(y_f[mask_sub], y_pred[mask_sub]))
             
         return accs
     

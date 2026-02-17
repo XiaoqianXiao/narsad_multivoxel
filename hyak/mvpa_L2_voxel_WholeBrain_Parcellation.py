@@ -275,27 +275,28 @@ def get_top_percentile_mask(scores, percentile):
 def run_cross_decoding(model, X, y, groups, classes=None):
     """
     Applies a pre-trained model to a new dataset and computes subject-level
-    forced-choice accuracy.
+    standard accuracy.
 
     Returns
     -------
     accuracies : np.ndarray
-        Array of forced-choice accuracy scores, one per subject.
+        Array of accuracy scores, one per subject.
     """
-    scores = model.decision_function(X)
-    scores_2d = (
-        np.column_stack((-scores, scores))
-        if scores.ndim == 1
-        else scores
-    )
-    class_labels = list(classes) if classes is not None else list(model.classes_)
-    return compute_subject_forced_choice_accs(y, scores_2d, groups, class_labels)
+    unique_subjects = np.unique(groups)
+    accuracies = []
+    for sub in unique_subjects:
+        mask_sub = (groups == sub)
+        X_sub = X[mask_sub]
+        y_sub = y[mask_sub]
+        y_pred = model.predict(X_sub)
+        accuracies.append(accuracy_score(y_sub, y_pred))
+    return np.array(accuracies)
 
 #------------------------------
 def run_perm_simple(X, y, groups, n_iters):
     """
     Runs permutation testing iterations for a single job using
-    subject-level forced-choice accuracy.
+    standard accuracy.
     
     Parameters:
     -----------
@@ -306,7 +307,7 @@ def run_perm_simple(X, y, groups, n_iters):
     
     Returns:
     --------
-    scores : list of mean subject-level forced-choice accuracy scores
+    scores : list of mean accuracy scores
     """
     scores = []
     y_shuffled = y.copy()
@@ -319,33 +320,17 @@ def run_perm_simple(X, y, groups, n_iters):
         # 1. Shuffle labels randomly (breaking the relationship between X and y)
         np.random.shuffle(y_shuffled)
         
-        # 2. Cross-validated decision scores (trial-level) on shuffled labels
-        #    Note: We pass 'groups' to ensure no subject leakage between train/test folds
-        scores_cv = cross_val_predict(
+        # 2. Cross-validated accuracy on shuffled labels
+        cv_scores = cross_val_score(
             pipe,
             X,
             y_shuffled,
             groups=groups,
             cv=cv,
-            method="decision_function",
+            scoring='accuracy',
             n_jobs=1
         )
-
-        # 3. Convert to 2D decision scores and compute subject-level forced-choice
-        scores_2d = (
-            np.column_stack((-scores_cv, scores_cv))
-            if scores_cv.ndim == 1
-            else scores_cv
-        )
-        class_labels = list(np.unique(y))
-        scores.append(
-            compute_subject_forced_choice_mean_acc(
-                y_shuffled,
-                scores_2d,
-                groups,
-                class_labels
-            )
-        )
+        scores.append(float(np.mean(cv_scores)))
         
     return scores
 
@@ -353,25 +338,18 @@ def run_perm_simple(X, y, groups, n_iters):
 
 #--- Function: run_cross_perm ---
 def run_cross_perm(model, X, y, subs, n_iter):
-    """Cross-decoding permutation using subject-level forced-choice accuracy."""
+    """Cross-decoding permutation using subject-level standard accuracy."""
     null_scores = []
     mask_c = np.isin(y, model.classes_)
     X_f = X[mask_c]
     y_f = y[mask_c]
     s_f = subs[mask_c]
 
-    scores = model.decision_function(X_f)
-    scores_2d = (
-        np.column_stack((-scores, scores))
-        if scores.ndim == 1
-        else scores
-    )
-    class_labels = list(model.classes_)
+    y_pred = model.predict(X_f)
 
     for _ in range(n_iter):
         y_shuff = np.random.permutation(y_f)
-        accs = compute_subject_forced_choice_accs(y_shuff, scores_2d, s_f, class_labels)
-        null_scores.append(float(np.mean(accs)) if len(accs) > 0 else 0.0)
+        null_scores.append(compute_subject_mean_accuracy(y_shuff, y_pred, s_f))
     return np.array(null_scores)
 
 #------------------------------
@@ -397,7 +375,7 @@ def run_pairwise_decoding_analysis(X, y, subjects, n_repeats=10):
         mask = np.isin(y, [c1, c2]); X_pair = X[mask]; y_pair = y[mask]; sub_pair = subjects[mask]
         
         # ---------------------------------------------------------------------
-        # PHASE 1: EVALUATION (Repeated Nested CV with Forced-Choice)
+        # PHASE 1: EVALUATION (Repeated Nested CV with Standard Accuracy)
         # ---------------------------------------------------------------------
         all_repeat_scores = []
         
@@ -417,27 +395,16 @@ def run_pairwise_decoding_analysis(X, y, subjects, n_repeats=10):
                 
                 best_model = gs.best_estimator_
                 
-                # Forced-Choice logic on the Outer Test Fold
-                raw_val = best_model.decision_function(X_pair[test_idx])
-                scores_2d = np.column_stack((-raw_val, raw_val)) if raw_val.ndim == 1 else raw_val
-                
-                val_df = pd.DataFrame(scores_2d, columns=best_model.classes_)
-                val_df['sub'] = sub_pair[test_idx]
-                val_df['y'] = y_pair[test_idx]
-                mean_val = val_df.groupby(['sub', 'y']).mean().reset_index()
-                
-                fold_fc_acc = compute_pairwise_forced_choice(
-                    mean_val['y'].values, 
-                    mean_val[best_model.classes_].values, 
-                    best_model.classes_
-                )
-                repeat_scores.append(fold_fc_acc)
+                # Standard accuracy on the Outer Test Fold
+                y_pred = best_model.predict(X_pair[test_idx])
+                fold_acc = accuracy_score(y_pair[test_idx], y_pred)
+                repeat_scores.append(fold_acc)
             
             all_repeat_scores.extend(repeat_scores)
             
         avg_cv_acc = np.mean(all_repeat_scores)
         std_cv_acc = np.std(all_repeat_scores) # Total variance across all repeats/folds
-        print(f"  > Final Mean Forced-Choice Accuracy ({n_repeats} repeats): {avg_cv_acc:.4f} (+/- {std_cv_acc:.4f})")
+        print(f"  > Final Mean Accuracy ({n_repeats} repeats): {avg_cv_acc:.4f} (+/- {std_cv_acc:.4f})")
 
         # ---------------------------------------------------------------------
         # PHASE 2: MODEL GENERATION (Refit on Full Data)
@@ -686,32 +653,15 @@ def run_wen_paper_analysis_voxelwise(X, y, subjects, pipeline_template, best_C, 
 #--- Function: compute_pairwise_forced_choice ---
 def compute_pairwise_forced_choice(y_true, scores, class_labels):
     """
-    Computes accuracy where for each trial, the class with the higher 
-    aggregated decision score is chosen.
+    Deprecated: kept for backward compatibility.
+    Uses standard accuracy on predicted labels derived from scores.
     """
-    classes = sorted(list(set(y_true)))
-    accs = []
-    pairs = list(combinations(classes, 2))
-    
-    for c1, c2 in pairs:
-        idx_c1 = np.where(y_true == c1)[0]
-        idx_c2 = np.where(y_true == c2)[0]
-        if len(idx_c1) == 0 or len(idx_c2) == 0: continue
-            
-        col_c1 = list(class_labels).index(c1)
-        col_c2 = list(class_labels).index(c2)
-        
-        subset_idx = np.concatenate([idx_c1, idx_c2])
-        subset_y = y_true[subset_idx]
-        subset_scores = scores[subset_idx]
-        
-        # Choice logic: is score for C1 > score for C2?
-        diff = subset_scores[:, col_c1] - subset_scores[:, col_c2]
-        subset_pred = np.where(diff > 0, c1, c2)
-        
-        accs.append(accuracy_score(subset_y, subset_pred))
-        
-    return np.mean(accs) if accs else 0.0
+    if scores.ndim == 1:
+        pred = np.where(scores > 0, class_labels[1], class_labels[0])
+        return accuracy_score(y_true, pred)
+    pred_idx = np.argmax(scores, axis=1)
+    pred = np.array(class_labels)[pred_idx]
+    return accuracy_score(y_true, pred)
 
 #------------------------------
 def compute_subject_mean_accuracy(
@@ -729,24 +679,34 @@ def compute_subject_mean_accuracy(
     return float(np.mean(sub_accs)) if sub_accs else 0.0
 
 
+def compute_subject_accuracy_accs(
+    y_true: np.ndarray,
+    y_pred: np.ndarray,
+    subjects: np.ndarray
+) -> np.ndarray:
+    """Compute per-subject standard accuracy from trial-level predictions."""
+    accs = []
+    for sub in np.unique(subjects):
+        mask = subjects == sub
+        if np.sum(mask) == 0:
+            continue
+        accs.append(accuracy_score(y_true[mask], y_pred[mask]))
+    return np.array(accs)
+
+
 def compute_subject_forced_choice_mean_acc(
     y_true: np.ndarray,
     scores: np.ndarray,
     subjects: np.ndarray,
     class_labels: List[str]
 ) -> float:
-    """Compute mean subject-level forced-choice accuracy from decision scores."""
-    df_scores = pd.DataFrame(scores, columns=class_labels)
-    df_scores["sub"] = subjects
-    df_scores["y"] = y_true
-    mean_scores = df_scores.groupby(["sub", "y"]).mean().reset_index()
-    return float(
-        compute_pairwise_forced_choice(
-            mean_scores["y"].values,
-            mean_scores[class_labels].values,
-            class_labels
-        )
-    )
+    """Deprecated: compute mean subject-level accuracy from scores."""
+    if scores.ndim == 1:
+        y_pred = np.where(scores > 0, class_labels[1], class_labels[0])
+    else:
+        pred_idx = np.argmax(scores, axis=1)
+        y_pred = np.array(class_labels)[pred_idx]
+    return compute_subject_mean_accuracy(y_true, y_pred, subjects)
 
 def compute_subject_forced_choice_accs(
     y_true: np.ndarray,
@@ -754,22 +714,13 @@ def compute_subject_forced_choice_accs(
     subjects: np.ndarray,
     class_labels: List[str]
 ) -> np.ndarray:
-    """Compute per-subject forced-choice accuracies from decision scores."""
-    df_scores = pd.DataFrame(scores, columns=class_labels)
-    df_scores["sub"] = subjects
-    df_scores["y"] = y_true
-
-    accs = []
-    for sub, sub_df in df_scores.groupby("sub"):
-        mean_scores = sub_df.groupby("y")[class_labels].mean().reset_index()
-        acc = compute_pairwise_forced_choice(
-            mean_scores["y"].values,
-            mean_scores[class_labels].values,
-            class_labels
-        )
-        accs.append(acc)
-
-    return np.array(accs)
+    """Deprecated: compute per-subject accuracy from scores."""
+    if scores.ndim == 1:
+        y_pred = np.where(scores > 0, class_labels[1], class_labels[0])
+    else:
+        pred_idx = np.argmax(scores, axis=1)
+        y_pred = np.array(class_labels)[pred_idx]
+    return compute_subject_accuracy_accs(y_true, y_pred, subjects)
 
 
 #------------------------------
@@ -3900,9 +3851,9 @@ X_sad_plc, y_sad_plc, sub_sad_plc = get_ext_data("SAD_Placebo")
 X_sad_oxt, y_sad_oxt, sub_sad_oxt = get_ext_data("SAD_Oxytocin")
 
 # =============================================================================
-# 1. Cross-Decoding (Subject-Level Forced-Choice Accuracy)
+# 1. Cross-Decoding (Subject-Level Standard Accuracy)
 # =============================================================================
-print("\n[Step 1] Cross-Decoding on SAD Subgroups (Subject-Level Forced-Choice)...")
+print("\n[Step 1] Cross-Decoding on SAD Subgroups (Subject-Level Accuracy)...")
 
 # Filter to only the two classes of interest (CSS and CSR)
 mask_sad_plc = np.isin(y_sad_plc, LABELS)
@@ -3916,32 +3867,19 @@ X_sad_oxt_filtered = X_sad_oxt[mask_sad_oxt]
 y_sad_oxt_filtered = y_sad_oxt[mask_sad_oxt]
 sub_sad_oxt_filtered = sub_sad_oxt[mask_sad_oxt]
 
-# Decision scores -> subject-level forced-choice accuracy
-scores_plc = gold_model.decision_function(X_sad_plc_filtered)
-scores_oxt = gold_model.decision_function(X_sad_oxt_filtered)
+# Predictions -> subject-level standard accuracy
+y_pred_plc = gold_model.predict(X_sad_plc_filtered)
+y_pred_oxt = gold_model.predict(X_sad_oxt_filtered)
 
-scores_plc_2d = (
-    np.column_stack((-scores_plc, scores_plc))
-    if scores_plc.ndim == 1
-    else scores_plc
-)
-scores_oxt_2d = (
-    np.column_stack((-scores_oxt, scores_oxt))
-    if scores_oxt.ndim == 1
-    else scores_oxt
-)
-
-acc_sad_plc = compute_subject_forced_choice_accs(
+acc_sad_plc = compute_subject_accuracy_accs(
     y_sad_plc_filtered,
-    scores_plc_2d,
-    sub_sad_plc_filtered,
-    list(gold_model.classes_)
+    y_pred_plc,
+    sub_sad_plc_filtered
 )
-acc_sad_oxt = compute_subject_forced_choice_accs(
+acc_sad_oxt = compute_subject_accuracy_accs(
     y_sad_oxt_filtered,
-    scores_oxt_2d,
-    sub_sad_oxt_filtered,
-    list(gold_model.classes_)
+    y_pred_oxt,
+    sub_sad_oxt_filtered
 )
 
 m_plc = np.mean(acc_sad_plc) if len(acc_sad_plc) > 0 else 0
@@ -4060,9 +3998,9 @@ print(f"  > Model Trained on {len(np.unique(s_train))} SAD subjects.")
 print(f"  > Classes: {sad_model.classes_}")
 
 # =============================================================================
-# 2. Cross-Decode on HC Groups (Subject-Level Forced-Choice)
+# 2. Cross-Decode on HC Groups (Subject-Level Standard Accuracy)
 # =============================================================================
-print("\n[Step 2] Testing on HC Subgroups (Subject-Level Forced-Choice)...")
+print("\n[Step 2] Testing on HC Subgroups (Subject-Level Accuracy)...")
 
 # Filter to labels of interest (full feature set)
 mask_hc_plc_labels = np.isin(y_hc_plc, LABELS)
@@ -4076,31 +4014,18 @@ X_hc_oxt_filtered = X_hc_oxt[mask_hc_oxt_labels]
 y_hc_oxt_filtered = y_hc_oxt[mask_hc_oxt_labels]
 sub_hc_oxt_filtered = sub_hc_oxt[mask_hc_oxt_labels]
 
-scores_hc_plc = sad_model.decision_function(X_hc_plc_filtered)
-scores_hc_oxt = sad_model.decision_function(X_hc_oxt_filtered)
+y_pred_hc_plc = sad_model.predict(X_hc_plc_filtered)
+y_pred_hc_oxt = sad_model.predict(X_hc_oxt_filtered)
 
-scores_hc_plc_2d = (
-    np.column_stack((-scores_hc_plc, scores_hc_plc))
-    if scores_hc_plc.ndim == 1
-    else scores_hc_plc
-)
-scores_hc_oxt_2d = (
-    np.column_stack((-scores_hc_oxt, scores_hc_oxt))
-    if scores_hc_oxt.ndim == 1
-    else scores_hc_oxt
-)
-
-acc_hc_plc = compute_subject_forced_choice_accs(
+acc_hc_plc = compute_subject_accuracy_accs(
     y_hc_plc_filtered,
-    scores_hc_plc_2d,
-    sub_hc_plc_filtered,
-    list(sad_model.classes_)
+    y_pred_hc_plc,
+    sub_hc_plc_filtered
 )
-acc_hc_oxt = compute_subject_forced_choice_accs(
+acc_hc_oxt = compute_subject_accuracy_accs(
     y_hc_oxt_filtered,
-    scores_hc_oxt_2d,
-    sub_hc_oxt_filtered,
-    list(sad_model.classes_)
+    y_pred_hc_oxt,
+    sub_hc_oxt_filtered
 )
 
 m_hc_plc = np.mean(acc_hc_plc) if len(acc_hc_plc) > 0 else 0
