@@ -6,6 +6,7 @@ PROJECT_ROOT="/gscratch/fang/NARSAD"
 CONTAINER_SIF="/gscratch/fang/images/jupyter.sif"
 APP_PATH="/gscratch/scrubbed/fanglab/xiaoqian/repo/narsad_multivoxel/hyak"
 OUT_BASE="/gscratch/scrubbed/fanglab/xiaoqian/NARSAD/LSS/searchlight"
+REFERENCE_LSS="/gscratch/fang/NARSAD/MRI/derivatives/fMRI_analysis/LSS/firstLevel/all_subjects/subjects/sub-N101_task-phase2_contrast1.nii.gz"
 
 LOG_DIR="/gscratch/fang/NARSAD/logs/searchlight"
 PARTITION="ckpt-all"
@@ -38,7 +39,7 @@ submit() {
     --job-name="$name" \
     --output="$LOG_DIR/${name}_%j.out" \
     --error="$LOG_DIR/${name}_%j.err" \
-    --wrap="mkdir -p ${out_dir} && apptainer exec -B ${PROJECT_ROOT}:${PROJECT_ROOT} -B ${APP_PATH}:/app -B ${out_dir}:/output_dir ${CONTAINER_SIF} python3 /app/${script} --project_root ${PROJECT_ROOT} --out_dir /output_dir --n_jobs ${CPUS} --batch_size 256 ${extra_args}"
+    --wrap="mkdir -p ${out_dir} && apptainer exec -B ${PROJECT_ROOT}:${PROJECT_ROOT} -B ${APP_PATH}:/app -B ${out_dir}:/output_dir ${CONTAINER_SIF} python3 /app/${script} --project_root ${PROJECT_ROOT} --out_dir /output_dir --reference_lss ${REFERENCE_LSS} --n_jobs ${CPUS} --batch_size 256 ${extra_args}"
 }
 
 submit_array() {
@@ -58,7 +59,7 @@ submit_array() {
     --array=0-$((CHUNKS - 1)) \
     --output="$LOG_DIR/${name}_%A_%a.out" \
     --error="$LOG_DIR/${name}_%A_%a.err" \
-    --wrap="mkdir -p ${out_dir} && apptainer exec -B ${PROJECT_ROOT}:${PROJECT_ROOT} -B ${APP_PATH}:/app -B ${out_dir}:/output_dir ${CONTAINER_SIF} python3 /app/${script} --project_root ${PROJECT_ROOT} --out_dir /output_dir --n_jobs ${CPUS} --batch_size 256 --chunk_idx \$SLURM_ARRAY_TASK_ID --chunk_count ${CHUNKS} ${extra_args}"
+    --wrap="mkdir -p ${out_dir} && apptainer exec -B ${PROJECT_ROOT}:${PROJECT_ROOT} -B ${APP_PATH}:/app -B ${out_dir}:/output_dir ${CONTAINER_SIF} python3 /app/${script} --project_root ${PROJECT_ROOT} --out_dir /output_dir --reference_lss ${REFERENCE_LSS} --n_jobs ${CPUS} --batch_size 256 --chunk_idx \$SLURM_ARRAY_TASK_ID --chunk_count ${CHUNKS} ${extra_args}"
 }
 
 # ---- Scripts ----

@@ -141,15 +141,29 @@ def load_mask_and_coords(mask_img_path: str) -> Tuple[np.ndarray, np.ndarray, ni
 
 
 def find_reference_lss(project_root: str, task: str) -> str:
-    pattern = os.path.join(
-        project_root,
-        "MRI/derivatives/fMRI_analysis/LSS/firstLevel/all_subjects",
-        f"sub-*_task-{task}_contrast1.nii*",
-    )
-    matches = sorted(glob.glob(pattern))
-    if not matches:
-        raise FileNotFoundError(f"No LSS files found with pattern: {pattern}")
-    return matches[0]
+    patterns = [
+        os.path.join(
+            project_root,
+            "MRI/derivatives/fMRI_analysis/LSS/firstLevel/all_subjects",
+            f"sub-*_task-{task}_contrast1.nii*",
+        ),
+        os.path.join(
+            project_root,
+            "MRI/derivatives/fMRI_analysis/LSS/firstLevel/all_subjects/wholeBrain_S4",
+            f"sub-*_task-{task}_contrast1.nii*",
+        ),
+        os.path.join(
+            project_root,
+            "MRI/derivatives/fMRI_analysis/LSS/firstLevel/all_subjects/wholeBrain_S4",
+            "**",
+            f"sub-*_task-{task}_contrast1.nii*",
+        ),
+    ]
+    for pattern in patterns:
+        matches = sorted(glob.glob(pattern, recursive=True))
+        if matches:
+            return matches[0]
+    raise FileNotFoundError(f"No LSS files found with patterns: {patterns}")
 
 
 def build_master_mask_from_reference(
