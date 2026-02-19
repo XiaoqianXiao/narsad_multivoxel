@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# ---- User-configurable settings (aligned with run_mvpa.sh) ----
+PROJECT_ROOT="/gscratch/fang/NARSAD"
+CONTAINER_SIF="/gscratch/fang/images/jupyter.sif"
+APP_PATH="/gscratch/scrubbed/fanglab/xiaoqian/repo/narsad_multivoxel/hyak"
+OUT_BASE="/gscratch/scrubbed/fanglab/xiaoqian/NARSAD/LSS/searchlight"
+
+LOG_DIR="/gscratch/fang/NARSAD/logs/searchlight"
+PARTITION="ckpt-all"
+ACCOUNT="fang"
+TIME="4:00:00"
+MEM="120G"
+CPUS=32
+CHUNKS=96
+N_PERM=5000
+
+mkdir -p "$LOG_DIR"
+
+# 1. Load the container module
+module load apptainer 2>/dev/null || true
+
+submit() {
+  local name="$1"
+  local script="$2"
+  local out_dir="$3"
+  local extra_args="$4"
+  sbatch \
+    --partition="$PARTITION" \
+    --account="$ACCOUNT" \
+    --nodes=1 \
+    --ntasks=1 \
+    --cpus-per-task="$CPUS" \
+    --mem="$MEM" \
+    --time="$TIME" \
+    --job-name="$name" \
+    --output="$LOG_DIR/${name}_%j.out" \
+    --error="$LOG_DIR/${name}_%j.err" \
+    --wrap="apptainer exec -B ${PROJECT_ROOT}:${PROJECT_ROOT} -B ${APP_PATH}:/app -B ${out_dir}:/output_dir ${CONTAINER_SIF} python3 /app/${script} --project_root ${PROJECT_ROOT} --out_dir /output_dir --n_jobs ${CPUS} --batch_size 256 ${extra_args}"
+}
+
+submit_array() {
+  local name="$1"
+  local script="$2"
+  local out_dir="$3"
+  local extra_args="$4"
+  sbatch \
+    --partition="$PARTITION" \
+    --account="$ACCOUNT" \
+    --nodes=1 \
+    --ntasks=1 \
+    --cpus-per-task="$CPUS" \
+    --mem="$MEM" \
+    --time="$TIME" \
+    --job-name="$name" \
+    --array=0-$((CHUNKS - 1)) \
+    --output="$LOG_DIR/${name}_%A_%a.out" \
+    --error="$LOG_DIR/${name}_%A_%a.err" \
+    --wrap="apptainer exec -B ${PROJECT_ROOT}:${PROJECT_ROOT} -B ${APP_PATH}:/app -B ${out_dir}:/output_dir ${CONTAINER_SIF} python3 /app/${script} --project_root ${PROJECT_ROOT} --out_dir /output_dir --n_jobs ${CPUS} --batch_size 256 --chunk_idx \$SLURM_ARRAY_TASK_ID --chunk_count ${CHUNKS} ${extra_args}"
+}
+
+# ---- Scripts ----
+submit_array "sl_ext_csminus" "mvpa_searchlight_wholeBrain_ext.py" "${OUT_BASE}/ext" "--cond 'CS-' --n_perm ${N_PERM}"
+submit_array "sl_ext_css"     "mvpa_searchlight_wholeBrain_ext.py" "${OUT_BASE}/ext" "--cond CSS --n_perm ${N_PERM}"
+submit_array "sl_ext_csr"     "mvpa_searchlight_wholeBrain_ext.py" "${OUT_BASE}/ext" "--cond CSR --n_perm ${N_PERM}"
+
+submit_array "sl_rst_csminus" "mvpa_searchlight_wholeBrain_rst.py" "${OUT_BASE}/rst" "--cond 'CS-' --n_perm ${N_PERM}"
+submit_array "sl_rst_css"     "mvpa_searchlight_wholeBrain_rst.py" "${OUT_BASE}/rst" "--cond CSS --n_perm ${N_PERM}"
+submit_array "sl_rst_csr"     "mvpa_searchlight_wholeBrain_rst.py" "${OUT_BASE}/rst" "--cond CSR --n_perm ${N_PERM}"
+
+submit_array "dyn_ext"     "mvpa_searchlight_wholeBrain_dyn_ext.py" "${OUT_BASE}/dyn_ext" "--n_perm ${N_PERM}"
+submit_array "dyn_rst"     "mvpa_searchlight_wholeBrain_dyn_rst.py" "${OUT_BASE}/dyn_rst" "--n_perm ${N_PERM}"
+submit_array "crossphase"  "mvpa_searchlight_wholeBrain_crossphase.py" "${OUT_BASE}/crossphase" "--n_perm ${N_PERM}"
+
+echo "Submitted all searchlight jobs."
+echo "After jobs finish, merge chunk outputs:"
+echo "  apptainer exec -B ${PROJECT_ROOT}:${PROJECT_ROOT} -B ${APP_PATH}:/app -B ${OUT_BASE}:/output_dir ${CONTAINER_SIF} python3 /app/merge_searchlight_chunks.py --in_dir /output_dir/ext --out_dir /output_dir/ext/merged"
+echo "  apptainer exec -B ${PROJECT_ROOT}:${PROJECT_ROOT} -B ${APP_PATH}:/app -B ${OUT_BASE}:/output_dir ${CONTAINER_SIF} python3 /app/merge_searchlight_chunks.py --in_dir /output_dir/rst --out_dir /output_dir/rst/merged"
+echo "  apptainer exec -B ${PROJECT_ROOT}:${PROJECT_ROOT} -B ${APP_PATH}:/app -B ${OUT_BASE}:/output_dir ${CONTAINER_SIF} python3 /app/merge_searchlight_chunks.py --in_dir /output_dir/dyn_ext --out_dir /output_dir/dyn_ext/merged"
+echo "  apptainer exec -B ${PROJECT_ROOT}:${PROJECT_ROOT} -B ${APP_PATH}:/app -B ${OUT_BASE}:/output_dir ${CONTAINER_SIF} python3 /app/merge_searchlight_chunks.py --in_dir /output_dir/dyn_rst --out_dir /output_dir/dyn_rst/merged"
+echo "  apptainer exec -B ${PROJECT_ROOT}:${PROJECT_ROOT} -B ${APP_PATH}:/app -B ${OUT_BASE}:/output_dir ${CONTAINER_SIF} python3 /app/merge_searchlight_chunks.py --in_dir /output_dir/crossphase --out_dir /output_dir/crossphase/merged"

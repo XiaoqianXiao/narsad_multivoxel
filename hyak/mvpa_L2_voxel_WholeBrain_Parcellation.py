@@ -275,28 +275,14 @@ def get_top_percentile_mask(scores, percentile):
 def run_cross_decoding(model, X, y, groups, classes=None):
     """
     Applies a pre-trained model to a new dataset and computes subject-level
-    standard accuracy.
-
-    Returns
-    -------
-    accuracies : np.ndarray
-        Array of accuracy scores, one per subject.
+    forced-choice accuracy.
     """
-    unique_subjects = np.unique(groups)
-    accuracies = []
-    for sub in unique_subjects:
-        mask_sub = (groups == sub)
-        X_sub = X[mask_sub]
-        y_sub = y[mask_sub]
-        y_pred = model.predict(X_sub)
-        accuracies.append(accuracy_score(y_sub, y_pred))
-    return np.array(accuracies)
-
-#------------------------------
+    scores = model.decision_function(X)
+    return compute_subject_forced_choice_accs(y, scores, groups, model.classes_)
 def run_perm_simple(X, y, groups, n_iters):
     """
     Runs permutation testing iterations for a single job using
-    standard accuracy.
+    forced-choice accuracy.
     
     Parameters:
     -----------
@@ -327,7 +313,7 @@ def run_perm_simple(X, y, groups, n_iters):
             y_shuffled,
             groups=groups,
             cv=cv,
-            scoring='accuracy',
+            scoring=forced_choice_scorer,
             n_jobs=1
         )
         scores.append(float(np.mean(cv_scores)))
@@ -338,21 +324,18 @@ def run_perm_simple(X, y, groups, n_iters):
 
 #--- Function: run_cross_perm ---
 def run_cross_perm(model, X, y, subs, n_iter):
-    """Cross-decoding permutation using subject-level standard accuracy."""
+    """Cross-decoding permutation using trial-wise forced-choice accuracy."""
     null_scores = []
     mask_c = np.isin(y, model.classes_)
     X_f = X[mask_c]
     y_f = y[mask_c]
-    s_f = subs[mask_c]
 
-    y_pred = model.predict(X_f)
+    scores = model.decision_function(X_f)
 
     for _ in range(n_iter):
         y_shuff = np.random.permutation(y_f)
-        null_scores.append(compute_subject_mean_accuracy(y_shuff, y_pred, s_f))
+        null_scores.append(compute_forced_choice_accuracy(y_shuff, scores, model.classes_))
     return np.array(null_scores)
-
-#------------------------------
 def run_spatial_perm(seed, maps, groups):
     rng = np.random.default_rng(seed)
     shuffled = rng.permutation(groups)
@@ -375,7 +358,7 @@ def run_pairwise_decoding_analysis(X, y, subjects, n_repeats=10):
         mask = np.isin(y, [c1, c2]); X_pair = X[mask]; y_pair = y[mask]; sub_pair = subjects[mask]
         
         # ---------------------------------------------------------------------
-        # PHASE 1: EVALUATION (Repeated Nested CV with Standard Accuracy)
+        # PHASE 1: EVALUATION (Repeated Nested CV with Forced-Choice Accuracy)
         # ---------------------------------------------------------------------
         all_repeat_scores = []
         
@@ -390,7 +373,7 @@ def run_pairwise_decoding_analysis(X, y, subjects, n_repeats=10):
             for i, (train_idx, test_idx) in enumerate(gkf_outer.split(X_pair, y_pair, groups=sub_pair), 1):
                 cv_inner = get_cv(y_pair[train_idx], sub_pair[train_idx], n_splits=INNER_CV_SPLITS, shuffle=True, random_state=RANDOM_STATE + r)
                 # Inner loop for hyperparameter tuning
-                gs = GridSearchCV(build_binary_pipeline(), param_grid, cv=cv_inner, scoring='accuracy', n_jobs=N_JOBS)
+                gs = GridSearchCV(build_binary_pipeline(), param_grid, cv=cv_inner, scoring=forced_choice_scorer, n_jobs=N_JOBS)
                 gs.fit(X_pair[train_idx], y_pair[train_idx], groups=sub_pair[train_idx])
                 
                 best_model = gs.best_estimator_
@@ -412,7 +395,7 @@ def run_pairwise_decoding_analysis(X, y, subjects, n_repeats=10):
         # For the final model, we still refit once using a stable inner CV
         print("  > Generating final model (Refit on full data for Haufe patterns)...")
         cv_inner_final = get_cv(y_pair, sub_pair, n_splits=INNER_CV_SPLITS, shuffle=True, random_state=RANDOM_STATE)
-        gs_final = GridSearchCV(build_binary_pipeline(), param_grid, cv=cv_inner_final, scoring='accuracy', n_jobs=N_JOBS)
+        gs_final = GridSearchCV(build_binary_pipeline(), param_grid, cv=cv_inner_final, scoring=forced_choice_scorer, n_jobs=N_JOBS)
         gs_final.fit(X_pair, y_pair, groups=sub_pair)
         
         final_model = gs_final.best_estimator_
@@ -651,81 +634,39 @@ def run_wen_paper_analysis_voxelwise(X, y, subjects, pipeline_template, best_C, 
 #------------------------------
 
 #--- Function: compute_pairwise_forced_choice ---
-def compute_pairwise_forced_choice(y_true, scores, class_labels):
-    """
-    Deprecated: kept for backward compatibility.
-    Uses standard accuracy on predicted labels derived from scores.
-    """
-    if scores.ndim == 1:
-        pred = np.where(scores > 0, class_labels[1], class_labels[0])
-        return accuracy_score(y_true, pred)
-    pred_idx = np.argmax(scores, axis=1)
-    pred = np.array(class_labels)[pred_idx]
-    return accuracy_score(y_true, pred)
-
-#------------------------------
-def compute_subject_mean_accuracy(
-    y_true: np.ndarray,
-    y_pred: np.ndarray,
-    subjects: np.ndarray
-) -> float:
-    """Compute mean subject-level accuracy from trial-level predictions."""
-    sub_accs = []
-    for sub in np.unique(subjects):
-        mask = subjects == sub
-        if np.sum(mask) == 0:
-            continue
-        sub_accs.append(accuracy_score(y_true[mask], y_pred[mask]))
-    return float(np.mean(sub_accs)) if sub_accs else 0.0
+def _force_choice_scores_to_2d(scores: np.ndarray) -> np.ndarray:
+    """Ensure decision scores are 2D (n_samples, n_classes)."""
+    scores_arr = np.asarray(scores)
+    if scores_arr.ndim == 1:
+        scores_arr = np.column_stack((-scores_arr, scores_arr))
+    return scores_arr
 
 
-def compute_subject_accuracy_accs(
-    y_true: np.ndarray,
-    y_pred: np.ndarray,
-    subjects: np.ndarray
-) -> np.ndarray:
-    """Compute per-subject standard accuracy from trial-level predictions."""
-    accs = []
-    for sub in np.unique(subjects):
-        mask = subjects == sub
-        if np.sum(mask) == 0:
-            continue
-        accs.append(accuracy_score(y_true[mask], y_pred[mask]))
-    return np.array(accs)
+def forced_choice_predict(scores: np.ndarray, classes: Sequence[str]) -> np.ndarray:
+    """Predict class labels via forced-choice (argmax of decision scores)."""
+    scores_2d = _force_choice_scores_to_2d(scores)
+    class_arr = np.asarray(classes)
+    if scores_2d.shape[1] != class_arr.shape[0]:
+        raise ValueError("Decision scores do not match class labels.")
+    return class_arr[np.argmax(scores_2d, axis=1)]
 
 
-def compute_subject_forced_choice_mean_acc(
+def compute_forced_choice_accuracy(
     y_true: np.ndarray,
     scores: np.ndarray,
-    subjects: np.ndarray,
-    class_labels: List[str]
+    classes: Sequence[str],
 ) -> float:
-    """Deprecated: compute mean subject-level accuracy from scores."""
-    if scores.ndim == 1:
-        y_pred = np.where(scores > 0, class_labels[1], class_labels[0])
-    else:
-        pred_idx = np.argmax(scores, axis=1)
-        y_pred = np.array(class_labels)[pred_idx]
-    return compute_subject_mean_accuracy(y_true, y_pred, subjects)
+    """Compute trial-wise forced-choice accuracy from decision scores."""
+    y_pred = forced_choice_predict(scores, classes)
+    return float(np.mean(y_true == y_pred))
 
-def compute_subject_forced_choice_accs(
-    y_true: np.ndarray,
-    scores: np.ndarray,
-    subjects: np.ndarray,
-    class_labels: List[str]
-) -> np.ndarray:
-    """Deprecated: compute per-subject accuracy from scores."""
-    if scores.ndim == 1:
-        y_pred = np.where(scores > 0, class_labels[1], class_labels[0])
-    else:
-        pred_idx = np.argmax(scores, axis=1)
-        y_pred = np.array(class_labels)[pred_idx]
-    return compute_subject_accuracy_accs(y_true, y_pred, subjects)
 
+def forced_choice_scorer(estimator, X, y) -> float:
+    """Scorer wrapper for GridSearchCV/cross_val_score."""
+    scores = estimator.decision_function(X)
+    return compute_forced_choice_accuracy(y, scores, estimator.classes_)
 
 #------------------------------
-
-#--- Function: compute_perm_importance_simple ---
 def compute_perm_importance_simple(model, X, y, n_repeats=10):
     """
     Calculates permutation importance for a model.
@@ -735,7 +676,7 @@ def compute_perm_importance_simple(model, X, y, n_repeats=10):
     
     # We use 'accuracy' as the scoring metric to see which voxels contribute to decoding
     result = permutation_importance(
-        model, X, y, n_repeats=n_repeats, random_state=42, n_jobs=-1, scoring='accuracy'
+        model, X, y, n_repeats=n_repeats, random_state=42, n_jobs=-1, scoring=forced_choice_scorer
     )
     
     return result.importances_mean
@@ -772,7 +713,7 @@ def compute_perm_importance_cv(
             n_repeats=n_repeats,
             random_state=RANDOM_STATE,
             n_jobs=1,
-            scoring='accuracy'
+            scoring=forced_choice_scorer
         )
         fold_importances.append(result.importances_mean)
 
@@ -1530,7 +1471,7 @@ print("\nCell 5 Complete. Data is Centered (Full-Session) and Filtered.")
 # Cell 6: Analysis 1.1 - Neural Dissociation Execution
 # Protocol: SAD -> HC
 # Updates:
-#   - Uses 'run_pairwise_decoding_analysis' (Standard Accuracy).
+#   - Uses 'run_pairwise_decoding_analysis' (Forced-Choice Accuracy).
 #   - Functional Specificity Heatmap uses Mean CV Accuracy for diagonals (Evaluation).
 #   - Cross-Decoding uses the 'final_model' (Refitted on full data) on the other group.
 #   - Hyperparameter selected from 20 values (0.01-100) using training data only.
@@ -1692,7 +1633,7 @@ for i in range(2):
 
 sns.heatmap(func_matrix, annot=annot_func, fmt="", cmap="RdBu_r", center=0.5, vmin=0.3, vmax=0.9, cbar=True,
             xticklabels=['Test SAD', 'Test HC'], yticklabels=['Train SAD', 'Train HC'], ax=ax3)
-ax3.set_title("Functional Specificity\n(Standard Accuracy)")
+ax3.set_title("Functional Specificity\n(Forced-Choice Accuracy)")
 
 # Spatial Specificity
 ax4 = fig.add_subplot(gs[1, 1])
@@ -3651,7 +3592,13 @@ def calc_metrics_for_subject(X, y, sub_id, feature_mask, C_param=1.0):
         probs_all = np.zeros((len(y_bin), 2))
 
         for train_idx, test_idx in outer_cv.split(X_bin, y_bin, groups=np.full(len(y_bin), sub_id)):
-            gs = GridSearchCV(build_binary_pipeline(), param_grid, cv=inner_cv, scoring='accuracy', n_jobs=1)
+            gs = GridSearchCV(
+                build_binary_pipeline(),
+                param_grid,
+                cv=inner_cv,
+                scoring=forced_choice_scorer,
+                n_jobs=1,
+            )
             gs.fit(X_bin[train_idx], y_bin[train_idx], groups=np.full(len(train_idx), sub_id))
             best_model = gs.best_estimator_
 
@@ -3851,7 +3798,7 @@ X_sad_plc, y_sad_plc, sub_sad_plc = get_ext_data("SAD_Placebo")
 X_sad_oxt, y_sad_oxt, sub_sad_oxt = get_ext_data("SAD_Oxytocin")
 
 # =============================================================================
-# 1. Cross-Decoding (Subject-Level Standard Accuracy)
+# 1. Cross-Decoding (Subject-Level Forced-Choice Accuracy)
 # =============================================================================
 print("\n[Step 1] Cross-Decoding on SAD Subgroups (Subject-Level Accuracy)...")
 
@@ -3867,19 +3814,21 @@ X_sad_oxt_filtered = X_sad_oxt[mask_sad_oxt]
 y_sad_oxt_filtered = y_sad_oxt[mask_sad_oxt]
 sub_sad_oxt_filtered = sub_sad_oxt[mask_sad_oxt]
 
-# Predictions -> subject-level standard accuracy
-y_pred_plc = gold_model.predict(X_sad_plc_filtered)
-y_pred_oxt = gold_model.predict(X_sad_oxt_filtered)
+# Decision scores -> subject-level forced-choice accuracy
+scores_plc = gold_model.decision_function(X_sad_plc_filtered)
+scores_oxt = gold_model.decision_function(X_sad_oxt_filtered)
 
-acc_sad_plc = compute_subject_accuracy_accs(
+acc_sad_plc = compute_subject_forced_choice_accs(
     y_sad_plc_filtered,
-    y_pred_plc,
-    sub_sad_plc_filtered
+    scores_plc,
+    sub_sad_plc_filtered,
+    gold_model.classes_
 )
-acc_sad_oxt = compute_subject_accuracy_accs(
+acc_sad_oxt = compute_subject_forced_choice_accs(
     y_sad_oxt_filtered,
-    y_pred_oxt,
-    sub_sad_oxt_filtered
+    scores_oxt,
+    sub_sad_oxt_filtered,
+    gold_model.classes_
 )
 
 m_plc = np.mean(acc_sad_plc) if len(acc_sad_plc) > 0 else 0
@@ -3998,7 +3947,7 @@ print(f"  > Model Trained on {len(np.unique(s_train))} SAD subjects.")
 print(f"  > Classes: {sad_model.classes_}")
 
 # =============================================================================
-# 2. Cross-Decode on HC Groups (Subject-Level Standard Accuracy)
+# 2. Cross-Decode on HC Groups (Subject-Level Forced-Choice Accuracy)
 # =============================================================================
 print("\n[Step 2] Testing on HC Subgroups (Subject-Level Accuracy)...")
 
@@ -4014,18 +3963,20 @@ X_hc_oxt_filtered = X_hc_oxt[mask_hc_oxt_labels]
 y_hc_oxt_filtered = y_hc_oxt[mask_hc_oxt_labels]
 sub_hc_oxt_filtered = sub_hc_oxt[mask_hc_oxt_labels]
 
-y_pred_hc_plc = sad_model.predict(X_hc_plc_filtered)
-y_pred_hc_oxt = sad_model.predict(X_hc_oxt_filtered)
+scores_hc_plc = sad_model.decision_function(X_hc_plc_filtered)
+scores_hc_oxt = sad_model.decision_function(X_hc_oxt_filtered)
 
-acc_hc_plc = compute_subject_accuracy_accs(
+acc_hc_plc = compute_subject_forced_choice_accs(
     y_hc_plc_filtered,
-    y_pred_hc_plc,
-    sub_hc_plc_filtered
+    scores_hc_plc,
+    sub_hc_plc_filtered,
+    sad_model.classes_
 )
-acc_hc_oxt = compute_subject_accuracy_accs(
+acc_hc_oxt = compute_subject_forced_choice_accs(
     y_hc_oxt_filtered,
-    y_pred_hc_oxt,
-    sub_hc_oxt_filtered
+    scores_hc_oxt,
+    sub_hc_oxt_filtered,
+    sad_model.classes_
 )
 
 m_hc_plc = np.mean(acc_hc_plc) if len(acc_hc_plc) > 0 else 0
@@ -4458,41 +4409,41 @@ results_maps = {}
 results_pvals = {}
 results_fdr = {}
 
-    for group_key in GROUPS_TO_RUN:
-        for phase_key, phase_name in [("ext", "Extinction"), ("rst", "Reinstatement")]:
-            X_p, y_p, sub_p = collect_phase_data(phase_key, group_key=group_key)
-            if X_p is None:
-                print(f"  ! {phase_name} data missing for {group_key}. Skipping.")
-                continue
+for group_key in GROUPS_TO_RUN:
+    for phase_key, phase_name in [("ext", "Extinction"), ("rst", "Reinstatement")]:
+        X_p, y_p, sub_p = collect_phase_data(phase_key, group_key=group_key)
+        if X_p is None:
+            print(f"  ! {phase_name} data missing for {group_key}. Skipping.")
+            continue
 
-            early_mats = build_stage_vectors(X_p, y_p, sub_p, "early")
-            late_mats = build_stage_vectors(X_p, y_p, sub_p, "late")
+        early_mats = build_stage_vectors(X_p, y_p, sub_p, "early")
+        late_mats = build_stage_vectors(X_p, y_p, sub_p, "late")
 
-            map_early = compute_searchlight_map(early_mats)
-            map_late = compute_searchlight_map(late_mats)
+        map_early = compute_searchlight_map(early_mats)
+        map_late = compute_searchlight_map(late_mats)
 
-            if map_early is None or map_late is None:
-                print(f"  ! Not enough data for {phase_name}, {group_key}.")
-                continue
+        if map_early is None or map_late is None:
+            print(f"  ! Not enough data for {phase_name}, {group_key}.")
+            continue
 
-            delta = map_late - map_early
+        delta = map_late - map_early
 
-            results_maps[(group_key, phase_key, "early")] = map_early
-            results_maps[(group_key, phase_key, "late")] = map_late
-            results_maps[(group_key, phase_key, "delta")] = delta
+        results_maps[(group_key, phase_key, "early")] = map_early
+        results_maps[(group_key, phase_key, "late")] = map_late
+        results_maps[(group_key, phase_key, "delta")] = delta
 
-            # Permutation p-values + FDR for early and late
-            null_early = permutation_null_maps(X_p, y_p, sub_p, "early", n_perm=N_PERMUTATION_SEARCHLIGHT)
-            null_late = permutation_null_maps(X_p, y_p, sub_p, "late", n_perm=N_PERMUTATION_SEARCHLIGHT)
+        # Permutation p-values + FDR for early and late
+        null_early = permutation_null_maps(X_p, y_p, sub_p, "early", n_perm=N_PERMUTATION_SEARCHLIGHT)
+        null_late = permutation_null_maps(X_p, y_p, sub_p, "late", n_perm=N_PERMUTATION_SEARCHLIGHT)
 
-            if null_early is not None:
-                p_early, fdr_early = pvals_and_fdr(null_early, map_early)
-                results_pvals[(group_key, phase_key, "early")] = p_early
-                results_fdr[(group_key, phase_key, "early")] = fdr_early
-            if null_late is not None:
-                p_late, fdr_late = pvals_and_fdr(null_late, map_late)
-                results_pvals[(group_key, phase_key, "late")] = p_late
-                results_fdr[(group_key, phase_key, "late")] = fdr_late
+        if null_early is not None:
+            p_early, fdr_early = pvals_and_fdr(null_early, map_early)
+            results_pvals[(group_key, phase_key, "early")] = p_early
+            results_fdr[(group_key, phase_key, "early")] = fdr_early
+        if null_late is not None:
+            p_late, fdr_late = pvals_and_fdr(null_late, map_late)
+            results_pvals[(group_key, phase_key, "late")] = p_late
+            results_fdr[(group_key, phase_key, "late")] = fdr_late
 
 # Save results after population
 if results_maps:
@@ -4508,9 +4459,9 @@ if results_fdr:
 else:
     print("  ! No results_fdr generated; skipping save.")
 
-    # =============================================================================
-    # 8. Group contrasts
-    # =============================================================================
+# =============================================================================
+# 8. Group contrasts
+# =============================================================================
     print("[Step 8] Computing group contrasts...")
 
     contrast_maps = {}
