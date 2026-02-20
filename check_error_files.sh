@@ -74,3 +74,12 @@ for file in *.out; do
         fi
     fi
 done
+
+for file in *.out; do
+    if [[ -f "$file" ]]; then
+        last_line=$(tail -n 1 "$file" 2>/dev/null)
+        if [[ "$last_line" != *"Done"* ]]; then
+            echo "$file"
+        fi
+    fi
+done
