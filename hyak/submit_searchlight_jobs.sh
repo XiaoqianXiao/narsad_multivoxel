@@ -18,6 +18,7 @@ MEM="120G"
 CPUS=32
 CHUNKS=256
 N_PERM=5000
+MODE="all"  # all | ext | rst | dyn | crossphase
 
 mkdir -p "$LOG_DIR"
 mkdir -p "$OUT_BASE"/{ext,rst,dyn_ext,dyn_rst,crossphase}
@@ -65,17 +66,26 @@ submit_array() {
 }
 
 # ---- Scripts ----
-submit_array "sl_ext_csminus" "mvpa_searchlight_wholeBrain_ext.py" "${OUT_BASE}/ext" "--cond 'CS-' --n_perm ${N_PERM}"
-submit_array "sl_ext_css"     "mvpa_searchlight_wholeBrain_ext.py" "${OUT_BASE}/ext" "--cond CSS --n_perm ${N_PERM}"
-submit_array "sl_ext_csr"     "mvpa_searchlight_wholeBrain_ext.py" "${OUT_BASE}/ext" "--cond CSR --n_perm ${N_PERM}"
+if [[ "${MODE}" == "all" || "${MODE}" == "ext" ]]; then
+  submit_array "sl_ext_csminus" "mvpa_searchlight_wholeBrain_ext.py" "${OUT_BASE}/ext" "--cond 'CS-' --n_perm ${N_PERM}"
+  submit_array "sl_ext_css"     "mvpa_searchlight_wholeBrain_ext.py" "${OUT_BASE}/ext" "--cond CSS --n_perm ${N_PERM}"
+  submit_array "sl_ext_csr"     "mvpa_searchlight_wholeBrain_ext.py" "${OUT_BASE}/ext" "--cond CSR --n_perm ${N_PERM}"
+fi
 
-submit_array "sl_rst_csminus" "mvpa_searchlight_wholeBrain_rst.py" "${OUT_BASE}/rst" "--cond 'CS-' --n_perm ${N_PERM}"
-submit_array "sl_rst_css"     "mvpa_searchlight_wholeBrain_rst.py" "${OUT_BASE}/rst" "--cond CSS --n_perm ${N_PERM}"
-submit_array "sl_rst_csr"     "mvpa_searchlight_wholeBrain_rst.py" "${OUT_BASE}/rst" "--cond CSR --n_perm ${N_PERM}"
+if [[ "${MODE}" == "all" || "${MODE}" == "rst" ]]; then
+  submit_array "sl_rst_csminus" "mvpa_searchlight_wholeBrain_rst.py" "${OUT_BASE}/rst" "--cond 'CS-' --n_perm ${N_PERM}"
+  submit_array "sl_rst_css"     "mvpa_searchlight_wholeBrain_rst.py" "${OUT_BASE}/rst" "--cond CSS --n_perm ${N_PERM}"
+  submit_array "sl_rst_csr"     "mvpa_searchlight_wholeBrain_rst.py" "${OUT_BASE}/rst" "--cond CSR --n_perm ${N_PERM}"
+fi
 
-submit_array "dyn_ext"     "mvpa_searchlight_wholeBrain_dyn_ext.py" "${OUT_BASE}/dyn_ext" "--n_perm ${N_PERM}"
-submit_array "dyn_rst"     "mvpa_searchlight_wholeBrain_dyn_rst.py" "${OUT_BASE}/dyn_rst" "--n_perm ${N_PERM}"
-submit_array "crossphase"  "mvpa_searchlight_wholeBrain_crossphase.py" "${OUT_BASE}/crossphase" "--n_perm ${N_PERM}"
+if [[ "${MODE}" == "all" || "${MODE}" == "dyn" ]]; then
+  submit_array "dyn_ext"     "mvpa_searchlight_wholeBrain_dyn_ext.py" "${OUT_BASE}/dyn_ext" "--n_perm ${N_PERM}"
+  submit_array "dyn_rst"     "mvpa_searchlight_wholeBrain_dyn_rst.py" "${OUT_BASE}/dyn_rst" "--n_perm ${N_PERM}"
+fi
+
+if [[ "${MODE}" == "all" || "${MODE}" == "crossphase" ]]; then
+  submit_array "crossphase"  "mvpa_searchlight_wholeBrain_crossphase.py" "${OUT_BASE}/crossphase" "--n_perm ${N_PERM}"
+fi
 
 echo "Submitted all searchlight jobs."
 echo "After jobs finish, merge chunk outputs:"
