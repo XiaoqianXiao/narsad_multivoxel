@@ -16,10 +16,9 @@ ACCOUNT="fang"
 TIME="4:00:00"
 MEM="120G"
 CPUS=32
-CHUNKS=512
+CHUNKS=384
 N_PERM=5000
-#MODE="all"  # all | ext | rst | dyn | crossphase
-MODE="ext"
+MODE="all"  # all | ext | rst | dyn | crossphase
 
 mkdir -p "$LOG_DIR"
 mkdir -p "$OUT_BASE"/{ext,rst,dyn_ext,dyn_rst,crossphase}
