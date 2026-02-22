@@ -11,8 +11,8 @@ GLASSER_ATLAS="/gscratch/fang/NARSAD/ROI/Glasser/HCP-MMP1_2mm.nii"
 TIAN_ATLAS="/gscratch/fang/NARSAD/ROI/Tian/3T/Subcortex-Only/Tian_Subcortex_S4_3T_2009cAsym.nii.gz"
 
 LOG_DIR="/gscratch/fang/NARSAD/logs/searchlight"
-PARTITION="ckpt-all"
-ACCOUNT="cpu-g2"
+PARTITION="cpu-g2"
+ACCOUNT="fang"
 TIME="24:00:00"
 MEM="120G"
 CPUS=32
