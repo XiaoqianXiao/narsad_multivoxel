@@ -1,4 +1,12 @@
 #!/usr/bin/env bash
+#SBATCH --partition=ckpt-all
+#SBATCH --account=fang
+#SBATCH --time=4:00:00
+#SBATCH --mem=120G
+#SBATCH --cpus-per-task=32
+#SBATCH --job-name=merge_searchlight
+#SBATCH --output=/gscratch/fang/NARSAD/logs/searchlight/merge_%j.out
+#SBATCH --error=/gscratch/fang/NARSAD/logs/searchlight/merge_%j.err
 set -euo pipefail
 
 # Run merge_searchlight_chunks.py for all merged folders on Hyak.
