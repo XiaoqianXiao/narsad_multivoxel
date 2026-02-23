@@ -200,6 +200,15 @@ def main() -> None:
         elif base.endswith("summary_contrasts.csv"):
             merge_summary_contrasts(paths, os.path.join(args.out_dir, base))
 
+    # Copy subject metadata if present
+    for root, _, files in os.walk(args.in_dir):
+        if "subj_meta.csv" in files:
+            src = os.path.join(root, "subj_meta.csv")
+            dst = os.path.join(args.out_dir, "subj_meta.csv")
+            if not os.path.exists(dst):
+                pd.read_csv(src).to_csv(dst, index=False)
+            break
+
     # Weighted summaries
     weights = chunk_weights_from_maps(args.in_dir, "_mean.nii.gz")
     dynamic_paths = [p for p in chunk_files if os.path.basename(p).startswith("dynamic_summary") and p.endswith(".csv")]

@@ -19,6 +19,7 @@ CPUS=32
 CHUNKS=384
 N_PERM=5000
 MODE="dyn"  # all | ext | rst | dyn | crossphase
+POST_MERGE_FLAG="--post_merge_tfce"
 
 mkdir -p "$LOG_DIR"
 mkdir -p "$OUT_BASE"/{ext,rst,dyn_ext,dyn_rst,crossphase}
@@ -42,7 +43,7 @@ submit() {
     --job-name="$name" \
     --output="$LOG_DIR/${name}_%j.out" \
     --error="$LOG_DIR/${name}_%j.err" \
-    --wrap="mkdir -p ${out_dir} && apptainer exec -B ${PROJECT_ROOT}:${PROJECT_ROOT} -B ${APP_PATH}:/app -B ${out_dir}:/output_dir ${CONTAINER_SIF} python3 /app/${script} --project_root ${PROJECT_ROOT} --out_dir /output_dir --reference_lss ${REFERENCE_LSS} --glasser_atlas ${GLASSER_ATLAS} --tian_atlas ${TIAN_ATLAS} --n_jobs ${CPUS} --batch_size 256 ${extra_args}"
+    --wrap="mkdir -p ${out_dir} && apptainer exec -B ${PROJECT_ROOT}:${PROJECT_ROOT} -B ${APP_PATH}:/app -B ${out_dir}:/output_dir ${CONTAINER_SIF} python3 /app/${script} --project_root ${PROJECT_ROOT} --out_dir /output_dir --reference_lss ${REFERENCE_LSS} --glasser_atlas ${GLASSER_ATLAS} --tian_atlas ${TIAN_ATLAS} --n_jobs ${CPUS} --batch_size 256 ${POST_MERGE_FLAG} ${extra_args}"
 }
 
 submit_array() {
@@ -62,7 +63,7 @@ submit_array() {
     --array=0-$((CHUNKS - 1)) \
     --output="$LOG_DIR/${name}_%A_%a.out" \
     --error="$LOG_DIR/${name}_%A_%a.err" \
-    --wrap="mkdir -p ${out_dir} && apptainer exec -B ${PROJECT_ROOT}:${PROJECT_ROOT} -B ${APP_PATH}:/app -B ${out_dir}:/output_dir ${CONTAINER_SIF} python3 /app/${script} --project_root ${PROJECT_ROOT} --out_dir /output_dir --reference_lss ${REFERENCE_LSS} --glasser_atlas ${GLASSER_ATLAS} --tian_atlas ${TIAN_ATLAS} --n_jobs ${CPUS} --batch_size 256 --chunk_idx \$SLURM_ARRAY_TASK_ID --chunk_count ${CHUNKS} ${extra_args}"
+    --wrap="mkdir -p ${out_dir} && apptainer exec -B ${PROJECT_ROOT}:${PROJECT_ROOT} -B ${APP_PATH}:/app -B ${out_dir}:/output_dir ${CONTAINER_SIF} python3 /app/${script} --project_root ${PROJECT_ROOT} --out_dir /output_dir --reference_lss ${REFERENCE_LSS} --glasser_atlas ${GLASSER_ATLAS} --tian_atlas ${TIAN_ATLAS} --n_jobs ${CPUS} --batch_size 256 --chunk_idx \$SLURM_ARRAY_TASK_ID --chunk_count ${CHUNKS} ${POST_MERGE_FLAG} ${extra_args}"
 }
 
 # ---- Scripts ----

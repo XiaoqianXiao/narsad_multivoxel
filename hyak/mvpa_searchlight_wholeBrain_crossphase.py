@@ -141,6 +141,36 @@ def save_map(values: np.ndarray, mask: np.ndarray, ref_img: nib.Nifti1Image, out
     nib.save(img_out, out_path)
 
 
+def load_subject_maps_from_disk(
+    out_dir: str,
+    mask: np.ndarray,
+) -> Tuple[Dict[str, Dict[str, np.ndarray]], Dict[str, SubjectData]]:
+    meta_path = os.path.join(out_dir, "subj_meta.csv")
+    if not os.path.exists(meta_path):
+        raise FileNotFoundError(f"Missing subj_meta.csv in {out_dir}")
+    meta_df = pd.read_csv(meta_path)
+    subj_maps: Dict[str, Dict[str, np.ndarray]] = {}
+    subj_data: Dict[str, SubjectData] = {}
+    for row in meta_df.itertuples(index=False):
+        s_id = str(row.Subject).strip()
+        subj_maps[s_id] = {}
+        for cond in CS_LABELS:
+            map_path = os.path.join(out_dir, f"subjmap_{cond}_{s_id}.nii.gz")
+            if not os.path.exists(map_path):
+                raise FileNotFoundError(f"Missing subject map: {map_path}")
+            data = nib.load(map_path).get_fdata()
+            subj_maps[s_id][cond] = data[mask]
+        subj_data[s_id] = SubjectData(
+            X_ext=np.empty((0, 0)),
+            y_ext=np.empty(0),
+            X_rst=np.empty((0, 0)),
+            y_rst=np.empty(0),
+            group=row.Group,
+            drug=row.Drug,
+        )
+    return subj_maps, subj_data
+
+
 def compute_crossphase_similarity(
     X_ext: np.ndarray,
     y_ext: np.ndarray,
@@ -271,11 +301,13 @@ def main() -> None:
     parser.add_argument("--min_voxels", type=int, default=10)
     parser.add_argument("--n_perm", type=int, default=5000)
     parser.add_argument("--one_tailed", action="store_true")
+    parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--n_jobs", type=int, default=get_default_n_jobs(), help="Parallel workers")
     parser.add_argument("--batch_size", type=int, default=256, help="Voxels per batch")
     parser.add_argument("--chunk_idx", type=int, default=None, help="Voxel chunk index (0-based)")
     parser.add_argument("--chunk_count", type=int, default=None, help="Total voxel chunks")
     parser.add_argument("--no_tfce", action="store_true", help="Disable TFCE (use voxelwise FDR)")
+    parser.add_argument("--post_merge_tfce", action="store_true", help="Save subject maps and skip TFCE until post-merge")
     parser.add_argument("--out_dir", default=None)
     args = parser.parse_args()
 
@@ -384,27 +416,54 @@ def main() -> None:
     use_tfce = not args.no_tfce
 
     # subject-level cross-phase maps
-    subj_maps = {}
-    for s_id, s_data in subj_data.items():
-        subj_maps[s_id] = {}
-        for cond in CS_LABELS:
-            sim_map = np.full(n_vox, np.nan)
-            results = Parallel(n_jobs=args.n_jobs, prefer="threads")(
-                delayed(_crossphase_batch)(
-                    s_data.X_ext,
-                    s_data.y_ext,
-                    s_data.X_rst,
-                    s_data.y_rst,
-                    neighbors,
-                    cond,
-                    args.min_voxels,
-                    batch,
+    subj_maps: Dict[str, Dict[str, np.ndarray]] = {}
+    post_merge_stage = args.post_merge_tfce and args.chunk_idx is None and os.path.exists(os.path.join(args.out_dir, "subj_meta.csv"))
+    if post_merge_stage:
+        subj_maps, subj_data = load_subject_maps_from_disk(args.out_dir, mask)
+        print("[Loaded] Subject maps for post-merge TFCE.")
+    else:
+        for s_id, s_data in subj_data.items():
+            subj_maps[s_id] = {}
+            for cond in CS_LABELS:
+                sim_map = np.full(n_vox, np.nan)
+                results = Parallel(n_jobs=args.n_jobs, prefer="threads")(
+                    delayed(_crossphase_batch)(
+                        s_data.X_ext,
+                        s_data.y_ext,
+                        s_data.X_rst,
+                        s_data.y_rst,
+                        neighbors,
+                        cond,
+                        args.min_voxels,
+                        batch,
+                    )
+                    for batch in batches
                 )
-                for batch in batches
-            )
-            for voxels, vals in results:
-                sim_map[voxels] = vals
-            subj_maps[s_id][cond] = sim_map
+                for voxels, vals in results:
+                    sim_map[voxels] = vals
+                subj_maps[s_id][cond] = sim_map
+
+        if args.post_merge_tfce:
+            subj_dir = os.path.join(args.out_dir, "subj_maps")
+            os.makedirs(subj_dir, exist_ok=True)
+            meta_rows = []
+            for s_id, s_data in subj_data.items():
+                for cond in CS_LABELS:
+                    vals = subj_maps[s_id][cond]
+                    save_map(
+                        vals,
+                        mask,
+                        mask_img,
+                        os.path.join(subj_dir, f"subjmap_{cond}_{s_id}{chunk_suffix}.nii.gz"),
+                    )
+                meta_rows.append({
+                    "Subject": s_id,
+                    "Group": s_data.group,
+                    "Drug": s_data.drug,
+                })
+            pd.DataFrame(meta_rows).to_csv(os.path.join(args.out_dir, "subj_meta.csv"), index=False)
+            print("[Saved] Subject maps for post-merge TFCE.")
+            return
 
     # group-level mean maps
     print("[Step] Saving group-level mean maps...")
@@ -434,7 +493,7 @@ def main() -> None:
         df.to_csv(os.path.join(args.out_dir, f"crossphase_summary{chunk_suffix}.csv"), index=False)
 
     # permutation tests
-    rng = np.random.default_rng(42)
+    rng = np.random.default_rng(args.seed)
     perm_dir = os.path.join(args.out_dir, f"permutation{chunk_suffix}")
     os.makedirs(perm_dir, exist_ok=True)
 

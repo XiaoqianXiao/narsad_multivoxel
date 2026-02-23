@@ -242,6 +242,35 @@ def save_map(values: np.ndarray, mask: np.ndarray, ref_img: nib.Nifti1Image, out
     nib.save(img_out, out_path)
 
 
+def load_subject_maps_from_disk(
+    out_dir: str,
+    cond_list: List[str],
+    mask: np.ndarray,
+) -> Tuple[Dict[str, Dict[str, np.ndarray]], Dict[str, SubjectData]]:
+    meta_path = os.path.join(out_dir, "subj_meta.csv")
+    if not os.path.exists(meta_path):
+        raise FileNotFoundError(f"Missing subj_meta.csv in {out_dir}")
+    meta_df = pd.read_csv(meta_path)
+    subj_scores: Dict[str, Dict[str, np.ndarray]] = {}
+    subj_data: Dict[str, SubjectData] = {}
+    for row in meta_df.itertuples(index=False):
+        s_id = str(row.Subject).strip()
+        subj_scores[s_id] = {}
+        for cond in cond_list:
+            map_path = os.path.join(out_dir, f"subjmap_{cond}_{s_id}.nii.gz")
+            if not os.path.exists(map_path):
+                raise FileNotFoundError(f"Missing subject map: {map_path}")
+            data = nib.load(map_path).get_fdata()
+            subj_scores[s_id][cond] = data[mask]
+        subj_data[s_id] = SubjectData(
+            X=np.empty((0, 0)),
+            y=np.empty(0),
+            group=row.Group,
+            drug=row.Drug,
+        )
+    return subj_scores, subj_data
+
+
 def save_sig_csv(
     out_path: str,
     coords: np.ndarray,
@@ -293,6 +322,7 @@ def main() -> None:
     parser.add_argument("--chunk_idx", type=int, default=None, help="Voxel chunk index (0-based)")
     parser.add_argument("--chunk_count", type=int, default=None, help="Total voxel chunks")
     parser.add_argument("--no_tfce", action="store_true", help="Disable TFCE (use voxelwise FDR)")
+    parser.add_argument("--post_merge_tfce", action="store_true", help="Save subject maps and skip TFCE until post-merge")
     parser.add_argument("--out_dir", default=None)
     args = parser.parse_args()
 
@@ -381,18 +411,41 @@ def main() -> None:
         )
     print(f"[Info] Subjects used: {len(subj_data)}")
 
-    # compute subject-level maps (observed)
+    # compute or load subject-level maps (observed)
     print("[Step 3] Computing subject-level maps...")
     subj_scores: Dict[str, Dict[str, np.ndarray]] = {}
-    for s_id, s_data in subj_data.items():
-        subj_scores[s_id] = compute_subject_scores(
-            s_data,
-            neighbors,
-            n_vox,
-            args.min_voxels,
-            batches,
-            args.n_jobs,
-        )
+    post_merge_stage = args.post_merge_tfce and args.chunk_idx is None and os.path.exists(os.path.join(args.out_dir, "subj_meta.csv"))
+    if post_merge_stage:
+        subj_scores, subj_data = load_subject_maps_from_disk(args.out_dir, cond_list, mask)
+        print("[Loaded] Subject maps for post-merge TFCE.")
+    else:
+        for s_id, s_data in subj_data.items():
+            subj_scores[s_id] = compute_subject_scores(
+                s_data,
+                neighbors,
+                n_vox,
+                args.min_voxels,
+                batches,
+                args.n_jobs,
+            )
+
+        if args.post_merge_tfce:
+            subj_dir = os.path.join(args.out_dir, "subj_maps")
+            os.makedirs(subj_dir, exist_ok=True)
+            meta_rows = []
+            for s_id, s_data in subj_data.items():
+                for cond in cond_list:
+                    values = subj_scores[s_id][cond]
+                    out_name = f"subjmap_{cond}_{s_id}{chunk_suffix}.nii.gz"
+                    save_map(values, mask, mask_img, os.path.join(subj_dir, out_name))
+                meta_rows.append({
+                    "Subject": s_id,
+                    "Group": s_data.group,
+                    "Drug": s_data.drug,
+                })
+            pd.DataFrame(meta_rows).to_csv(os.path.join(args.out_dir, "subj_meta.csv"), index=False)
+            print("[Saved] Subject maps for post-merge TFCE.")
+            return
 
     rng = np.random.default_rng(args.seed)
     use_tfce = not args.no_tfce
