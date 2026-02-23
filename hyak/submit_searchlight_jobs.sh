@@ -18,7 +18,7 @@ MEM="120G"
 CPUS=32
 CHUNKS=384
 N_PERM=5000
-MODE="ext"  # all | ext | rst | dyn | crossphase
+MODE="crossphase"  # all | ext | rst | dyn | crossphase
 
 mkdir -p "$LOG_DIR"
 mkdir -p "$OUT_BASE"/{ext,rst,dyn_ext,dyn_rst,crossphase}
