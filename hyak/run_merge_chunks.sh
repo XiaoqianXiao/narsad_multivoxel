@@ -40,10 +40,11 @@ run_merge() {
       --tian_atlas "${TIAN_ATLAS}"
 }
 
-run_merge "ext"
-run_merge "rst"
-run_merge "dyn_ext"
-run_merge "dyn_rst"
-run_merge "crossphase"
+run_merge "ext" &
+run_merge "rst" &
+run_merge "dyn_ext" &
+run_merge "dyn_rst" &
+run_merge "crossphase" &
 
+wait
 echo "All merges complete."
