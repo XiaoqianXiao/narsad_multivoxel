@@ -231,62 +231,6 @@ def subset_voxels_by_chunk(
     return valid_voxels[edges[chunk_idx]:edges[chunk_idx + 1]]
 
 
-def permute_group_diff(values_a, values_b, n_perm, rng):
-    obs = np.nanmean(values_a, axis=0) - np.nanmean(values_b, axis=0)
-    if use_tfce:
-        tested = np.array([1.0] * values_a.shape[0] + [-1.0] * values_b.shape[0])[:, None]
-        values = np.concatenate([values_a, values_b], axis=0)
-        p = tfce_pvals(values, tested, mask_img, n_perm, True, args.seed, args.n_jobs, model_intercept=True)
-        return obs, p
-    valid = np.isfinite(obs)
-    pooled = np.concatenate([values_a, values_b], axis=0)
-    n_a = values_a.shape[0]
-    count = np.zeros(obs.shape[0], dtype=int)
-    for _ in range(n_perm):
-        idx = rng.permutation(pooled.shape[0])
-        a_idx = idx[:n_a]
-        b_idx = idx[n_a:]
-        perm = np.nanmean(pooled[a_idx], axis=0) - np.nanmean(pooled[b_idx], axis=0)
-        perm_valid = valid & np.isfinite(perm)
-        count[perm_valid] += (np.abs(perm[perm_valid]) >= np.abs(obs[perm_valid])).astype(int)
-    p = np.full(obs.shape[0], np.nan, dtype=float)
-    p[valid] = (count[valid] + 1) / (n_perm + 1)
-    return obs, p
-
-
-def permute_sign_flip(values, n_perm, rng, two_tailed=True):
-    obs = np.nanmean(values, axis=0)
-    if use_tfce:
-        tested = np.ones((values.shape[0], 1), dtype=float)
-        p = tfce_pvals(values, tested, mask_img, n_perm, True, args.seed, args.n_jobs, model_intercept=False)
-        return obs, p
-    valid = np.isfinite(obs)
-    count = np.zeros(obs.shape[0], dtype=int)
-    for _ in range(n_perm):
-        signs = rng.choice([-1, 1], size=values.shape[0])[:, None]
-        perm = np.nanmean(values * signs, axis=0)
-        perm_valid = valid & np.isfinite(perm)
-        if two_tailed:
-            count[perm_valid] += (np.abs(perm[perm_valid]) >= np.abs(obs[perm_valid])).astype(int)
-        else:
-            count[perm_valid] += (perm[perm_valid] >= obs[perm_valid]).astype(int)
-    p = np.full(obs.shape[0], np.nan, dtype=float)
-    p[valid] = (count[valid] + 1) / (n_perm + 1)
-    return obs, p
-
-
-def fdr_q(pvals):
-    if use_tfce:
-        return pvals
-    q = np.full_like(pvals, np.nan, dtype=float)
-    mask = np.isfinite(pvals)
-    if mask.any():
-        from statsmodels.stats.multitest import multipletests
-        _, qv, _, _ = multipletests(pvals[mask], alpha=0.05, method="fdr_bh")
-        q[mask] = qv
-    return q
-
-
 def main() -> None:
     parser = argparse.ArgumentParser(description="Cross-phase searchlight RSA (whole brain)")
     parser.add_argument("--project_root", default=os.environ.get("PROJECT_ROOT", "/Users/xiaoqianxiao/projects/NARSAD"))
@@ -414,6 +358,62 @@ def main() -> None:
 
     print(f"[Info] Subjects used: {len(subj_data)}")
     use_tfce = not args.no_tfce
+
+    # ------------------------------------------------------------------
+    # Permutation testing helpers (use_tfce, mask_img, args in scope)
+    # ------------------------------------------------------------------
+    def permute_group_diff(values_a, values_b, n_perm, rng):
+        obs = np.nanmean(values_a, axis=0) - np.nanmean(values_b, axis=0)
+        if use_tfce:
+            tested = np.array([1.0] * values_a.shape[0] + [-1.0] * values_b.shape[0])[:, None]
+            values = np.concatenate([values_a, values_b], axis=0)
+            p = tfce_pvals(values, tested, mask_img, n_perm, True, args.seed, args.n_jobs, model_intercept=True)
+            return obs, p
+        valid = np.isfinite(obs)
+        pooled = np.concatenate([values_a, values_b], axis=0)
+        n_a = values_a.shape[0]
+        count = np.zeros(obs.shape[0], dtype=int)
+        for _ in range(n_perm):
+            idx = rng.permutation(pooled.shape[0])
+            a_idx = idx[:n_a]
+            b_idx = idx[n_a:]
+            perm = np.nanmean(pooled[a_idx], axis=0) - np.nanmean(pooled[b_idx], axis=0)
+            perm_valid = valid & np.isfinite(perm)
+            count[perm_valid] += (np.abs(perm[perm_valid]) >= np.abs(obs[perm_valid])).astype(int)
+        p = np.full(obs.shape[0], np.nan, dtype=float)
+        p[valid] = (count[valid] + 1) / (n_perm + 1)
+        return obs, p
+
+    def permute_sign_flip(values, n_perm, rng, two_tailed=True):
+        obs = np.nanmean(values, axis=0)
+        if use_tfce:
+            tested = np.ones((values.shape[0], 1), dtype=float)
+            p = tfce_pvals(values, tested, mask_img, n_perm, True, args.seed, args.n_jobs, model_intercept=False)
+            return obs, p
+        valid = np.isfinite(obs)
+        count = np.zeros(obs.shape[0], dtype=int)
+        for _ in range(n_perm):
+            signs = rng.choice([-1, 1], size=values.shape[0])[:, None]
+            perm = np.nanmean(values * signs, axis=0)
+            perm_valid = valid & np.isfinite(perm)
+            if two_tailed:
+                count[perm_valid] += (np.abs(perm[perm_valid]) >= np.abs(obs[perm_valid])).astype(int)
+            else:
+                count[perm_valid] += (perm[perm_valid] >= obs[perm_valid]).astype(int)
+        p = np.full(obs.shape[0], np.nan, dtype=float)
+        p[valid] = (count[valid] + 1) / (n_perm + 1)
+        return obs, p
+
+    def fdr_q(pvals):
+        if use_tfce:
+            return pvals
+        q = np.full_like(pvals, np.nan, dtype=float)
+        mask = np.isfinite(pvals)
+        if mask.any():
+            from statsmodels.stats.multitest import multipletests
+            _, qv, _, _ = multipletests(pvals[mask], alpha=0.05, method="fdr_bh")
+            q[mask] = qv
+        return q
 
     # subject-level cross-phase maps
     subj_maps: Dict[str, Dict[str, np.ndarray]] = {}
