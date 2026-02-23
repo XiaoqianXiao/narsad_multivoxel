@@ -52,6 +52,45 @@ def merge_nifti_group(paths: List[str], out_path: str) -> None:
     nib.save(nib.Nifti1Image(merged, imgs[0].affine), out_path)
 
 
+def build_master_mask_from_reference(
+    glasser_path: str,
+    tian_path: str,
+    reference_img_path: str,
+) -> Tuple[np.ndarray, nib.Nifti1Image]:
+    from nilearn.image import resample_to_img
+
+    ref_img = nib.load(reference_img_path)
+    img_g = nib.load(glasser_path)
+    img_t = nib.load(tian_path)
+
+    glasser_res = resample_to_img(img_g, ref_img, interpolation="nearest")
+    tian_res = resample_to_img(img_t, ref_img, interpolation="nearest")
+
+    data_g = glasser_res.get_fdata()
+    data_t = tian_res.get_fdata()
+    mask = (data_g > 0) | (data_t > 0)
+    out_img = nib.Nifti1Image(mask.astype(np.uint8), ref_img.affine)
+    return mask, out_img
+
+
+def is_vector_image(img: nib.Nifti1Image) -> bool:
+    return len(img.shape) == 1
+
+
+def vector_to_3d(
+    vector: np.ndarray,
+    mask: np.ndarray,
+    ref_img: nib.Nifti1Image,
+) -> nib.Nifti1Image:
+    if vector.ndim != 1:
+        raise ValueError("Expected 1D vector for unmasking.")
+    if int(mask.sum()) != vector.shape[0]:
+        raise ValueError("Vector length does not match master mask voxels.")
+    vol = np.zeros(mask.shape, dtype=float)
+    vol[mask] = vector
+    return nib.Nifti1Image(vol, ref_img.affine)
+
+
 def merge_sig_csv(paths: List[str], out_path: str) -> None:
     frames = [pd.read_csv(p) for p in paths]
     pd.concat(frames, ignore_index=True).to_csv(out_path, index=False)
@@ -118,15 +157,40 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Merge chunked searchlight outputs")
     parser.add_argument("--in_dir", required=True, help="Directory containing chunk outputs")
     parser.add_argument("--out_dir", required=True, help="Directory to write merged outputs")
+    parser.add_argument("--reference_lss", default=None, help="Reference LSS NIfTI for mask geometry")
+    parser.add_argument("--glasser_atlas", default=None, help="Glasser atlas NIfTI")
+    parser.add_argument("--tian_atlas", default=None, help="Tian atlas NIfTI")
     args = parser.parse_args()
 
     os.makedirs(args.out_dir, exist_ok=True)
     chunk_files = find_chunk_files(args.in_dir)
     grouped = group_by_base(chunk_files)
 
+    # If vector maps exist, we need a master mask to unmask to 3D.
+    mask = None
+    mask_img = None
+    if args.reference_lss and args.glasser_atlas and args.tian_atlas:
+        mask, mask_img = build_master_mask_from_reference(
+            args.glasser_atlas,
+            args.tian_atlas,
+            args.reference_lss,
+        )
+
     # NIfTI maps
     for base, paths in grouped.items():
-        if base.endswith(".nii.gz"):
+        if not base.endswith(".nii.gz"):
+            continue
+        imgs = [nib.load(p) for p in paths]
+        if any(is_vector_image(img) for img in imgs):
+            if mask is None or mask_img is None:
+                raise ValueError(
+                    "Vector NIfTI detected but reference_lss/glasser_atlas/tian_atlas not provided."
+                )
+            data = np.stack([img.get_fdata() for img in imgs], axis=0)
+            merged_vec = np.nanmean(data, axis=0)
+            out_img = vector_to_3d(merged_vec, mask, mask_img)
+            nib.save(out_img, os.path.join(args.out_dir, base))
+        else:
             merge_nifti_group(paths, os.path.join(args.out_dir, base))
 
     # CSVs: sig, summary_contrasts, merged sig
