@@ -21,6 +21,8 @@ import pandas as pd
 import nibabel as nib
 from numpy.linalg import norm
 from scipy.spatial import cKDTree
+from nilearn.maskers import NiftiMasker
+from nilearn.mass_univariate import permuted_ols
 from joblib import Parallel, delayed
 
 CS_LABELS = ["CS-", "CSS", "CSR"]
@@ -60,6 +62,30 @@ def build_batches(indices: np.ndarray, batch_size: int) -> List[np.ndarray]:
         raise ValueError("batch_size must be >= 1")
     return [indices[i:i + batch_size] for i in range(0, indices.size, batch_size)]
 
+
+
+
+def tfce_pvals(values: np.ndarray, tested_vars: np.ndarray, mask_img: nib.Nifti1Image, n_perm: int, two_sided: bool, seed: int, n_jobs: int, model_intercept: bool) -> np.ndarray:
+    valid = np.all(np.isfinite(values), axis=0)
+    p_full = np.full(values.shape[1], np.nan, dtype=float)
+    if not np.any(valid):
+        return p_full
+    vals = values[:, valid]
+    masker = NiftiMasker(mask_img=mask_img)
+    neglog_pvals, _, _ = permuted_ols(
+        tested_vars,
+        vals,
+        model_intercept=model_intercept,
+        n_perm=n_perm,
+        two_sided_test=two_sided,
+        random_state=seed,
+        n_jobs=n_jobs,
+        tfce=True,
+        masker=masker,
+    )
+    pvals = 10 ** (-neglog_pvals[0])
+    p_full[valid] = pvals
+    return p_full
 
 def find_reference_lss(project_root: str, task: str) -> str:
     patterns = [
@@ -177,6 +203,12 @@ def subset_voxels_by_chunk(
 
 def permute_group_diff(values_a, values_b, n_perm, rng):
     obs = np.nanmean(values_a, axis=0) - np.nanmean(values_b, axis=0)
+    if use_tfce:
+        tested = np.array([1.0] * values_a.shape[0] + [-1.0] * values_b.shape[0])[:, None]
+        values = np.concatenate([values_a, values_b], axis=0)
+        p = tfce_pvals(values, tested, mask_img, n_perm, True, args.seed, args.n_jobs, model_intercept=True)
+        return obs, p
+    valid = np.isfinite(obs)
     pooled = np.concatenate([values_a, values_b], axis=0)
     n_a = values_a.shape[0]
     count = np.zeros(obs.shape[0], dtype=int)
@@ -185,26 +217,37 @@ def permute_group_diff(values_a, values_b, n_perm, rng):
         a_idx = idx[:n_a]
         b_idx = idx[n_a:]
         perm = np.nanmean(pooled[a_idx], axis=0) - np.nanmean(pooled[b_idx], axis=0)
-        count += (np.abs(perm) >= np.abs(obs)).astype(int)
-    p = (count + 1) / (n_perm + 1)
+        perm_valid = valid & np.isfinite(perm)
+        count[perm_valid] += (np.abs(perm[perm_valid]) >= np.abs(obs[perm_valid])).astype(int)
+    p = np.full(obs.shape[0], np.nan, dtype=float)
+    p[valid] = (count[valid] + 1) / (n_perm + 1)
     return obs, p
 
 
 def permute_sign_flip(values, n_perm, rng, two_tailed=True):
     obs = np.nanmean(values, axis=0)
+    if use_tfce:
+        tested = np.ones((values.shape[0], 1), dtype=float)
+        p = tfce_pvals(values, tested, mask_img, n_perm, True, args.seed, args.n_jobs, model_intercept=False)
+        return obs, p
+    valid = np.isfinite(obs)
     count = np.zeros(obs.shape[0], dtype=int)
     for _ in range(n_perm):
         signs = rng.choice([-1, 1], size=values.shape[0])[:, None]
         perm = np.nanmean(values * signs, axis=0)
+        perm_valid = valid & np.isfinite(perm)
         if two_tailed:
-            count += (np.abs(perm) >= np.abs(obs)).astype(int)
+            count[perm_valid] += (np.abs(perm[perm_valid]) >= np.abs(obs[perm_valid])).astype(int)
         else:
-            count += (perm >= obs).astype(int)
-    p = (count + 1) / (n_perm + 1)
+            count[perm_valid] += (perm[perm_valid] >= obs[perm_valid]).astype(int)
+    p = np.full(obs.shape[0], np.nan, dtype=float)
+    p[valid] = (count[valid] + 1) / (n_perm + 1)
     return obs, p
 
 
 def fdr_q(pvals):
+    if use_tfce:
+        return pvals
     q = np.full_like(pvals, np.nan, dtype=float)
     mask = np.isfinite(pvals)
     if mask.any():
@@ -232,6 +275,7 @@ def main() -> None:
     parser.add_argument("--batch_size", type=int, default=256, help="Voxels per batch")
     parser.add_argument("--chunk_idx", type=int, default=None, help="Voxel chunk index (0-based)")
     parser.add_argument("--chunk_count", type=int, default=None, help="Total voxel chunks")
+    parser.add_argument("--no_tfce", action="store_true", help="Disable TFCE (use voxelwise FDR)")
     parser.add_argument("--out_dir", default=None)
     args = parser.parse_args()
 
@@ -337,6 +381,7 @@ def main() -> None:
         )
 
     print(f"[Info] Subjects used: {len(subj_data)}")
+    use_tfce = not args.no_tfce
 
     # subject-level cross-phase maps
     subj_maps = {}

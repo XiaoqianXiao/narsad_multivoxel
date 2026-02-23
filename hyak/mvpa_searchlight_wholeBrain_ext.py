@@ -26,6 +26,8 @@ import nibabel as nib
 from numpy.linalg import norm
 from scipy.spatial import cKDTree
 from statsmodels.stats.multitest import multipletests
+from nilearn.maskers import NiftiMasker
+from nilearn.mass_univariate import permuted_ols
 from joblib import Parallel, delayed
 
 CS_LABELS = ["CS-", "CSS", "CSR"]
@@ -131,6 +133,30 @@ def subset_voxels_by_chunk(
     return valid_voxels[edges[chunk_idx]:edges[chunk_idx + 1]]
 
 
+
+
+def tfce_pvals(values: np.ndarray, tested_vars: np.ndarray, mask_img: nib.Nifti1Image, n_perm: int, two_sided: bool, seed: int, n_jobs: int, model_intercept: bool) -> np.ndarray:
+    """Compute TFCE-corrected p-values using nilearn.permuted_ols."""
+    valid = np.all(np.isfinite(values), axis=0)
+    p_full = np.full(values.shape[1], np.nan, dtype=float)
+    if not np.any(valid):
+        return p_full
+    vals = values[:, valid]
+    masker = NiftiMasker(mask_img=mask_img)
+    neglog_pvals, _, _ = permuted_ols(
+        tested_vars,
+        vals,
+        model_intercept=model_intercept,
+        n_perm=n_perm,
+        two_sided_test=two_sided,
+        random_state=seed,
+        n_jobs=n_jobs,
+        tfce=True,
+        masker=masker,
+    )
+    pvals = 10 ** (-neglog_pvals[0])
+    p_full[valid] = pvals
+    return p_full
 def load_mask_and_coords(mask_img_path: str) -> Tuple[np.ndarray, np.ndarray, nib.Nifti1Image]:
     img = nib.load(mask_img_path)
     data = img.get_fdata()
@@ -266,6 +292,7 @@ def main() -> None:
     parser.add_argument("--cond", default=None, help="Run a single condition (CS-, CSS, CSR)")
     parser.add_argument("--chunk_idx", type=int, default=None, help="Voxel chunk index (0-based)")
     parser.add_argument("--chunk_count", type=int, default=None, help="Total voxel chunks")
+    parser.add_argument("--no_tfce", action="store_true", help="Disable TFCE (use voxelwise FDR)")
     parser.add_argument("--out_dir", default=None)
     args = parser.parse_args()
 
@@ -368,6 +395,7 @@ def main() -> None:
         )
 
     rng = np.random.default_rng(args.seed)
+    use_tfce = not args.no_tfce
 
     # helper to get subject ids by filters
     def select_subjects(group: str | None = None, drug: str | None = None) -> List[str]:
@@ -390,29 +418,39 @@ def main() -> None:
                 continue
             obs_mat = np.stack([subj_scores[s][cond] for s in subs], axis=0)
             obs_mean = np.nanmean(obs_mat, axis=0)
-            count = np.zeros(n_vox, dtype=int)
-            for _ in range(args.n_perm):
-                perm_means = []
-                for s in subs:
-                    s_data = subj_data[s]
-                    y_perm = rng.permutation(s_data.y)
-                    perm_scores = np.full(n_vox, np.nan)
-                    results = Parallel(n_jobs=args.n_jobs, prefer="threads")(
-                        delayed(_score_cond_batch)(s_data.X, y_perm, neighbors, cond, args.min_voxels, batch)
-                        for batch in batches
-                    )
-                    for voxels, vals in results:
-                        perm_scores[voxels] = vals
-                    perm_means.append(perm_scores)
-                perm_mean = np.nanmean(np.stack(perm_means, axis=0), axis=0)
-                count += (perm_mean >= obs_mean).astype(int)
-            p_perm = (count + 1) / (args.n_perm + 1)
+            if use_tfce:
+                tested = np.ones((len(subs), 1), dtype=float)
+                p_perm = tfce_pvals(obs_mat, tested, mask_img, args.n_perm, True, args.seed, args.n_jobs, model_intercept=False)
+            else:
+                valid = np.isfinite(obs_mean)
+                count = np.zeros(n_vox, dtype=int)
+                for _ in range(args.n_perm):
+                    perm_means = []
+                    for s in subs:
+                        s_data = subj_data[s]
+                        y_perm = rng.permutation(s_data.y)
+                        perm_scores = np.full(n_vox, np.nan)
+                        results = Parallel(n_jobs=args.n_jobs, prefer="threads")(
+                            delayed(_score_cond_batch)(s_data.X, y_perm, neighbors, cond, args.min_voxels, batch)
+                            for batch in batches
+                        )
+                        for voxels, vals in results:
+                            perm_scores[voxels] = vals
+                        perm_means.append(perm_scores)
+                    perm_mean = np.nanmean(np.stack(perm_means, axis=0), axis=0)
+                    perm_valid = valid & np.isfinite(perm_mean)
+                    count[perm_valid] += (perm_mean[perm_valid] >= obs_mean[perm_valid]).astype(int)
+                p_perm = np.full(n_vox, np.nan, dtype=float)
+                p_perm[valid] = (count[valid] + 1) / (args.n_perm + 1)
 
-            q_perm = np.full(n_vox, np.nan)
-            mask = np.isfinite(p_perm)
-            if np.any(mask):
-                _, qvals, _, _ = multipletests(p_perm[mask], alpha=0.05, method='fdr_bh')
-                q_perm[mask] = qvals
+            if use_tfce:
+                q_perm = p_perm.copy()
+            else:
+                q_perm = np.full(n_vox, np.nan)
+                mask = np.isfinite(p_perm)
+                if np.any(mask):
+                    _, qvals, _, _ = multipletests(p_perm[mask], alpha=0.05, method='fdr_bh')
+                    q_perm[mask] = qvals
 
             within_results.append((cond, group, obs_mean, p_perm, q_perm))
 
@@ -427,27 +465,37 @@ def main() -> None:
         obs_sad = np.stack([subj_scores[s][cond] for s in sad_subs], axis=0)
         obs_hc = np.stack([subj_scores[s][cond] for s in hc_subs], axis=0)
         obs_diff = np.nanmean(obs_sad, axis=0) - np.nanmean(obs_hc, axis=0)
+        if use_tfce:
+            tested = np.array([1.0] * len(sad_subs) + [-1.0] * len(hc_subs))[:, None]
+            values = np.stack([subj_scores[s][cond] for s in sad_subs + hc_subs], axis=0)
+            p_perm = tfce_pvals(values, tested, mask_img, args.n_perm, True, args.seed, args.n_jobs, model_intercept=True)
+        else:
+            valid = np.isfinite(obs_diff)
+            all_subs = sad_subs + hc_subs
+            labels = np.array(["SAD"] * len(sad_subs) + ["HC"] * len(hc_subs))
+            count = np.zeros(n_vox, dtype=int)
+            for _ in range(args.n_perm):
+                perm_labels = rng.permutation(labels)
+                sad_idx = perm_labels == "SAD"
+                hc_idx = perm_labels == "HC"
+                if sad_idx.sum() < 2 or hc_idx.sum() < 2:
+                    continue
+                perm_sad = np.stack([subj_scores[s][cond] for s, m in zip(all_subs, sad_idx) if m], axis=0)
+                perm_hc = np.stack([subj_scores[s][cond] for s, m in zip(all_subs, hc_idx) if m], axis=0)
+                perm_diff = np.nanmean(perm_sad, axis=0) - np.nanmean(perm_hc, axis=0)
+                perm_valid = valid & np.isfinite(perm_diff)
+                count[perm_valid] += (np.abs(perm_diff[perm_valid]) >= np.abs(obs_diff[perm_valid])).astype(int)
+            p_perm = np.full(n_vox, np.nan, dtype=float)
+            p_perm[valid] = (count[valid] + 1) / (args.n_perm + 1)
 
-        all_subs = sad_subs + hc_subs
-        labels = np.array(["SAD"] * len(sad_subs) + ["HC"] * len(hc_subs))
-        count = np.zeros(n_vox, dtype=int)
-        for _ in range(args.n_perm):
-            perm_labels = rng.permutation(labels)
-            sad_idx = perm_labels == "SAD"
-            hc_idx = perm_labels == "HC"
-            if sad_idx.sum() < 2 or hc_idx.sum() < 2:
-                continue
-            perm_sad = np.stack([subj_scores[s][cond] for s, m in zip(all_subs, sad_idx) if m], axis=0)
-            perm_hc = np.stack([subj_scores[s][cond] for s, m in zip(all_subs, hc_idx) if m], axis=0)
-            perm_diff = np.nanmean(perm_sad, axis=0) - np.nanmean(perm_hc, axis=0)
-            count += (np.abs(perm_diff) >= np.abs(obs_diff)).astype(int)
-        p_perm = (count + 1) / (args.n_perm + 1)
-
-        q_perm = np.full(n_vox, np.nan)
-        mask = np.isfinite(p_perm)
-        if np.any(mask):
-            _, qvals, _, _ = multipletests(p_perm[mask], alpha=0.05, method='fdr_bh')
-            q_perm[mask] = qvals
+        if use_tfce:
+            q_perm = p_perm.copy()
+        else:
+            q_perm = np.full(n_vox, np.nan)
+            mask = np.isfinite(p_perm)
+            if np.any(mask):
+                _, qvals, _, _ = multipletests(p_perm[mask], alpha=0.05, method='fdr_bh')
+                q_perm[mask] = qvals
 
         groupdiff_results.append((cond, obs_diff, p_perm, q_perm))
 
@@ -463,27 +511,37 @@ def main() -> None:
             obs_oxt = np.stack([subj_scores[s][cond] for s in oxt_subs], axis=0)
             obs_plc = np.stack([subj_scores[s][cond] for s in plc_subs], axis=0)
             obs_diff = np.nanmean(obs_oxt, axis=0) - np.nanmean(obs_plc, axis=0)
+            if use_tfce:
+                tested = np.array([1.0] * len(oxt_subs) + [-1.0] * len(plc_subs))[:, None]
+                values = np.stack([subj_scores[s][cond] for s in oxt_subs + plc_subs], axis=0)
+                p_perm = tfce_pvals(values, tested, mask_img, args.n_perm, True, args.seed, args.n_jobs, model_intercept=True)
+            else:
+                valid = np.isfinite(obs_diff)
+                all_subs = oxt_subs + plc_subs
+                labels = np.array(["OXT"] * len(oxt_subs) + ["PLC"] * len(plc_subs))
+                count = np.zeros(n_vox, dtype=int)
+                for _ in range(args.n_perm):
+                    perm_labels = rng.permutation(labels)
+                    oxt_idx = perm_labels == "OXT"
+                    plc_idx = perm_labels == "PLC"
+                    if oxt_idx.sum() < 2 or plc_idx.sum() < 2:
+                        continue
+                    perm_oxt = np.stack([subj_scores[s][cond] for s, m in zip(all_subs, oxt_idx) if m], axis=0)
+                    perm_plc = np.stack([subj_scores[s][cond] for s, m in zip(all_subs, plc_idx) if m], axis=0)
+                    perm_diff = np.nanmean(perm_oxt, axis=0) - np.nanmean(perm_plc, axis=0)
+                    perm_valid = valid & np.isfinite(perm_diff)
+                    count[perm_valid] += (np.abs(perm_diff[perm_valid]) >= np.abs(obs_diff[perm_valid])).astype(int)
+                p_perm = np.full(n_vox, np.nan, dtype=float)
+                p_perm[valid] = (count[valid] + 1) / (args.n_perm + 1)
 
-            all_subs = oxt_subs + plc_subs
-            labels = np.array(["OXT"] * len(oxt_subs) + ["PLC"] * len(plc_subs))
-            count = np.zeros(n_vox, dtype=int)
-            for _ in range(args.n_perm):
-                perm_labels = rng.permutation(labels)
-                oxt_idx = perm_labels == "OXT"
-                plc_idx = perm_labels == "PLC"
-                if oxt_idx.sum() < 2 or plc_idx.sum() < 2:
-                    continue
-                perm_oxt = np.stack([subj_scores[s][cond] for s, m in zip(all_subs, oxt_idx) if m], axis=0)
-                perm_plc = np.stack([subj_scores[s][cond] for s, m in zip(all_subs, plc_idx) if m], axis=0)
-                perm_diff = np.nanmean(perm_oxt, axis=0) - np.nanmean(perm_plc, axis=0)
-                count += (np.abs(perm_diff) >= np.abs(obs_diff)).astype(int)
-            p_perm = (count + 1) / (args.n_perm + 1)
-
-            q_perm = np.full(n_vox, np.nan)
-            mask = np.isfinite(p_perm)
-            if np.any(mask):
-                _, qvals, _, _ = multipletests(p_perm[mask], alpha=0.05, method='fdr_bh')
-                q_perm[mask] = qvals
+            if use_tfce:
+                q_perm = p_perm.copy()
+            else:
+                q_perm = np.full(n_vox, np.nan)
+                mask = np.isfinite(p_perm)
+                if np.any(mask):
+                    _, qvals, _, _ = multipletests(p_perm[mask], alpha=0.05, method='fdr_bh')
+                    q_perm[mask] = qvals
 
             mod_results.append((cond, group, obs_diff, p_perm, q_perm))
 
