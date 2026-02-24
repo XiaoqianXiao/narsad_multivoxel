@@ -94,7 +94,9 @@ def build_batches(indices: np.ndarray, batch_size: int) -> List[np.ndarray]:
 
 
 def tfce_pvals(values: np.ndarray, tested_vars: np.ndarray, mask_img: nib.Nifti1Image, n_perm: int, two_sided: bool, seed: int, n_jobs: int, model_intercept: bool) -> np.ndarray:
-    valid = np.all(np.isfinite(values), axis=0)
+    finite_mask = np.all(np.isfinite(values), axis=0)
+    var_mask = np.nanvar(values, axis=0) > 0
+    valid = finite_mask & var_mask
     p_full = np.full(values.shape[1], np.nan, dtype=float)
     if not np.any(valid):
         return p_full
