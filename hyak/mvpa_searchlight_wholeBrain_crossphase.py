@@ -26,6 +26,7 @@ from nilearn.mass_univariate import permuted_ols
 from joblib import Parallel, delayed
 
 CS_LABELS = ["CS-", "CSS", "CSR"]
+MIN_VALID_FRAC = 0.80
 
 
 @dataclass
@@ -39,15 +40,26 @@ class SubjectData:
 
 
 def cosine_sim(a: np.ndarray, b: np.ndarray) -> float:
-    na = norm(a)
-    nb = norm(b)
+    mask = np.isfinite(a) & np.isfinite(b)
+    if mask.size == 0 or (mask.mean() < MIN_VALID_FRAC):
+        return np.nan
+    av = a[mask]
+    bv = b[mask]
+    na = norm(av)
+    nb = norm(bv)
     if na == 0 or nb == 0:
         return np.nan
-    return float(np.dot(a, b) / (na * nb))
+    return float(np.dot(av, bv) / (na * nb))
 
 
 def mean_pattern(X: np.ndarray) -> np.ndarray:
-    return np.mean(X, axis=0)
+    if X.size == 0:
+        return np.array([], dtype=float)
+    valid_frac = np.mean(np.isfinite(X), axis=1)
+    Xv = X[valid_frac >= MIN_VALID_FRAC]
+    if Xv.size == 0:
+        return np.full((X.shape[1],), np.nan)
+    return np.nanmean(Xv, axis=0)
 
 
 def get_default_n_jobs() -> int:

@@ -31,6 +31,7 @@ from nilearn.mass_univariate import permuted_ols
 from joblib import Parallel, delayed
 
 CS_LABELS = ["CS-", "CSS", "CSR"]
+MIN_VALID_FRAC = 0.80
 
 
 @dataclass
@@ -41,31 +42,41 @@ class SubjectData:
     drug: str
 
 
-def mean_pairwise_cosine(X: np.ndarray) -> float:
-    if X.shape[0] < 2:
-        return np.nan
-    Xc = X - X.mean(axis=1, keepdims=True)
+def _filter_trials_by_valid_frac(X: np.ndarray, min_valid_frac: float) -> np.ndarray:
+    if X.size == 0:
+        return X
+    valid_frac = np.mean(np.isfinite(X), axis=1)
+    return X[valid_frac >= min_valid_frac]
+
+
+def _center_normalize(X: np.ndarray) -> np.ndarray:
+    means = np.nanmean(X, axis=1, keepdims=True)
+    Xc = X - means
+    Xc = np.where(np.isfinite(Xc), Xc, 0.0)
     denom = norm(Xc, axis=1, keepdims=True)
     denom[denom == 0] = 1.0
-    Xn = Xc / denom
+    return Xc / denom
+
+
+def mean_pairwise_cosine(X: np.ndarray) -> float:
+    X = _filter_trials_by_valid_frac(X, MIN_VALID_FRAC)
+    if X.shape[0] < 2:
+        return np.nan
+    Xn = _center_normalize(X)
     sim = Xn @ Xn.T
     iu = np.triu_indices(sim.shape[0], k=1)
-    return float(np.mean(sim[iu]))
+    return float(np.nanmean(sim[iu]))
 
 
 def mean_between_cosine(Xa: np.ndarray, Xb: np.ndarray) -> float:
+    Xa = _filter_trials_by_valid_frac(Xa, MIN_VALID_FRAC)
+    Xb = _filter_trials_by_valid_frac(Xb, MIN_VALID_FRAC)
     if Xa.shape[0] == 0 or Xb.shape[0] == 0:
         return np.nan
-    Xa_c = Xa - Xa.mean(axis=1, keepdims=True)
-    Xb_c = Xb - Xb.mean(axis=1, keepdims=True)
-    da = norm(Xa_c, axis=1, keepdims=True)
-    db = norm(Xb_c, axis=1, keepdims=True)
-    da[da == 0] = 1.0
-    db[db == 0] = 1.0
-    Xa_n = Xa_c / da
-    Xb_n = Xb_c / db
+    Xa_n = _center_normalize(Xa)
+    Xb_n = _center_normalize(Xb)
     sim = Xa_n @ Xb_n.T
-    return float(np.mean(sim))
+    return float(np.nanmean(sim))
 
 
 def score_within_between_condition(X_sub: np.ndarray, y_sub: np.ndarray, neigh_idx: np.ndarray, cond: str) -> float:
