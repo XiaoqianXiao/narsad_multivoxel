@@ -100,6 +100,7 @@ def tfce_pvals(values: np.ndarray, tested_vars: np.ndarray, mask_img: nib.Nifti1
         return p_full
     vals = values[:, valid]
     masker = NiftiMasker(mask_img=mask_img)
+    masker.fit()
     neglog_pvals, _, _ = permuted_ols(
         tested_vars,
         vals,
