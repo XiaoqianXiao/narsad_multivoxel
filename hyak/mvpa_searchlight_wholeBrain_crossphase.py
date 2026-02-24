@@ -93,7 +93,7 @@ def tfce_pvals(values: np.ndarray, tested_vars: np.ndarray, mask_img: nib.Nifti1
     vals = values[:, valid]
     masker = NiftiMasker(mask_img=valid_mask_img)
     masker.fit()
-    neglog_pvals, _, _ = permuted_ols(
+    out = permuted_ols(
         tested_vars,
         vals,
         model_intercept=model_intercept,
@@ -103,8 +103,10 @@ def tfce_pvals(values: np.ndarray, tested_vars: np.ndarray, mask_img: nib.Nifti1
         n_jobs=n_jobs,
         tfce=True,
         masker=masker,
+        output_type="dict",
     )
-    pvals = 10 ** (-neglog_pvals[0])
+    neglog = out.get("logp_max_tfce", out.get("logp_max_t"))
+    pvals = 10 ** (-neglog[0])
     p_full[valid] = pvals
     return p_full
 
