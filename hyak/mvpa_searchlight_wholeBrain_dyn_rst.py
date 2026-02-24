@@ -98,8 +98,14 @@ def tfce_pvals(values: np.ndarray, tested_vars: np.ndarray, mask_img: nib.Nifti1
     p_full = np.full(values.shape[1], np.nan, dtype=float)
     if not np.any(valid):
         return p_full
+    mask_data = mask_img.get_fdata().astype(bool)
+    if int(mask_data.sum()) != values.shape[1]:
+        raise ValueError("Mask voxel count does not match value columns.")
+    mask_data_valid = mask_data.copy()
+    mask_data_valid[mask_data] = valid
+    valid_mask_img = nib.Nifti1Image(mask_data_valid.astype(np.uint8), mask_img.affine)
     vals = values[:, valid]
-    masker = NiftiMasker(mask_img=mask_img)
+    masker = NiftiMasker(mask_img=valid_mask_img)
     masker.fit()
     neglog_pvals, _, _ = permuted_ols(
         tested_vars,
