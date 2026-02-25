@@ -546,23 +546,22 @@ def main() -> None:
             p_perm = tfce_pvals(values, tested, mask_img, args.n_perm, True, args.seed, args.n_jobs, model_intercept=True)
         else:
             valid = np.isfinite(obs_diff)
-
-        all_subs = sad_subs + hc_subs
-        labels = np.array(["SAD"] * len(sad_subs) + ["HC"] * len(hc_subs))
-        count = np.zeros(n_vox, dtype=int)
-        for _ in range(args.n_perm):
-            perm_labels = rng.permutation(labels)
-            sad_idx = perm_labels == "SAD"
-            hc_idx = perm_labels == "HC"
-            if sad_idx.sum() < 2 or hc_idx.sum() < 2:
-                continue
-            perm_sad = np.stack([subj_scores[s][cond] for s, m in zip(all_subs, sad_idx) if m], axis=0)
-            perm_hc = np.stack([subj_scores[s][cond] for s, m in zip(all_subs, hc_idx) if m], axis=0)
-            perm_diff = np.nanmean(perm_sad, axis=0) - np.nanmean(perm_hc, axis=0)
-            perm_valid = valid & np.isfinite(perm_diff)
-            count[perm_valid] += (np.abs(perm_diff[perm_valid]) >= np.abs(obs_diff[perm_valid])).astype(int)
-        p_perm = np.full(n_vox, np.nan, dtype=float)
-        p_perm[valid] = (count[valid] + 1) / (args.n_perm + 1)
+            all_subs = sad_subs + hc_subs
+            labels = np.array(["SAD"] * len(sad_subs) + ["HC"] * len(hc_subs))
+            count = np.zeros(n_vox, dtype=int)
+            for _ in range(args.n_perm):
+                perm_labels = rng.permutation(labels)
+                sad_idx = perm_labels == "SAD"
+                hc_idx = perm_labels == "HC"
+                if sad_idx.sum() < 2 or hc_idx.sum() < 2:
+                    continue
+                perm_sad = np.stack([subj_scores[s][cond] for s, m in zip(all_subs, sad_idx) if m], axis=0)
+                perm_hc = np.stack([subj_scores[s][cond] for s, m in zip(all_subs, hc_idx) if m], axis=0)
+                perm_diff = np.nanmean(perm_sad, axis=0) - np.nanmean(perm_hc, axis=0)
+                perm_valid = valid & np.isfinite(perm_diff)
+                count[perm_valid] += (np.abs(perm_diff[perm_valid]) >= np.abs(obs_diff[perm_valid])).astype(int)
+            p_perm = np.full(n_vox, np.nan, dtype=float)
+            p_perm[valid] = (count[valid] + 1) / (args.n_perm + 1)
 
         if use_tfce:
             q_perm = p_perm.copy()
@@ -593,23 +592,22 @@ def main() -> None:
                 p_perm = tfce_pvals(values, tested, mask_img, args.n_perm, True, args.seed, args.n_jobs, model_intercept=True)
             else:
                 valid = np.isfinite(obs_diff)
-
-            all_subs = oxt_subs + plc_subs
-            labels = np.array(["OXT"] * len(oxt_subs) + ["PLC"] * len(plc_subs))
-            count = np.zeros(n_vox, dtype=int)
-            for _ in range(args.n_perm):
-                perm_labels = rng.permutation(labels)
-                oxt_idx = perm_labels == "OXT"
-                plc_idx = perm_labels == "PLC"
-                if oxt_idx.sum() < 2 or plc_idx.sum() < 2:
-                    continue
-                perm_oxt = np.stack([subj_scores[s][cond] for s, m in zip(all_subs, oxt_idx) if m], axis=0)
-                perm_plc = np.stack([subj_scores[s][cond] for s, m in zip(all_subs, plc_idx) if m], axis=0)
-                perm_diff = np.nanmean(perm_oxt, axis=0) - np.nanmean(perm_plc, axis=0)
-                perm_valid = valid & np.isfinite(perm_diff)
-                count[perm_valid] += (np.abs(perm_diff[perm_valid]) >= np.abs(obs_diff[perm_valid])).astype(int)
-            p_perm = np.full(n_vox, np.nan, dtype=float)
-            p_perm[valid] = (count[valid] + 1) / (args.n_perm + 1)
+                all_subs = oxt_subs + plc_subs
+                labels = np.array(["OXT"] * len(oxt_subs) + ["PLC"] * len(plc_subs))
+                count = np.zeros(n_vox, dtype=int)
+                for _ in range(args.n_perm):
+                    perm_labels = rng.permutation(labels)
+                    oxt_idx = perm_labels == "OXT"
+                    plc_idx = perm_labels == "PLC"
+                    if oxt_idx.sum() < 2 or plc_idx.sum() < 2:
+                        continue
+                    perm_oxt = np.stack([subj_scores[s][cond] for s, m in zip(all_subs, oxt_idx) if m], axis=0)
+                    perm_plc = np.stack([subj_scores[s][cond] for s, m in zip(all_subs, plc_idx) if m], axis=0)
+                    perm_diff = np.nanmean(perm_oxt, axis=0) - np.nanmean(perm_plc, axis=0)
+                    perm_valid = valid & np.isfinite(perm_diff)
+                    count[perm_valid] += (np.abs(perm_diff[perm_valid]) >= np.abs(obs_diff[perm_valid])).astype(int)
+                p_perm = np.full(n_vox, np.nan, dtype=float)
+                p_perm[valid] = (count[valid] + 1) / (args.n_perm + 1)
 
             if use_tfce:
                 q_perm = p_perm.copy()
