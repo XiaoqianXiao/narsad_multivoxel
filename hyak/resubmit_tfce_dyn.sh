@@ -10,11 +10,11 @@ GLASSER_ATLAS="/gscratch/fang/NARSAD/ROI/Glasser/HCP-MMP1_2mm.nii"
 TIAN_ATLAS="/gscratch/fang/NARSAD/ROI/Tian/3T/Subcortex-Only/Tian_Subcortex_S4_3T_2009cAsym.nii.gz"
 
 LOG_DIR="/gscratch/fang/NARSAD/logs/searchlight_tfce"
-PARTITION="ckpt-all"
+PARTITION="cpu-g2"
 ACCOUNT="fang"
 TIME="8:00:00"
 MEM="120G"
-CPUS=32
+CPUS=16
 N_PERM=5000
 
 mkdir -p "$LOG_DIR"
