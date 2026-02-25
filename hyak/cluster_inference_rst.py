@@ -163,23 +163,39 @@ def save_map(values: np.ndarray, mask: np.ndarray, ref_img: nib.Nifti1Image, out
     nib.save(img_out, out_path)
 
 
-def load_subject_maps(
-    merged_dir: str,
-    cond_list: List[str],
-    mask: np.ndarray,
-) -> Tuple[Dict[str, Dict[str, np.ndarray]], Dict[str, SubjectInfo]]:
+def load_subject_meta(merged_dir: str, project_root: str, subj_ids: List[str]) -> pd.DataFrame:
     meta_path = os.path.join(merged_dir, "subj_meta.csv")
     if not os.path.exists(meta_path):
         parent_meta = os.path.join(os.path.dirname(merged_dir), "subj_meta.csv")
         if os.path.exists(parent_meta):
             meta_path = parent_meta
         else:
-            raise FileNotFoundError(f"Missing subj_meta.csv in {merged_dir} (or parent)")
+            drug_csv = os.path.join(project_root, "MRI/source_data/behav/drug_order.csv")
+            if not os.path.exists(drug_csv):
+                raise FileNotFoundError(f"Missing subj_meta.csv and {drug_csv}")
+            meta_df = pd.read_csv(drug_csv)
+            meta_df["subject_id"] = meta_df["subject_id"].astype(str)
+            keep = meta_df["subject_id"].isin(subj_ids) | meta_df["subject_id"].isin([f"sub-{s}" for s in subj_ids])
+            meta_df = meta_df.loc[keep, ["subject_id", "Group", "Drug"]].copy()
+            meta_df = meta_df.rename(columns={"subject_id": "Subject"})
+            return meta_df
     meta_df = pd.read_csv(meta_path)
+    return meta_df
+
+
+def load_subject_maps(
+    merged_dir: str,
+    cond_list: List[str],
+    mask: np.ndarray,
+    project_root: str,
+) -> Tuple[Dict[str, Dict[str, np.ndarray]], Dict[str, SubjectInfo]]:
+    subj_files = sorted(glob.glob(os.path.join(merged_dir, f"subjmap_{cond_list[0]}_*.nii.gz")))
+    subj_ids = [os.path.basename(p).split("_")[-1].replace(".nii.gz", "") for p in subj_files]
+    meta_df = load_subject_meta(merged_dir, project_root, subj_ids)
     subj_scores: Dict[str, Dict[str, np.ndarray]] = {}
     subj_info: Dict[str, SubjectInfo] = {}
     for row in meta_df.itertuples(index=False):
-        s_id = str(row.Subject).strip()
+        s_id = str(row.Subject).replace("sub-", "").strip()
         subj_scores[s_id] = {}
         for cond in cond_list:
             map_path = os.path.join(merged_dir, f"subjmap_{cond}_{s_id}.nii.gz")
@@ -219,7 +235,7 @@ def main() -> None:
         args.reference_lss,
     )
 
-    subj_scores, subj_info = load_subject_maps(args.merged_dir, CS_LABELS, mask)
+    subj_scores, subj_info = load_subject_maps(args.merged_dir, CS_LABELS, mask, args.project_root)
     all_subs = sorted(subj_scores.keys())
 
     def select_subjects(group: str | None = None, drug: str | None = None) -> List[str]:
