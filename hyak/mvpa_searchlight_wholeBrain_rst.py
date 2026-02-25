@@ -146,14 +146,15 @@ def subset_voxels_by_chunk(
 
 
 
-def tfce_pvals(values: np.ndarray, tested_vars: np.ndarray, mask_img: nib.Nifti1Image, n_perm: int, two_sided: bool, seed: int, n_jobs: int, model_intercept: bool) -> np.ndarray:
+def tfce_pvals(values: np.ndarray, tested_vars: np.ndarray, mask_img: nib.Nifti1Image, n_perm: int, two_sided: bool, seed: int, n_jobs: int, model_intercept: bool) -> Tuple[np.ndarray, np.ndarray]:
     """Compute TFCE-corrected p-values using nilearn.permuted_ols."""
     finite_mask = np.all(np.isfinite(values), axis=0)
     var_mask = np.nanvar(values, axis=0) > 0
     valid = finite_mask & var_mask
+    # Initialize with NaN so invalid voxels are excluded from inference
     p_full = np.full(values.shape[1], np.nan, dtype=float)
     if not np.any(valid):
-        return p_full
+        return p_full, valid
     mask_data = mask_img.get_fdata().astype(bool)
     if int(mask_data.sum()) != values.shape[1]:
         raise ValueError("Mask voxel count does not match value columns.")
@@ -178,7 +179,7 @@ def tfce_pvals(values: np.ndarray, tested_vars: np.ndarray, mask_img: nib.Nifti1
     neglog = out.get("logp_max_tfce", out.get("logp_max_t"))
     pvals = 10 ** (-neglog[0])
     p_full[valid] = pvals
-    return p_full
+    return p_full, valid
 def load_mask_and_coords(mask_img_path: str) -> Tuple[np.ndarray, np.ndarray, nib.Nifti1Image]:
     img = nib.load(mask_img_path)
     data = img.get_fdata()
@@ -495,7 +496,7 @@ def main() -> None:
             obs_mean = np.nanmean(obs_mat, axis=0)
             if use_tfce:
                 tested = np.ones((len(subs), 1), dtype=float)
-                p_perm = tfce_pvals(obs_mat, tested, mask_img, args.n_perm, True, args.seed, args.n_jobs, model_intercept=False)
+                p_perm, valid_mask = tfce_pvals(obs_mat, tested, mask_img, args.n_perm, True, args.seed, args.n_jobs, model_intercept=False)
             else:
                 valid = np.isfinite(obs_mean)
                 count = np.zeros(n_vox, dtype=int)
@@ -543,7 +544,7 @@ def main() -> None:
         if use_tfce:
             tested = np.array([1.0] * len(sad_subs) + [-1.0] * len(hc_subs))[:, None]
             values = np.stack([subj_scores[s][cond] for s in sad_subs + hc_subs], axis=0)
-            p_perm = tfce_pvals(values, tested, mask_img, args.n_perm, True, args.seed, args.n_jobs, model_intercept=True)
+            p_perm, valid_mask = tfce_pvals(values, tested, mask_img, args.n_perm, True, args.seed, args.n_jobs, model_intercept=True)
         else:
             valid = np.isfinite(obs_diff)
             all_subs = sad_subs + hc_subs
@@ -589,7 +590,7 @@ def main() -> None:
             if use_tfce:
                 tested = np.array([1.0] * len(oxt_subs) + [-1.0] * len(plc_subs))[:, None]
                 values = np.stack([subj_scores[s][cond] for s in oxt_subs + plc_subs], axis=0)
-                p_perm = tfce_pvals(values, tested, mask_img, args.n_perm, True, args.seed, args.n_jobs, model_intercept=True)
+                p_perm, valid_mask = tfce_pvals(values, tested, mask_img, args.n_perm, True, args.seed, args.n_jobs, model_intercept=True)
             else:
                 valid = np.isfinite(obs_diff)
                 all_subs = oxt_subs + plc_subs
@@ -636,6 +637,8 @@ def main() -> None:
         base = os.path.join(args.out_dir, f"within_{cond}_{group}_PLC{chunk_suffix}")
         save_map(obs_mean, mask, mask_img, base + "_mean.nii.gz")
         save_map(q_perm, mask, mask_img, base + "_q.nii.gz")
+        if use_tfce:
+            save_map(valid_mask.astype(float), mask, mask_img, base + "_validmask.nii.gz")
         results["within"].append({
             "Condition": cond,
             "Group": group,
@@ -658,6 +661,8 @@ def main() -> None:
         base = os.path.join(args.out_dir, f"diff_{cond}_SAD-HC_PLC{chunk_suffix}")
         save_map(obs_diff, mask, mask_img, base + "_diff.nii.gz")
         save_map(q_perm, mask, mask_img, base + "_q.nii.gz")
+        if use_tfce:
+            save_map(valid_mask.astype(float), mask, mask_img, base + "_validmask.nii.gz")
         results["groupdiff"].append({
             "Condition": cond,
             "Diff": "SAD-HC",
@@ -681,6 +686,8 @@ def main() -> None:
         base = os.path.join(args.out_dir, f"mod_{cond}_{group}_OXT-PLC{chunk_suffix}")
         save_map(obs_diff, mask, mask_img, base + "_diff.nii.gz")
         save_map(q_perm, mask, mask_img, base + "_q.nii.gz")
+        if use_tfce:
+            save_map(valid_mask.astype(float), mask, mask_img, base + "_validmask.nii.gz")
         results["modulation"].append({
             "Condition": cond,
             "Group": group,

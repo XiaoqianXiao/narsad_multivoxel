@@ -77,13 +77,14 @@ def build_batches(indices: np.ndarray, batch_size: int) -> List[np.ndarray]:
 
 
 
-def tfce_pvals(values: np.ndarray, tested_vars: np.ndarray, mask_img: nib.Nifti1Image, n_perm: int, two_sided: bool, seed: int, n_jobs: int, model_intercept: bool) -> np.ndarray:
+def tfce_pvals(values: np.ndarray, tested_vars: np.ndarray, mask_img: nib.Nifti1Image, n_perm: int, two_sided: bool, seed: int, n_jobs: int, model_intercept: bool) -> Tuple[np.ndarray, np.ndarray]:
     finite_mask = np.all(np.isfinite(values), axis=0)
     var_mask = np.nanvar(values, axis=0) > 0
     valid = finite_mask & var_mask
+    # Initialize with NaN so invalid voxels are excluded from inference
     p_full = np.full(values.shape[1], np.nan, dtype=float)
     if not np.any(valid):
-        return p_full
+        return p_full, valid
     mask_data = mask_img.get_fdata().astype(bool)
     if int(mask_data.sum()) != values.shape[1]:
         raise ValueError("Mask voxel count does not match value columns.")
@@ -108,7 +109,7 @@ def tfce_pvals(values: np.ndarray, tested_vars: np.ndarray, mask_img: nib.Nifti1
     neglog = out.get("logp_max_tfce", out.get("logp_max_t"))
     pvals = 10 ** (-neglog[0])
     p_full[valid] = pvals
-    return p_full
+    return p_full, valid
 
 def find_reference_lss(project_root: str, task: str) -> str:
     patterns = [
@@ -390,8 +391,8 @@ def main() -> None:
         if use_tfce:
             tested = np.array([1.0] * values_a.shape[0] + [-1.0] * values_b.shape[0])[:, None]
             values = np.concatenate([values_a, values_b], axis=0)
-            p = tfce_pvals(values, tested, mask_img, n_perm, True, args.seed, args.n_jobs, model_intercept=True)
-            return obs, p
+            p, valid_mask = tfce_pvals(values, tested, mask_img, n_perm, True, args.seed, args.n_jobs, model_intercept=True)
+            return obs, p, valid_mask
         valid = np.isfinite(obs)
         pooled = np.concatenate([values_a, values_b], axis=0)
         n_a = values_a.shape[0]
@@ -411,8 +412,8 @@ def main() -> None:
         obs = np.nanmean(values, axis=0)
         if use_tfce:
             tested = np.ones((values.shape[0], 1), dtype=float)
-            p = tfce_pvals(values, tested, mask_img, n_perm, True, args.seed, args.n_jobs, model_intercept=False)
-            return obs, p
+            p, valid_mask = tfce_pvals(values, tested, mask_img, n_perm, True, args.seed, args.n_jobs, model_intercept=False)
+            return obs, p, valid_mask
         valid = np.isfinite(obs)
         count = np.zeros(obs.shape[0], dtype=int)
         for _ in range(n_perm):
@@ -526,12 +527,18 @@ def main() -> None:
             subs = [s for s, d in subj_data.items() if d.group == group and d.drug == "Placebo"]
             if len(subs) >= 2:
                 vals = np.stack([subj_maps[s][cond] for s in subs], axis=0)
-                obs, p = permute_sign_flip(vals, args.n_perm, rng, two_tailed=not args.one_tailed)
+                if use_tfce:
+                    obs, p, valid_mask = permute_sign_flip(vals, args.n_perm, rng, two_tailed=not args.one_tailed)
+                else:
+                    obs, p = permute_sign_flip(vals, args.n_perm, rng, two_tailed=not args.one_tailed)
+                    valid_mask = None
                 q = fdr_q(p)
                 base = os.path.join(perm_dir, f"crossphase_{cond}_{group}_PLC")
                 save_map(obs, mask, mask_img, base + "_mean.nii.gz")
                 save_map(p, mask, mask_img, base + "_p.nii.gz")
                 save_map(q, mask, mask_img, base + "_q.nii.gz")
+                if use_tfce and valid_mask is not None:
+                    save_map(valid_mask.astype(float), mask, mask_img, base + "_validmask.nii.gz")
 
         # placebo group diff
         sad_subs = [s for s, d in subj_data.items() if d.group == "SAD" and d.drug == "Placebo"]
@@ -539,12 +546,18 @@ def main() -> None:
         if len(sad_subs) >= 2 and len(hc_subs) >= 2:
             vals_sad = np.stack([subj_maps[s][cond] for s in sad_subs], axis=0)
             vals_hc = np.stack([subj_maps[s][cond] for s in hc_subs], axis=0)
-            obs, p = permute_group_diff(vals_sad, vals_hc, args.n_perm, rng)
+            if use_tfce:
+                obs, p, valid_mask = permute_group_diff(vals_sad, vals_hc, args.n_perm, rng)
+            else:
+                obs, p = permute_group_diff(vals_sad, vals_hc, args.n_perm, rng)
+                valid_mask = None
             q = fdr_q(p)
             base = os.path.join(perm_dir, f"crossphase_{cond}_SAD-HC_PLC")
             save_map(obs, mask, mask_img, base + "_diff.nii.gz")
             save_map(p, mask, mask_img, base + "_p.nii.gz")
             save_map(q, mask, mask_img, base + "_q.nii.gz")
+            if use_tfce and valid_mask is not None:
+                save_map(valid_mask.astype(float), mask, mask_img, base + "_validmask.nii.gz")
 
         # OXT-PLC modulation
         for group in ["SAD", "HC"]:
@@ -553,12 +566,18 @@ def main() -> None:
             if len(oxt_subs) >= 2 and len(plc_subs) >= 2:
                 vals_oxt = np.stack([subj_maps[s][cond] for s in oxt_subs], axis=0)
                 vals_plc = np.stack([subj_maps[s][cond] for s in plc_subs], axis=0)
-                obs, p = permute_group_diff(vals_oxt, vals_plc, args.n_perm, rng)
+                if use_tfce:
+                    obs, p, valid_mask = permute_group_diff(vals_oxt, vals_plc, args.n_perm, rng)
+                else:
+                    obs, p = permute_group_diff(vals_oxt, vals_plc, args.n_perm, rng)
+                    valid_mask = None
                 q = fdr_q(p)
                 base = os.path.join(perm_dir, f"crossphase_{cond}_{group}_OXT-PLC")
                 save_map(obs, mask, mask_img, base + "_diff.nii.gz")
                 save_map(p, mask, mask_img, base + "_p.nii.gz")
                 save_map(q, mask, mask_img, base + "_q.nii.gz")
+                if use_tfce and valid_mask is not None:
+                    save_map(valid_mask.astype(float), mask, mask_img, base + "_validmask.nii.gz")
 
     # summary tables + merged table
     summary_rows = []
