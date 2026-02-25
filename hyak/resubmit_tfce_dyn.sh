@@ -13,8 +13,8 @@ LOG_DIR="/gscratch/fang/NARSAD/logs/searchlight_tfce"
 PARTITION="cpu-g2"
 ACCOUNT="fang"
 TIME="8:00:00"
-MEM="120G"
-CPUS=8
+MEM="100G"
+CPUS=16
 N_PERM=5000
 
 mkdir -p "$LOG_DIR"
