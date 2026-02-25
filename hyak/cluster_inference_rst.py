@@ -170,7 +170,11 @@ def load_subject_maps(
 ) -> Tuple[Dict[str, Dict[str, np.ndarray]], Dict[str, SubjectInfo]]:
     meta_path = os.path.join(merged_dir, "subj_meta.csv")
     if not os.path.exists(meta_path):
-        raise FileNotFoundError(f"Missing subj_meta.csv in {merged_dir}")
+        parent_meta = os.path.join(os.path.dirname(merged_dir), "subj_meta.csv")
+        if os.path.exists(parent_meta):
+            meta_path = parent_meta
+        else:
+            raise FileNotFoundError(f"Missing subj_meta.csv in {merged_dir} (or parent)")
     meta_df = pd.read_csv(meta_path)
     subj_scores: Dict[str, Dict[str, np.ndarray]] = {}
     subj_info: Dict[str, SubjectInfo] = {}
