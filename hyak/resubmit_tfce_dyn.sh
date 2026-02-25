@@ -10,11 +10,11 @@ GLASSER_ATLAS="/gscratch/fang/NARSAD/ROI/Glasser/HCP-MMP1_2mm.nii"
 TIAN_ATLAS="/gscratch/fang/NARSAD/ROI/Tian/3T/Subcortex-Only/Tian_Subcortex_S4_3T_2009cAsym.nii.gz"
 
 LOG_DIR="/gscratch/fang/NARSAD/logs/searchlight_tfce"
-PARTITION="cpu-g2"
+PARTITION="ckpt-all"
 ACCOUNT="fang"
 TIME="8:00:00"
-MEM="100G"
-CPUS=16
+MEM="120G"
+CPUS=32
 N_PERM=5000
 
 mkdir -p "$LOG_DIR"
@@ -35,7 +35,7 @@ submit() {
     --job-name="$name" \
     --output="$LOG_DIR/${name}_%j.out" \
     --error="$LOG_DIR/${name}_%j.err" \
-    --wrap="bash -lc 'if [ -d ${OUT_BASE}/${out_dir}/merged/subj_maps ]; then cp -n ${OUT_BASE}/${out_dir}/merged/subj_maps/subjmap_* ${OUT_BASE}/${out_dir}/merged/ 2>/dev/null || true; fi; apptainer exec -B ${PROJECT_ROOT}:${PROJECT_ROOT} -B ${APP_PATH}:/app -B ${OUT_BASE}:/output_dir ${CONTAINER_SIF} python3 /app/${script} --project_root ${PROJECT_ROOT} --out_dir /output_dir/${out_dir}/merged --reference_lss ${REFERENCE_LSS} --glasser_atlas ${GLASSER_ATLAS} --tian_atlas ${TIAN_ATLAS} --n_jobs ${CPUS} --n_perm ${N_PERM} --post_merge_tfce'"
+    --wrap="bash -lc 'MERGED=${OUT_BASE}/${out_dir}/merged; SUBJ=${OUT_BASE}/${out_dir}/merged/subj_maps; if [ -d \"$SUBJ\" ]; then cp -f \"$SUBJ\"/subjmap_*.nii.gz \"$MERGED\"/ 2>/dev/null || true; fi; apptainer exec -B ${PROJECT_ROOT}:${PROJECT_ROOT} -B ${APP_PATH}:/app -B ${OUT_BASE}:/output_dir ${CONTAINER_SIF} python3 /app/${script} --project_root ${PROJECT_ROOT} --out_dir /output_dir/${out_dir}/merged --reference_lss ${REFERENCE_LSS} --glasser_atlas ${GLASSER_ATLAS} --tian_atlas ${TIAN_ATLAS} --n_jobs ${CPUS} --n_perm ${N_PERM} --post_merge_tfce'"
 }
 
 submit "tfce_dyn_ext_8h" "mvpa_searchlight_wholeBrain_dyn_ext.py" "dyn_ext"
