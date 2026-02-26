@@ -102,7 +102,7 @@ def cluster_pvals(
     z_thresh: float,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Return cluster-corrected p-values (mass) and z-map; invalid voxels are NaN."""
-    finite_mask = np.mean(np.isfinite(values), axis=0) >= 0.80
+    finite_mask = np.all(np.isfinite(values), axis=0)
     var_mask = np.nanvar(values, axis=0) > 0
     valid = finite_mask & var_mask
     p_full = np.full(values.shape[1], np.nan, dtype=float)
@@ -262,9 +262,9 @@ def main() -> None:
                 continue
             values = np.stack([subj_scores[s][cond] for s in subs], axis=0)
             tested = np.ones((values.shape[0], 1))
-                pvals, zvals, valid = cluster_pvals(
-                    values, tested, mask_img, args.n_perm, True, args.seed, args.n_jobs, False, args.z_thresh
-                )
+            pvals, zvals, valid = cluster_pvals(
+                values, tested, mask_img, args.n_perm, True, args.seed, args.n_jobs, False, args.z_thresh
+            )
             base = os.path.join(args.out_dir, f"cluster_within_{cond}_{group}_PLC")
             save_map(zvals, mask, mask_img, base + "_z.nii.gz")
             save_map(pvals, mask, mask_img, base + "_clustp.nii.gz")

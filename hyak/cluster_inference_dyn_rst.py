@@ -104,7 +104,7 @@ def cluster_pvals(
     model_intercept: bool,
     z_thresh: float,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    finite_mask = np.mean(np.isfinite(values), axis=0) >= 0.80
+    finite_mask = np.all(np.isfinite(values), axis=0)
     var_mask = np.nanvar(values, axis=0) > 0
     valid = finite_mask & var_mask
     p_full = np.full(values.shape[1], np.nan, dtype=float)
