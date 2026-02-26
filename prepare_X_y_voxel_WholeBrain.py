@@ -138,10 +138,10 @@ def get_reference_subject_geometry(logger):
     """
     pattern = os.path.join(FIRSTLEVEL_DIR, "sub-*_task-*_contrast1.nii*")
     files = sorted(glob.glob(pattern))
-    
+
     if not files:
         raise RuntimeError("No LSS files found to determine reference geometry!")
-    
+
     ref_path = files[0]
     logger.info(f"Using reference geometry from: {os.path.basename(ref_path)}")
     return load_img(ref_path)
