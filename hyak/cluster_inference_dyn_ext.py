@@ -152,7 +152,9 @@ def cluster_pvals(
 
     logp = out.get("logp_max_cluster_mass", out.get("logp_max_cluster_size"))
     if logp is None:
-        raise KeyError("Could not find cluster logp in permuted_ols output.")
+        # No clusters survive threshold in this contrast
+        p_full[valid] = 1.0
+        return p_full, z_full, valid
     pvals = 10 ** (-np.asarray(logp)[0])
     p_full[valid] = pvals
     return p_full, z_full, valid
