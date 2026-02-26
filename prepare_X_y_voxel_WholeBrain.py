@@ -136,19 +136,10 @@ def get_reference_subject_geometry(logger):
     Finds the FIRST available LSS file to use as the geometric reference 
     (affine, shape) for resampling the atlases.
     """
-    patterns = [
-        os.path.join(FIRSTLEVEL_DIR, "sub-*_task-*_contrast1.nii*"),
-        os.path.join(FIRSTLEVEL_DIR, "subjects", "sub-*_task-*_contrast1.nii*"),
-        os.path.join(FIRSTLEVEL_DIR, "wholeBrain_S4", "sub-*_task-*_contrast1.nii*"),
-        os.path.join(FIRSTLEVEL_DIR, "wholeBrain_S4", "**", "sub-*_task-*_contrast1.nii*"),
-    ]
-    files = []
-    for pattern in patterns:
-        files = sorted(glob.glob(pattern, recursive=True))
-        if files:
-            break
+    pattern = os.path.join(FIRSTLEVEL_DIR, "subjects", "sub-*_task-*_contrast1.nii*")
+    files = sorted(glob.glob(pattern))
     if not files:
-        raise RuntimeError(f"No LSS files found with patterns: {patterns}")
+        raise RuntimeError(f"No LSS files found with pattern: {pattern}")
 
     ref_path = files[0]
     logger.info(f"Using reference geometry from: {os.path.basename(ref_path)}")
@@ -269,25 +260,9 @@ def process_phase_generic(layout, phase_name, master_mask_img, logger):
     """
     contrast_suffix = "contrast1"
     
-    candidates = [
-        FIRSTLEVEL_DIR,
-        os.path.join(FIRSTLEVEL_DIR, "subjects"),
-        os.path.join(FIRSTLEVEL_DIR, "wholeBrain_S4"),
-    ]
-    lss_files = []
-    lss_dir = None
-    for d in candidates:
-        pattern = os.path.join(d, f"sub-*_task-{phase_name}_{contrast_suffix}.nii*")
-        lss_files = sorted(glob.glob(pattern))
-        if lss_files:
-            lss_dir = d
-            break
-    if not lss_files:
-        # fallback: recursive search under wholeBrain_S4
-        pattern = os.path.join(FIRSTLEVEL_DIR, "wholeBrain_S4", "**", f"sub-*_task-{phase_name}_{contrast_suffix}.nii*")
-        lss_files = sorted(glob.glob(pattern, recursive=True))
-        if lss_files:
-            lss_dir = os.path.dirname(lss_files[0])
+    lss_dir = os.path.join(FIRSTLEVEL_DIR, "subjects")
+    pattern = os.path.join(lss_dir, f"sub-*_task-{phase_name}_{contrast_suffix}.nii*")
+    lss_files = sorted(glob.glob(pattern))
     subjects = []
     for f in lss_files:
         base = os.path.basename(f)
