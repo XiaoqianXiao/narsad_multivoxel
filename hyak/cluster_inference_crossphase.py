@@ -81,9 +81,12 @@ def t_to_z(tvals: np.ndarray, df: int) -> np.ndarray:
     return z
 
 
-def z_to_t_threshold(z_thresh: float, df: int) -> float:
-    p = stats.norm.sf(z_thresh) * 2.0
-    return stats.t.ppf(1.0 - p / 2.0, df)
+def z_to_t_threshold(z_thresh: float, df: int, two_sided: bool) -> float:
+    if two_sided:
+        p = stats.norm.sf(z_thresh) * 2.0
+        return stats.t.ppf(1.0 - p / 2.0, df)
+    p = stats.norm.sf(z_thresh)
+    return stats.t.ppf(1.0 - p, df)
 
 
 def cluster_pvals(
@@ -97,7 +100,7 @@ def cluster_pvals(
     model_intercept: bool,
     z_thresh: float,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    finite_mask = np.all(np.isfinite(values), axis=0)
+    finite_mask = np.mean(np.isfinite(values), axis=0) >= 0.80
     var_mask = np.nanvar(values, axis=0) > 0
     valid = finite_mask & var_mask
     p_full = np.full(values.shape[1], np.nan, dtype=float)
@@ -121,7 +124,7 @@ def cluster_pvals(
     df = n_samples - np.linalg.matrix_rank(design)
     if df <= 0:
         raise ValueError("Non-positive degrees of freedom for z conversion.")
-    t_thresh = z_to_t_threshold(z_thresh, df)
+    t_thresh = z_to_t_threshold(z_thresh, df, two_sided)
 
     masker = NiftiMasker(mask_img=valid_mask_img)
     masker.fit()
@@ -258,7 +261,7 @@ def main() -> None:
             values = np.stack([subj_scores[s][cond] for s in subs], axis=0)
             tested = np.ones((values.shape[0], 1))
             pvals, zvals, _ = cluster_pvals(
-                values, tested, mask_img, args.n_perm, True, args.seed, args.n_jobs, False, args.z_thresh
+                values, tested, mask_img, args.n_perm, False, args.seed, args.n_jobs, False, args.z_thresh
             )
             base = os.path.join(args.out_dir, f"cluster_crossphase_{cond}_{group}_PLC")
             save_map(zvals, mask, mask_img, base + "_z.nii.gz")
@@ -276,7 +279,7 @@ def main() -> None:
         values = np.stack([subj_scores[s][cond] for s in all_subs_diff], axis=0)
         tested = np.array([1.0] * len(sad) + [-1.0] * len(hc))[:, None]
         pvals, zvals, _ = cluster_pvals(
-            values, tested, mask_img, args.n_perm, True, args.seed, args.n_jobs, True, args.z_thresh
+            values, tested, mask_img, args.n_perm, False, args.seed, args.n_jobs, True, args.z_thresh
         )
         base = os.path.join(args.out_dir, f"cluster_crossphase_{cond}_SAD-HC_PLC")
         save_map(zvals, mask, mask_img, base + "_z.nii.gz")
@@ -295,7 +298,7 @@ def main() -> None:
             values = np.stack([subj_scores[s][cond] for s in all_subs_mod], axis=0)
             tested = np.array([1.0] * len(oxt) + [-1.0] * len(plc))[:, None]
             pvals, zvals, _ = cluster_pvals(
-                values, tested, mask_img, args.n_perm, True, args.seed, args.n_jobs, True, args.z_thresh
+                values, tested, mask_img, args.n_perm, False, args.seed, args.n_jobs, True, args.z_thresh
             )
             base = os.path.join(args.out_dir, f"cluster_crossphase_{cond}_{group}_OXT-PLC")
             save_map(zvals, mask, mask_img, base + "_z.nii.gz")
