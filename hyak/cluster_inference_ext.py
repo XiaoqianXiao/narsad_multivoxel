@@ -219,7 +219,7 @@ def main() -> None:
     parser.add_argument("--tian_atlas", default="/gscratch/fang/NARSAD/ROI/Tian/3T/Subcortex-Only/Tian_Subcortex_S4_3T_2009cAsym.nii.gz")
     parser.add_argument("--reference_lss", default=None)
     parser.add_argument("--n_perm", type=int, default=5000)
-    parser.add_argument("--z_thresh", type=float, default=3.1)
+    parser.add_argument("--z_thresh", type=float, default=2.3)
     parser.add_argument("--alpha", type=float, default=0.05)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--n_jobs", type=int, default=8)
