@@ -269,8 +269,25 @@ def process_phase_generic(layout, phase_name, master_mask_img, logger):
     """
     contrast_suffix = "contrast1"
     
-    pattern = os.path.join(FIRSTLEVEL_DIR, f"sub-*_task-{phase_name}_{contrast_suffix}.nii*")
-    lss_files = sorted(glob.glob(pattern))
+    candidates = [
+        FIRSTLEVEL_DIR,
+        os.path.join(FIRSTLEVEL_DIR, "subjects"),
+        os.path.join(FIRSTLEVEL_DIR, "wholeBrain_S4"),
+    ]
+    lss_files = []
+    lss_dir = None
+    for d in candidates:
+        pattern = os.path.join(d, f"sub-*_task-{phase_name}_{contrast_suffix}.nii*")
+        lss_files = sorted(glob.glob(pattern))
+        if lss_files:
+            lss_dir = d
+            break
+    if not lss_files:
+        # fallback: recursive search under wholeBrain_S4
+        pattern = os.path.join(FIRSTLEVEL_DIR, "wholeBrain_S4", "**", f"sub-*_task-{phase_name}_{contrast_suffix}.nii*")
+        lss_files = sorted(glob.glob(pattern, recursive=True))
+        if lss_files:
+            lss_dir = os.path.dirname(lss_files[0])
     subjects = []
     for f in lss_files:
         base = os.path.basename(f)
@@ -295,8 +312,9 @@ def process_phase_generic(layout, phase_name, master_mask_img, logger):
 
     for sub in subjects:
         # Locate LSS
-        nii_path_gz = os.path.join(FIRSTLEVEL_DIR, f"sub-{sub}_task-{phase_name}_{contrast_suffix}.nii.gz")
-        nii_path = os.path.join(FIRSTLEVEL_DIR, f"sub-{sub}_task-{phase_name}_{contrast_suffix}.nii")
+        base_dir = lss_dir or FIRSTLEVEL_DIR
+        nii_path_gz = os.path.join(base_dir, f"sub-{sub}_task-{phase_name}_{contrast_suffix}.nii.gz")
+        nii_path = os.path.join(base_dir, f"sub-{sub}_task-{phase_name}_{contrast_suffix}.nii")
         use_path = nii_path_gz if os.path.exists(nii_path_gz) else nii_path
         
         if not os.path.exists(use_path):
