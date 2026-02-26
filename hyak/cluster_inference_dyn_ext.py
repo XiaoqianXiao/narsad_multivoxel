@@ -269,7 +269,7 @@ def main() -> None:
                 values = np.stack([subj_maps[s][pair][metric] for s in subs], axis=0)
                 tested = np.ones((values.shape[0], 1))
                 pvals, zvals, _ = cluster_pvals(
-                    values, tested, mask_img, args.n_perm, False, args.seed, args.n_jobs, False, args.z_thresh
+                    values, tested, mask_img, args.n_perm, True, args.seed, args.n_jobs, False, args.z_thresh
                 )
                 base = os.path.join(args.out_dir, f"cluster_{pair_name}_{group}_PLC_{metric}")
                 save_map(zvals, mask, mask_img, base + "_z.nii.gz")
@@ -285,7 +285,7 @@ def main() -> None:
                 values = np.stack([subj_maps[s][pair][metric] for s in all_subs_diff], axis=0)
                 tested = np.array([1.0] * len(sad) + [-1.0] * len(hc))[:, None]
                 pvals, zvals, _ = cluster_pvals(
-                    values, tested, mask_img, args.n_perm, False, args.seed, args.n_jobs, True, args.z_thresh
+                    values, tested, mask_img, args.n_perm, True, args.seed, args.n_jobs, True, args.z_thresh
                 )
                 base = os.path.join(args.out_dir, f"cluster_{pair_name}_SAD-HC_PLC_{metric}")
                 save_map(zvals, mask, mask_img, base + "_z.nii.gz")
@@ -303,7 +303,7 @@ def main() -> None:
                 values = np.stack([subj_maps[s][pair][metric] for s in all_subs_mod], axis=0)
                 tested = np.array([1.0] * len(oxt) + [-1.0] * len(plc))[:, None]
                 pvals, zvals, _ = cluster_pvals(
-                    values, tested, mask_img, args.n_perm, False, args.seed, args.n_jobs, True, args.z_thresh
+                    values, tested, mask_img, args.n_perm, True, args.seed, args.n_jobs, True, args.z_thresh
                 )
                 base = os.path.join(args.out_dir, f"cluster_{pair_name}_{group}_OXT-PLC_{metric}")
                 save_map(zvals, mask, mask_img, base + "_z.nii.gz")

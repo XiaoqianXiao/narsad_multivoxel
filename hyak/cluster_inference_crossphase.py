@@ -261,7 +261,7 @@ def main() -> None:
             values = np.stack([subj_scores[s][cond] for s in subs], axis=0)
             tested = np.ones((values.shape[0], 1))
             pvals, zvals, _ = cluster_pvals(
-                values, tested, mask_img, args.n_perm, False, args.seed, args.n_jobs, False, args.z_thresh
+                values, tested, mask_img, args.n_perm, True, args.seed, args.n_jobs, False, args.z_thresh
             )
             base = os.path.join(args.out_dir, f"cluster_crossphase_{cond}_{group}_PLC")
             save_map(zvals, mask, mask_img, base + "_z.nii.gz")
@@ -279,7 +279,7 @@ def main() -> None:
         values = np.stack([subj_scores[s][cond] for s in all_subs_diff], axis=0)
         tested = np.array([1.0] * len(sad) + [-1.0] * len(hc))[:, None]
         pvals, zvals, _ = cluster_pvals(
-            values, tested, mask_img, args.n_perm, False, args.seed, args.n_jobs, True, args.z_thresh
+            values, tested, mask_img, args.n_perm, True, args.seed, args.n_jobs, True, args.z_thresh
         )
         base = os.path.join(args.out_dir, f"cluster_crossphase_{cond}_SAD-HC_PLC")
         save_map(zvals, mask, mask_img, base + "_z.nii.gz")
@@ -298,7 +298,7 @@ def main() -> None:
             values = np.stack([subj_scores[s][cond] for s in all_subs_mod], axis=0)
             tested = np.array([1.0] * len(oxt) + [-1.0] * len(plc))[:, None]
             pvals, zvals, _ = cluster_pvals(
-                values, tested, mask_img, args.n_perm, False, args.seed, args.n_jobs, True, args.z_thresh
+                values, tested, mask_img, args.n_perm, True, args.seed, args.n_jobs, True, args.z_thresh
             )
             base = os.path.join(args.out_dir, f"cluster_crossphase_{cond}_{group}_OXT-PLC")
             save_map(zvals, mask, mask_img, base + "_z.nii.gz")
