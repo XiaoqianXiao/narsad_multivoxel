@@ -5,15 +5,15 @@ using whole-brain VOXEL-WISE extraction.
 
 STRATEGY:
   1. Detect the voxel grid (affine/shape) from the FIRST subject found.
-  2. Resample the Glasser & Tian atlases to match this subject grid (nearest-neighbor).
+  2. Resample the Schaefer-400 (17-network, 2mm) & Tian atlases to match this subject grid (nearest-neighbor).
   3. Create the Master Mask and Metadata from these resampled atlases.
   4. Extract data from all subjects using this mask.
      (This avoids resampling subject beta maps).
 
 Outputs (NPZ, compressed):
   /data/NARSAD/MRI/derivatives/fMRI_analysis/LSS/firstLevel/all_subjects/group_level/
-    phase2_X_ext_y_ext_voxels_glasser_tian.npz
-    phase3_X_reinst_y_reinst_voxels_glasser_tian.npz
+    phase2_X_ext_y_ext_voxels_schaefer_tian.npz
+    phase3_X_reinst_y_reinst_voxels_schaefer_tian.npz
 
 Each NPZ contains:
   - X_* : (n_trials_total, n_voxels)
@@ -21,7 +21,7 @@ Each NPZ contains:
   - subjects       : (n_trials_total,)
   - parcel_indices : (n_voxels,) integer parcel IDs
   - parcel_names   : (n_voxels,) parcel names
-  - parcel_atlas   : (n_voxels,) 'Glasser' or 'Tian'
+  - parcel_atlas   : (n_voxels,) 'Schaefer' or 'Tian'
 """
 
 import os
@@ -54,8 +54,19 @@ FIRSTLEVEL_DIR = os.path.join(
 BEHAV_DIR = os.path.join(ROOT_DIR, PROJECT, "MRI", "source_data", "behav")
 
 ROI_DIR = os.path.join(ROOT_DIR, PROJECT, "ROI")
-GLASSER_ATLAS_PATH = os.path.join(ROI_DIR, "Glasser", "HCP-MMP1_2mm.nii")
-GLASSER_LABELS_PATH = os.path.join(ROI_DIR, "Glasser", "HCP-MMP1_all.txt")
+SCHAEFER_N_ROIS = 400
+SCHAEFER_YEO = 17
+SCHAEFER_RES = "2mm"
+SCHAEFER_ATLAS_PATH = os.path.join(
+    ROI_DIR,
+    "schaefer_2018",
+    "Schaefer2018_400Parcels_17Networks_order_FSLMNI152_2mm.nii.gz",
+)
+SCHAEFER_LABELS_PATH = os.path.join(
+    ROI_DIR,
+    "schaefer_2018",
+    "Schaefer2018_400Parcels_17Networks_order.txt",
+)
 
 TIAN_ATLAS_PATH = os.path.join(
     ROI_DIR, "Tian", "3T", "Subcortex-Only",
@@ -72,10 +83,10 @@ OUTPUT_DIR = os.path.join(
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 PHASE2_OUTPUT_FILE = os.path.join(
-    OUTPUT_DIR, "phase2_X_ext_y_ext_voxels_glasser_tian.npz"
+    OUTPUT_DIR, "phase2_X_ext_y_ext_voxels_schaefer_tian.npz"
 )
 PHASE3_OUTPUT_FILE = os.path.join(
-    OUTPUT_DIR, "phase3_X_reinst_y_reinst_voxels_glasser_tian.npz"
+    OUTPUT_DIR, "phase3_X_reinst_y_reinst_voxels_schaefer_tian.npz"
 )
 
 CS_LABELS = ["CS-", "CSS", "CSR"]
@@ -101,11 +112,6 @@ def setup_logging():
 # LABEL / ATLAS HELPERS
 # =============================================================================
 
-def load_glasser_labels(glasser_labels_path):
-    df = pd.read_csv(glasser_labels_path, sep=None, engine="python")
-    label_dict = dict(zip(df['regionID'].astype(int), df['regionName'].astype(str)))
-    return label_dict
-
 def load_tian_labels(tian_labels_path):
     df = pd.read_csv(tian_labels_path, sep=None, engine="python", header=None, comment="#")
     first_col = df.columns[0]
@@ -113,6 +119,17 @@ def load_tian_labels(tian_labels_path):
     indices = np.arange(1, len(names) + 1, dtype=int)
     label_dict = dict(zip(indices, names))
     return label_dict
+
+def load_schaefer_labels(labels_path: str) -> dict:
+    labels = []
+    with open(labels_path, "r") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            labels.append(line)
+    # Labels are 1-based in the atlas file; build dict {id: name}
+    return {i + 1: labels[i] for i in range(len(labels))}
 
 def get_reference_subject_geometry(logger):
     """
@@ -129,38 +146,37 @@ def get_reference_subject_geometry(logger):
     logger.info(f"Using reference geometry from: {os.path.basename(ref_path)}")
     return load_img(ref_path)
 
-def build_master_mask_and_metadata(glasser_img, tian_img, reference_img, logger):
+def build_master_mask_and_metadata(schaefer_img, tian_img, reference_img, logger, schaefer_labels_dict):
     """
-    1. Resamples Glasser & Tian to match 'reference_img' (Subject Space).
+    1. Resamples Schaefer & Tian to match 'reference_img' (Subject Space).
     2. Creates a combined 'Master Mask'.
     3. Generates voxel-wise metadata.
     """
     
     logger.info("  Resampling Atlases to match Reference Subject geometry (Nearest Neighbor)...")
     
-    # Resample Glasser to Subject
-    glasser_res = resample_to_img(glasser_img, reference_img, interpolation='nearest')
+    # Resample Schaefer to Subject
+    schaefer_res = resample_to_img(schaefer_img, reference_img, interpolation='nearest')
     # Resample Tian to Subject
     tian_res = resample_to_img(tian_img, reference_img, interpolation='nearest')
 
-    glasser_data = glasser_res.get_fdata().astype(int)
+    schaefer_data = schaefer_res.get_fdata().astype(int)
     tian_data = tian_res.get_fdata().astype(int)
 
-    # Load Names
-    glasser_labels_dict = load_glasser_labels(GLASSER_LABELS_PATH)
+    # Schaefer labels dict provided by caller
     tian_labels_dict = load_tian_labels(TIAN_LABELS_PATH)
 
     # Offset Tian IDs
-    max_glasser_id = int(glasser_data.max())
-    tian_offset = max_glasser_id + 1
-    logger.info(f"  Max Glasser ID: {max_glasser_id}. Tian offset: {tian_offset}")
+    max_schaefer_id = int(schaefer_data.max())
+    tian_offset = max_schaefer_id + 1
+    logger.info(f"  Max Schaefer ID: {max_schaefer_id}. Tian offset: {tian_offset}")
 
     # Create map array
-    roi_map_data = np.zeros_like(glasser_data)
+    roi_map_data = np.zeros_like(schaefer_data)
     
-    # Fill Glasser
-    mask_glasser = glasser_data > 0
-    roi_map_data[mask_glasser] = glasser_data[mask_glasser]
+    # Fill Schaefer
+    mask_schaefer = schaefer_data > 0
+    roi_map_data[mask_schaefer] = schaefer_data[mask_schaefer]
     
     # Fill Tian (where Glasser is 0)
     mask_tian = (tian_data > 0)
@@ -184,10 +200,10 @@ def build_master_mask_and_metadata(glasser_img, tian_img, reference_img, logger)
 
     for uid in unique_present_ids:
         mask_uid = (unique_ids == uid)
-        if uid <= max_glasser_id:
+        if uid <= max_schaefer_id:
             original_id = uid
-            atlas_name = "Glasser"
-            p_name = glasser_labels_dict.get(original_id, f"Unknown_Glasser_{original_id}")
+            atlas_name = "Schaefer"
+            p_name = schaefer_labels_dict.get(original_id, f"Unknown_Schaefer_{original_id}")
         else:
             original_id = uid - tian_offset
             atlas_name = "Tian"
@@ -344,14 +360,15 @@ def main():
     logger.info("Identifying reference subject geometry...")
     reference_img = get_reference_subject_geometry(logger)
 
-    # 2. Load Original Atlases
-    glasser_img = load_img(GLASSER_ATLAS_PATH)
+    # 2. Load Atlases (Schaefer-400 17-network, 2mm + Tian subcortex)
+    schaefer_img = load_img(SCHAEFER_ATLAS_PATH)
+    schaefer_labels = load_schaefer_labels(SCHAEFER_LABELS_PATH)
     tian_img = load_img(TIAN_ATLAS_PATH)
 
     # 3. Build Master Mask & Metadata (Resampled to Reference)
     logger.info("Building Master Mask and Metadata arrays...")
     master_mask_img, parcel_indices, parcel_names, parcel_atlas = build_master_mask_and_metadata(
-        glasser_img, tian_img, reference_img, logger
+        schaefer_img, tian_img, reference_img, logger, schaefer_labels
     )
     
     # 4. Initialize Layout

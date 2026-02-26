@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import glob
+
 import os
 from dataclasses import dataclass
 from typing import Dict, List, Tuple
@@ -20,6 +21,7 @@ from nilearn.image import resample_to_img
 from nilearn.maskers import NiftiMasker
 from nilearn.mass_univariate import permuted_ols
 from scipy import stats
+SCHAEFER_ATLAS_PATH = "/gscratch/fang/NARSAD/ROI/schaefer_2018/Schaefer2018_400Parcels_17Networks_order_FSLMNI152_2mm.nii.gz"
 
 
 CS_LABELS = ["CS-", "CSS", "CSR"]
@@ -63,11 +65,11 @@ def build_master_mask_from_reference(
     reference_img_path: str,
 ) -> Tuple[np.ndarray, nib.Nifti1Image]:
     ref_img = nib.load(reference_img_path)
-    img_g = nib.load(glasser_path)
+    img_s = nib.load(SCHAEFER_ATLAS_PATH)
     img_t = nib.load(tian_path)
-    glasser_res = resample_to_img(img_g, ref_img, interpolation="nearest")
+    schaefer_res = resample_to_img(img_s, ref_img, interpolation="nearest")
     tian_res = resample_to_img(img_t, ref_img, interpolation="nearest")
-    data_g = glasser_res.get_fdata()
+    data_g = schaefer_res.get_fdata()
     data_t = tian_res.get_fdata()
     mask = (data_g > 0) | (data_t > 0)
     return mask, nib.Nifti1Image(mask.astype(np.uint8), ref_img.affine)

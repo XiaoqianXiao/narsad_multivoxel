@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import os
+
 import glob
 from dataclasses import dataclass
 from typing import Dict, List, Tuple
@@ -24,10 +25,14 @@ from scipy.spatial import cKDTree
 from nilearn.maskers import NiftiMasker
 from nilearn.mass_univariate import permuted_ols
 from joblib import Parallel, delayed
+SCHAEFER_ATLAS_PATH = "/gscratch/fang/NARSAD/ROI/schaefer_2018/Schaefer2018_400Parcels_17Networks_order_FSLMNI152_2mm.nii.gz"
 
 CS_LABELS = ["CS-", "CSS", "CSR"]
 PAIR_LIST = [("CS-", "CSS"), ("CS-", "CSR"), ("CSS", "CSR")]
 MIN_VALID_FRAC = 0.80
+SCHAEFER_N_ROIS = 400
+SCHAEFER_YEO = 17
+SCHAEFER_RES_MM = 2
 
 
 @dataclass
@@ -159,15 +164,15 @@ def build_master_mask_from_reference(
     reference_img_path: str,
 ) -> Tuple[np.ndarray, nib.Nifti1Image]:
     ref_img = nib.load(reference_img_path)
-    img_g = nib.load(glasser_path)
+    img_s = nib.load(SCHAEFER_ATLAS_PATH)
     img_t = nib.load(tian_path)
 
     from nilearn.image import resample_to_img
 
-    glasser_res = resample_to_img(img_g, ref_img, interpolation="nearest")
+    schaefer_res = resample_to_img(img_s, ref_img, interpolation="nearest")
     tian_res = resample_to_img(img_t, ref_img, interpolation="nearest")
 
-    data_g = glasser_res.get_fdata()
+    data_g = schaefer_res.get_fdata()
     data_t = tian_res.get_fdata()
     mask = (data_g > 0) | (data_t > 0)
     out_img = nib.Nifti1Image(mask.astype(np.uint8), ref_img.affine)
@@ -215,6 +220,77 @@ def load_subject_maps_from_disk(
     return subj_maps, subj_data
 
 
+def compute_subject_dynamic_trial_scores(
+    subj: SubjectData,
+    neighbors: List[List[int]],
+    voxel_indices: np.ndarray,
+    min_voxels: int,
+    batches: List[np.ndarray],
+    n_jobs: int,
+    pair: Tuple[str, str],
+) -> Dict[str, np.ndarray]:
+    idx_a = np.where(subj.y == pair[0])[0]
+    idx_b = np.where(subj.y == pair[1])[0]
+    voxel_indices = np.asarray(voxel_indices, dtype=int)
+    scores = {
+        "trial_idx_a": idx_a,
+        "trial_idx_b": idx_b,
+        "trial_labels_a": subj.y[idx_a],
+        "trial_labels_b": subj.y[idx_b],
+        "sims_a": np.full((idx_a.size, voxel_indices.size), np.nan, dtype=float),
+        "sims_b": np.full((idx_b.size, voxel_indices.size), np.nan, dtype=float),
+    }
+    results = Parallel(n_jobs=n_jobs, prefer="threads")(
+        delayed(_dynamic_trial_batch)(
+            subj.X,
+            subj.y,
+            neighbors,
+            pair,
+            min_voxels,
+            batch,
+            idx_a.size,
+            idx_b.size,
+        )
+        for batch in batches
+    )
+    for voxels, sims_a, sims_b in results:
+        pos = np.searchsorted(voxel_indices, voxels)
+        scores["sims_a"][:, pos] = sims_a
+        scores["sims_b"][:, pos] = sims_b
+    return scores
+
+
+def save_subject_dynamic_trial_npz(
+    trial_dir: str,
+    s_id: str,
+    pair: Tuple[str, str],
+    trial_scores: Dict[str, np.ndarray],
+    subj_maps: Dict[str, np.ndarray],
+    voxel_indices: np.ndarray,
+    chunk_idx: int | None,
+) -> None:
+    os.makedirs(trial_dir, exist_ok=True)
+    pair_name = f"{pair[0]}_vs_{pair[1]}"
+    suffix = f"_chunk{chunk_idx:03d}" if chunk_idx is not None else ""
+    out_path = os.path.join(trial_dir, f"trialmaps_{pair_name}_{s_id}{suffix}.npz")
+    delta_slice = subj_maps["delta"][np.asarray(voxel_indices, dtype=int)]
+    slope_slice = subj_maps["slope"][np.asarray(voxel_indices, dtype=int)]
+    np.savez_compressed(
+        out_path,
+        sims_a=trial_scores["sims_a"].astype(np.float32, copy=False),
+        sims_b=trial_scores["sims_b"].astype(np.float32, copy=False),
+        trial_idx_a=trial_scores["trial_idx_a"],
+        trial_idx_b=trial_scores["trial_idx_b"],
+        trial_labels_a=trial_scores["trial_labels_a"],
+        trial_labels_b=trial_scores["trial_labels_b"],
+        delta_map=delta_slice.astype(np.float32, copy=False),
+        slope_map=slope_slice.astype(np.float32, copy=False),
+        voxels=voxel_indices,
+        subject=s_id,
+        pair=pair_name,
+    )
+
+
 def compute_dynamic_metrics(
     X_sub: np.ndarray,
     y_sub: np.ndarray,
@@ -255,6 +331,26 @@ def compute_dynamic_metrics(
     return delta, slope
 
 
+def compute_dynamic_trial_series(
+    X_sub: np.ndarray,
+    y_sub: np.ndarray,
+    neigh_idx: np.ndarray,
+    pair: Tuple[str, str],
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    a, b = pair
+    idx_a = np.where(y_sub == a)[0]
+    idx_b = np.where(y_sub == b)[0]
+    if idx_a.size == 0 or idx_b.size == 0:
+        return np.full(idx_a.size, np.nan), np.full(idx_b.size, np.nan), idx_a, idx_b
+    Xa = X_sub[idx_a][:, neigh_idx]
+    Xb = X_sub[idx_b][:, neigh_idx]
+    centroid_a = mean_pattern(Xa)
+    centroid_b = mean_pattern(Xb)
+    sims_a = np.array([cosine_sim(x, centroid_b) for x in Xa], dtype=float)
+    sims_b = np.array([cosine_sim(x, centroid_a) for x in Xb], dtype=float)
+    return sims_a, sims_b, idx_a, idx_b
+
+
 def _dynamic_batch(
     X_sub: np.ndarray,
     y_sub: np.ndarray,
@@ -282,6 +378,35 @@ def _dynamic_batch(
         delta_vals[i] = delta
         slope_vals[i] = slope
     return voxels, delta_vals, slope_vals
+
+
+def _dynamic_trial_batch(
+    X_sub: np.ndarray,
+    y_sub: np.ndarray,
+    neighbors: List[List[int]],
+    pair: Tuple[str, str],
+    min_voxels: int,
+    voxels: np.ndarray,
+    n_a: int,
+    n_b: int,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    sims_a = np.full((n_a, voxels.size), np.nan, dtype=float)
+    sims_b = np.full((n_b, voxels.size), np.nan, dtype=float)
+    for i, v in enumerate(voxels):
+        neigh = neighbors[v]
+        if len(neigh) < min_voxels:
+            continue
+        scores_a, scores_b, _, _ = compute_dynamic_trial_series(
+            X_sub,
+            y_sub,
+            np.asarray(neigh),
+            pair,
+        )
+        if scores_a.size == n_a:
+            sims_a[:, i] = scores_a
+        if scores_b.size == n_b:
+            sims_b[:, i] = scores_b
+    return voxels, sims_a, sims_b
 
 
 def subset_voxels_by_chunk(
@@ -323,6 +448,7 @@ def main() -> None:
     parser.add_argument("--chunk_count", type=int, default=None, help="Total voxel chunks")
     parser.add_argument("--no_tfce", action="store_true", help="Disable TFCE (use voxelwise FDR)")
     parser.add_argument("--post_merge_tfce", action="store_true", help="Save subject maps and skip TFCE until post-merge")
+    parser.add_argument("--save_trial_npz", action="store_true", help="Save trial-level searchlight scores (NPZ)")
     parser.add_argument("--out_dir", default=None)
     args = parser.parse_args()
 
@@ -333,7 +459,7 @@ def main() -> None:
             "MRI/derivatives/fMRI_analysis/LSS",
             "firstLevel",
             "all_subjects/wholeBrain_S4/cope_voxels",
-            "phase3_X_reinst_y_reinst_voxels_glasser_tian.npz",
+            "phase3_X_reinst_y_reinst_voxels_schaefer_tian.npz",
         )
     if args.meta_csv is None:
         args.meta_csv = os.path.join(project_root, "MRI/source_data/behav/drug_order.csv")
@@ -415,6 +541,8 @@ def main() -> None:
     if post_merge_stage:
         subj_maps, subj_data = load_subject_maps_from_disk(args.out_dir, mask)
         print("[Loaded] Subject maps for post-merge TFCE.")
+        if args.save_trial_npz:
+            print("[Skip] Trial-level NPZ requires raw trial data; not available in post-merge TFCE stage.")
     else:
         for s_id, s_data in subj_data.items():
             subj_maps[s_id] = {}
@@ -441,6 +569,32 @@ def main() -> None:
                     "delta": delta_map,
                     "slope": slope_map,
                 }
+
+        if args.save_trial_npz:
+            trial_dir = os.path.join(args.out_dir, "trial_npz")
+            if args.chunk_idx is not None:
+                trial_dir = os.path.join(trial_dir, "chunks")
+            for s_id, s_data in subj_data.items():
+                for pair in PAIR_LIST:
+                    trial_scores = compute_subject_dynamic_trial_scores(
+                        s_data,
+                        neighbors,
+                        np.asarray(valid_voxels),
+                        args.min_voxels,
+                        batches,
+                        args.n_jobs,
+                        pair,
+                    )
+                    save_subject_dynamic_trial_npz(
+                        trial_dir,
+                        s_id,
+                        pair,
+                        trial_scores,
+                        subj_maps[s_id][pair],
+                        np.asarray(valid_voxels),
+                        args.chunk_idx,
+                    )
+            print("[Saved] Trial-level NPZ maps.")
 
     if args.post_merge_tfce and not post_merge_stage:
         subj_dir = os.path.join(args.out_dir, "subj_maps")

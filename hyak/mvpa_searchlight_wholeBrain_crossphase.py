@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import os
+
 import glob
 from dataclasses import dataclass
 from typing import Dict, List, Tuple
@@ -24,9 +25,13 @@ from scipy.spatial import cKDTree
 from nilearn.maskers import NiftiMasker
 from nilearn.mass_univariate import permuted_ols
 from joblib import Parallel, delayed
+SCHAEFER_ATLAS_PATH = "/gscratch/fang/NARSAD/ROI/schaefer_2018/Schaefer2018_400Parcels_17Networks_order_FSLMNI152_2mm.nii.gz"
 
 CS_LABELS = ["CS-", "CSS", "CSR"]
 MIN_VALID_FRAC = 0.80
+SCHAEFER_N_ROIS = 400
+SCHAEFER_YEO = 17
+SCHAEFER_RES_MM = 2
 
 
 @dataclass
@@ -143,15 +148,15 @@ def build_master_mask_from_reference(
     reference_img_path: str,
 ) -> Tuple[np.ndarray, nib.Nifti1Image]:
     ref_img = nib.load(reference_img_path)
-    img_g = nib.load(glasser_path)
+    img_s = nib.load(SCHAEFER_ATLAS_PATH)
     img_t = nib.load(tian_path)
 
     from nilearn.image import resample_to_img
 
-    glasser_res = resample_to_img(img_g, ref_img, interpolation="nearest")
+    schaefer_res = resample_to_img(img_s, ref_img, interpolation="nearest")
     tian_res = resample_to_img(img_t, ref_img, interpolation="nearest")
 
-    data_g = glasser_res.get_fdata()
+    data_g = schaefer_res.get_fdata()
     data_t = tian_res.get_fdata()
     mask = (data_g > 0) | (data_t > 0)
     out_img = nib.Nifti1Image(mask.astype(np.uint8), ref_img.affine)
@@ -195,6 +200,86 @@ def load_subject_maps_from_disk(
     return subj_maps, subj_data
 
 
+def compute_subject_crossphase_trial_scores(
+    subj: SubjectData,
+    neighbors: List[List[int]],
+    voxel_indices: np.ndarray,
+    min_voxels: int,
+    batches: List[np.ndarray],
+    n_jobs: int,
+    cond_list: List[str],
+) -> Dict[str, Dict[str, np.ndarray]]:
+    trial_scores: Dict[str, Dict[str, np.ndarray]] = {}
+    voxel_indices = np.asarray(voxel_indices, dtype=int)
+    for cond in cond_list:
+        idx_e = np.where(subj.y_ext == cond)[0]
+        idx_r = np.where(subj.y_rst == cond)[0]
+        trial_scores[cond] = {
+            "ext_idx": idx_e,
+            "rst_idx": idx_r,
+            "ext_labels": subj.y_ext[idx_e],
+            "rst_labels": subj.y_rst[idx_r],
+            "ext_scores": np.full((idx_e.size, voxel_indices.size), np.nan, dtype=float),
+            "rst_scores": np.full((idx_r.size, voxel_indices.size), np.nan, dtype=float),
+        }
+        results = Parallel(n_jobs=n_jobs, prefer="threads")(
+            delayed(_crossphase_trial_batch)(
+                subj.X_ext,
+                subj.y_ext,
+                subj.X_rst,
+                subj.y_rst,
+                neighbors,
+                cond,
+                min_voxels,
+                batch,
+                idx_e.size,
+                idx_r.size,
+            )
+            for batch in batches
+        )
+        for voxels, ext_vals, rst_vals in results:
+            pos = np.searchsorted(voxel_indices, voxels)
+            trial_scores[cond]["ext_scores"][:, pos] = ext_vals
+            trial_scores[cond]["rst_scores"][:, pos] = rst_vals
+    return trial_scores
+
+
+def save_subject_crossphase_trial_npz(
+    trial_dir: str,
+    s_id: str,
+    trial_scores: Dict[str, Dict[str, np.ndarray]],
+    cond_list: List[str],
+    subj_maps: Dict[str, np.ndarray],
+    voxel_indices: np.ndarray,
+    chunk_idx: int | None,
+) -> None:
+    os.makedirs(trial_dir, exist_ok=True)
+    for cond in cond_list:
+        if cond not in trial_scores:
+            continue
+        ext_scores = trial_scores[cond]["ext_scores"].astype(np.float32, copy=False)
+        rst_scores = trial_scores[cond]["rst_scores"].astype(np.float32, copy=False)
+        suffix = f"_chunk{chunk_idx:03d}" if chunk_idx is not None else ""
+        out_path = os.path.join(trial_dir, f"trialmaps_{cond}_{s_id}{suffix}.npz")
+        mean_map = subj_maps.get(cond)
+        mean_slice = None
+        if mean_map is not None:
+            mean_slice = mean_map[np.asarray(voxel_indices, dtype=int)]
+        np.savez_compressed(
+            out_path,
+            ext_scores=ext_scores,
+            rst_scores=rst_scores,
+            ext_idx=trial_scores[cond]["ext_idx"],
+            rst_idx=trial_scores[cond]["rst_idx"],
+            ext_labels=trial_scores[cond]["ext_labels"],
+            rst_labels=trial_scores[cond]["rst_labels"],
+            mean_map=mean_slice.astype(np.float32, copy=False) if mean_slice is not None else None,
+            voxels=voxel_indices,
+            subject=s_id,
+            condition=cond,
+        )
+
+
 def compute_crossphase_similarity(
     X_ext: np.ndarray,
     y_ext: np.ndarray,
@@ -210,6 +295,27 @@ def compute_crossphase_similarity(
     Xe = X_ext[idx_e][:, neigh_idx]
     Xr = X_rst[idx_r][:, neigh_idx]
     return cosine_sim(mean_pattern(Xe), mean_pattern(Xr))
+
+
+def compute_crossphase_trial_scores(
+    X_ext: np.ndarray,
+    y_ext: np.ndarray,
+    X_rst: np.ndarray,
+    y_rst: np.ndarray,
+    neigh_idx: np.ndarray,
+    cond: str,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    idx_e = np.where(y_ext == cond)[0]
+    idx_r = np.where(y_rst == cond)[0]
+    if idx_e.size == 0 or idx_r.size == 0:
+        return np.full(idx_e.size, np.nan), np.full(idx_r.size, np.nan), idx_e, idx_r
+    Xe = X_ext[idx_e][:, neigh_idx]
+    Xr = X_rst[idx_r][:, neigh_idx]
+    mean_r = mean_pattern(Xr)
+    mean_e = mean_pattern(Xe)
+    scores_e = np.array([cosine_sim(x, mean_r) for x in Xe], dtype=float)
+    scores_r = np.array([cosine_sim(x, mean_e) for x in Xr], dtype=float)
+    return scores_e, scores_r, idx_e, idx_r
 
 
 def _crossphase_batch(
@@ -236,6 +342,39 @@ def _crossphase_batch(
             cond,
         )
     return voxels, vals
+
+
+def _crossphase_trial_batch(
+    X_ext: np.ndarray,
+    y_ext: np.ndarray,
+    X_rst: np.ndarray,
+    y_rst: np.ndarray,
+    neighbors: List[List[int]],
+    cond: str,
+    min_voxels: int,
+    voxels: np.ndarray,
+    n_ext: int,
+    n_rst: int,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    ext_vals = np.full((n_ext, voxels.size), np.nan, dtype=float)
+    rst_vals = np.full((n_rst, voxels.size), np.nan, dtype=float)
+    for i, v in enumerate(voxels):
+        neigh = neighbors[v]
+        if len(neigh) < min_voxels:
+            continue
+        scores_e, scores_r, _, _ = compute_crossphase_trial_scores(
+            X_ext,
+            y_ext,
+            X_rst,
+            y_rst,
+            np.asarray(neigh),
+            cond,
+        )
+        if scores_e.size == n_ext:
+            ext_vals[:, i] = scores_e
+        if scores_r.size == n_rst:
+            rst_vals[:, i] = scores_r
+    return voxels, ext_vals, rst_vals
 
 
 def subset_voxels_by_chunk(
@@ -276,6 +415,7 @@ def main() -> None:
     parser.add_argument("--chunk_count", type=int, default=None, help="Total voxel chunks")
     parser.add_argument("--no_tfce", action="store_true", help="Disable TFCE (use voxelwise FDR)")
     parser.add_argument("--post_merge_tfce", action="store_true", help="Save subject maps and skip TFCE until post-merge")
+    parser.add_argument("--save_trial_npz", action="store_true", help="Save trial-level searchlight scores (NPZ)")
     parser.add_argument("--out_dir", default=None)
     args = parser.parse_args()
 
@@ -286,7 +426,7 @@ def main() -> None:
             "MRI/derivatives/fMRI_analysis/LSS",
             "firstLevel",
             "all_subjects/wholeBrain_S4/cope_voxels",
-            "phase2_X_ext_y_ext_voxels_glasser_tian.npz",
+            "phase2_X_ext_y_ext_voxels_schaefer_tian.npz",
         )
     if args.phase3_npz is None:
         args.phase3_npz = os.path.join(
@@ -294,7 +434,7 @@ def main() -> None:
             "MRI/derivatives/fMRI_analysis/LSS",
             "firstLevel",
             "all_subjects/wholeBrain_S4/cope_voxels",
-            "phase3_X_reinst_y_reinst_voxels_glasser_tian.npz",
+            "phase3_X_reinst_y_reinst_voxels_schaefer_tian.npz",
         )
     if args.meta_csv is None:
         args.meta_csv = os.path.join(project_root, "MRI/source_data/behav/drug_order.csv")
@@ -445,6 +585,8 @@ def main() -> None:
     if post_merge_stage:
         subj_maps, subj_data = load_subject_maps_from_disk(args.out_dir, mask)
         print("[Loaded] Subject maps for post-merge TFCE.")
+        if args.save_trial_npz:
+            print("[Skip] Trial-level NPZ requires raw trial data; not available in post-merge TFCE stage.")
     else:
         for s_id, s_data in subj_data.items():
             subj_maps[s_id] = {}
@@ -466,6 +608,31 @@ def main() -> None:
                 for voxels, vals in results:
                     sim_map[voxels] = vals
                 subj_maps[s_id][cond] = sim_map
+
+        if args.save_trial_npz:
+            trial_dir = os.path.join(args.out_dir, "trial_npz")
+            if args.chunk_idx is not None:
+                trial_dir = os.path.join(trial_dir, "chunks")
+            for s_id, s_data in subj_data.items():
+                trial_scores = compute_subject_crossphase_trial_scores(
+                    s_data,
+                    neighbors,
+                    np.asarray(valid_voxels),
+                    args.min_voxels,
+                    batches,
+                    args.n_jobs,
+                    CS_LABELS,
+                )
+                save_subject_crossphase_trial_npz(
+                    trial_dir,
+                    s_id,
+                    trial_scores,
+                    CS_LABELS,
+                    subj_maps[s_id],
+                    np.asarray(valid_voxels),
+                    args.chunk_idx,
+                )
+            print("[Saved] Trial-level NPZ maps.")
 
         if args.post_merge_tfce:
             subj_dir = os.path.join(args.out_dir, "subj_maps")

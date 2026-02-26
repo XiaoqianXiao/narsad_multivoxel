@@ -15,6 +15,7 @@ Notes:
 from __future__ import annotations
 
 import argparse
+
 import os
 from dataclasses import dataclass
 from typing import Dict, List, Tuple
@@ -29,9 +30,13 @@ from statsmodels.stats.multitest import multipletests
 from nilearn.maskers import NiftiMasker
 from nilearn.mass_univariate import permuted_ols
 from joblib import Parallel, delayed
+SCHAEFER_ATLAS_PATH = "/gscratch/fang/NARSAD/ROI/schaefer_2018/Schaefer2018_400Parcels_17Networks_order_FSLMNI152_2mm.nii.gz"
 
 CS_LABELS = ["CS-", "CSS", "CSR"]
 MIN_VALID_FRAC = 0.80
+SCHAEFER_N_ROIS = 400
+SCHAEFER_YEO = 17
+SCHAEFER_RES_MM = 2
 
 
 @dataclass
@@ -79,6 +84,40 @@ def mean_between_cosine(Xa: np.ndarray, Xb: np.ndarray) -> float:
     return float(np.nanmean(sim))
 
 
+def trial_within_between_scores(
+    X_sub: np.ndarray,
+    y_sub: np.ndarray,
+    neigh_idx: np.ndarray,
+    cond: str,
+) -> Tuple[np.ndarray, np.ndarray]:
+    idx_c = np.where(y_sub == cond)[0]
+    idx_o = np.where(y_sub != cond)[0]
+    if idx_c.size == 0 or idx_o.size == 0:
+        return np.full(idx_c.size, np.nan), idx_c
+
+    Xc = X_sub[idx_c][:, neigh_idx]
+    Xo = X_sub[idx_o][:, neigh_idx]
+    valid_c = np.mean(np.isfinite(Xc), axis=1) >= MIN_VALID_FRAC
+    valid_o = np.mean(np.isfinite(Xo), axis=1) >= MIN_VALID_FRAC
+
+    scores = np.full(idx_c.size, np.nan, dtype=float)
+    if valid_c.sum() < 2 or valid_o.sum() == 0:
+        return scores, idx_c
+
+    Xc_v = Xc[valid_c]
+    Xo_v = Xo[valid_o]
+    Xc_n = _center_normalize(Xc_v)
+    Xo_n = _center_normalize(Xo_v)
+
+    sim_cc = Xc_n @ Xc_n.T
+    np.fill_diagonal(sim_cc, np.nan)
+    within = np.nanmean(sim_cc, axis=1)
+    sim_cb = Xc_n @ Xo_n.T
+    between = np.nanmean(sim_cb, axis=1)
+    scores[valid_c] = within - between
+    return scores, idx_c
+
+
 def score_within_between_condition(X_sub: np.ndarray, y_sub: np.ndarray, neigh_idx: np.ndarray, cond: str) -> float:
     idx_c = np.where(y_sub == cond)[0]
     idx_o = np.where(y_sub != cond)[0]
@@ -116,6 +155,26 @@ def _score_cond_batch(
         if len(neigh) < min_voxels:
             continue
         vals[i] = score_within_between_condition(X_sub, y_sub, np.asarray(neigh), cond)
+    return voxels, vals
+
+
+def _score_cond_trial_batch(
+    X_sub: np.ndarray,
+    y_sub: np.ndarray,
+    neighbors: List[List[int]],
+    cond: str,
+    min_voxels: int,
+    voxels: np.ndarray,
+) -> Tuple[np.ndarray, np.ndarray]:
+    n_trials = int(np.sum(y_sub == cond))
+    vals = np.full((n_trials, voxels.size), np.nan, dtype=float)
+    for i, v in enumerate(voxels):
+        neigh = neighbors[v]
+        if len(neigh) < min_voxels:
+            continue
+        scores, _ = trial_within_between_scores(X_sub, y_sub, np.asarray(neigh), cond)
+        if scores.size == n_trials:
+            vals[:, i] = scores
     return voxels, vals
 
 
@@ -222,15 +281,15 @@ def build_master_mask_from_reference(
     out_path: str | None = None,
 ) -> Tuple[str, np.ndarray, nib.Nifti1Image]:
     ref_img = nib.load(reference_img_path)
-    img_g = nib.load(glasser_path)
+    img_s = nib.load(SCHAEFER_ATLAS_PATH)
     img_t = nib.load(tian_path)
 
     from nilearn.image import resample_to_img
 
-    glasser_res = resample_to_img(img_g, ref_img, interpolation="nearest")
+    schaefer_res = resample_to_img(img_s, ref_img, interpolation="nearest")
     tian_res = resample_to_img(img_t, ref_img, interpolation="nearest")
 
-    data_g = glasser_res.get_fdata()
+    data_g = schaefer_res.get_fdata()
     data_t = tian_res.get_fdata()
     mask = (data_g > 0) | (data_t > 0)
     out_img = nib.Nifti1Image(mask.astype(np.uint8), ref_img.affine)
@@ -256,6 +315,68 @@ def compute_subject_scores(
         for voxels, vals in results:
             scores[cond][voxels] = vals
     return scores
+
+
+def compute_subject_trial_scores(
+    subj: SubjectData,
+    neighbors: List[List[int]],
+    voxel_indices: np.ndarray,
+    min_voxels: int,
+    batches: List[np.ndarray],
+    n_jobs: int,
+    cond_list: List[str],
+) -> Dict[str, Dict[str, np.ndarray]]:
+    trial_scores: Dict[str, Dict[str, np.ndarray]] = {}
+    voxel_indices = np.asarray(voxel_indices, dtype=int)
+    for cond in cond_list:
+        idx_c = np.where(subj.y == cond)[0]
+        trial_scores[cond] = {
+            "trial_idx": idx_c,
+            "trial_labels": subj.y[idx_c],
+            "scores": np.full((idx_c.size, voxel_indices.size), np.nan, dtype=float),
+        }
+        results = Parallel(n_jobs=n_jobs, prefer="threads")(
+            delayed(_score_cond_trial_batch)(subj.X, subj.y, neighbors, cond, min_voxels, batch)
+            for batch in batches
+        )
+        for voxels, vals in results:
+            pos = np.searchsorted(voxel_indices, voxels)
+            trial_scores[cond]["scores"][:, pos] = vals
+    return trial_scores
+
+
+def save_subject_trial_npz(
+    trial_dir: str,
+    s_id: str,
+    trial_scores: Dict[str, Dict[str, np.ndarray]],
+    cond_list: List[str],
+    subj_scores: Dict[str, np.ndarray],
+    voxel_indices: np.ndarray,
+    chunk_idx: int | None,
+) -> None:
+    os.makedirs(trial_dir, exist_ok=True)
+    for cond in cond_list:
+        if cond not in trial_scores:
+            continue
+        scores = trial_scores[cond]["scores"].astype(np.float32, copy=False)
+        trial_idx = trial_scores[cond]["trial_idx"]
+        trial_labels = trial_scores[cond]["trial_labels"]
+        mean_map = subj_scores.get(cond)
+        suffix = f"_chunk{chunk_idx:03d}" if chunk_idx is not None else ""
+        out_path = os.path.join(trial_dir, f"trialmaps_{cond}_{s_id}{suffix}.npz")
+        mean_slice = None
+        if mean_map is not None:
+            mean_slice = mean_map[np.asarray(voxel_indices, dtype=int)]
+        np.savez_compressed(
+            out_path,
+            scores=scores,
+            trial_idx=trial_idx,
+            trial_labels=trial_labels,
+            mean_map=mean_slice.astype(np.float32, copy=False) if mean_slice is not None else None,
+            voxels=voxel_indices,
+            subject=s_id,
+            condition=cond,
+        )
 
 
 def save_map(values: np.ndarray, mask: np.ndarray, ref_img: nib.Nifti1Image, out_path: str) -> None:
@@ -346,6 +467,7 @@ def main() -> None:
     parser.add_argument("--chunk_count", type=int, default=None, help="Total voxel chunks")
     parser.add_argument("--no_tfce", action="store_true", help="Disable TFCE (use voxelwise FDR)")
     parser.add_argument("--post_merge_tfce", action="store_true", help="Save subject maps and skip TFCE until post-merge")
+    parser.add_argument("--save_trial_npz", action="store_true", help="Save trial-level searchlight scores (NPZ)")
     parser.add_argument("--out_dir", default=None)
     args = parser.parse_args()
 
@@ -356,7 +478,7 @@ def main() -> None:
             "MRI/derivatives/fMRI_analysis/LSS",
             "firstLevel",
             "all_subjects/wholeBrain_S4/cope_voxels",
-            "phase2_X_ext_y_ext_voxels_glasser_tian.npz",
+            "phase2_X_ext_y_ext_voxels_schaefer_tian.npz",
         )
     if args.meta_csv is None:
         args.meta_csv = os.path.join(project_root, "MRI/source_data/behav/drug_order.csv")
@@ -441,6 +563,8 @@ def main() -> None:
     if post_merge_stage:
         subj_scores, subj_data = load_subject_maps_from_disk(args.out_dir, cond_list, mask)
         print("[Loaded] Subject maps for post-merge TFCE.")
+        if args.save_trial_npz:
+            print("[Skip] Trial-level NPZ requires raw trial data; not available in post-merge TFCE stage.")
     else:
         for s_id, s_data in subj_data.items():
             subj_scores[s_id] = compute_subject_scores(
@@ -451,6 +575,31 @@ def main() -> None:
                 batches,
                 args.n_jobs,
             )
+
+        if args.save_trial_npz:
+            trial_dir = os.path.join(args.out_dir, "trial_npz")
+            if args.chunk_idx is not None:
+                trial_dir = os.path.join(trial_dir, "chunks")
+            for s_id, s_data in subj_data.items():
+                trial_scores = compute_subject_trial_scores(
+                    s_data,
+                    neighbors,
+                    np.asarray(valid_voxels),
+                    args.min_voxels,
+                    batches,
+                    args.n_jobs,
+                    cond_list,
+                )
+                save_subject_trial_npz(
+                    trial_dir,
+                    s_id,
+                    trial_scores,
+                    cond_list,
+                    subj_scores[s_id],
+                    np.asarray(valid_voxels),
+                    args.chunk_idx,
+                )
+            print("[Saved] Trial-level NPZ maps.")
 
         if args.post_merge_tfce:
             subj_dir = os.path.join(args.out_dir, "subj_maps")
