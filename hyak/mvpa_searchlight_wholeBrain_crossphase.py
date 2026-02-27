@@ -425,7 +425,7 @@ def main() -> None:
             project_root,
             "MRI/derivatives/fMRI_analysis/LSS",
             "firstLevel",
-            "all_subjects/wholeBrain_S4/cope_voxels",
+            "all_subjects/group_level",
             "phase2_X_ext_y_ext_voxels_schaefer_tian.npz",
         )
     if args.phase3_npz is None:
@@ -433,7 +433,7 @@ def main() -> None:
             project_root,
             "MRI/derivatives/fMRI_analysis/LSS",
             "firstLevel",
-            "all_subjects/wholeBrain_S4/cope_voxels",
+            "all_subjects/group_level",
             "phase3_X_reinst_y_reinst_voxels_schaefer_tian.npz",
         )
     if args.meta_csv is None:
