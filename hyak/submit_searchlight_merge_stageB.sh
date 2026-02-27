@@ -13,7 +13,7 @@ TIAN_ATLAS="/gscratch/fang/NARSAD/ROI/Tian/3T/Subcortex-Only/Tian_Subcortex_S4_3
 LOG_DIR="/gscratch/fang/NARSAD/logs/searchlight_merge"
 PARTITION="ckpt-all"
 ACCOUNT="fang"
-TIME="2:00:00"
+TIME="4:00:00"
 MEM="32G"
 CPUS=8
 
