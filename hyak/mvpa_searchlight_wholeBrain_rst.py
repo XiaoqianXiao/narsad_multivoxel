@@ -426,21 +426,29 @@ def save_sig_csv(
     parcel_atlas: np.ndarray | None = None,
 ) -> None:
     mask_sig = np.isfinite(qvals) & (qvals <= 0.05)
-    if not np.any(mask_sig):
-        return
-    df = pd.DataFrame({
-        "x": coords[mask_sig, 0],
-        "y": coords[mask_sig, 1],
-        "z": coords[mask_sig, 2],
-        "effect": effect[mask_sig],
-        "q": qvals[mask_sig],
-    })
-    if parcel_names is not None:
-        df["Name"] = parcel_names[mask_sig]
-    if parcel_indices is not None:
-        df["LabelID"] = parcel_indices[mask_sig]
-    if parcel_atlas is not None:
-        df["Atlas"] = parcel_atlas[mask_sig]
+    if np.any(mask_sig):
+        df = pd.DataFrame({
+            "x": coords[mask_sig, 0],
+            "y": coords[mask_sig, 1],
+            "z": coords[mask_sig, 2],
+            "effect": effect[mask_sig],
+            "q": qvals[mask_sig],
+        })
+        if parcel_names is not None:
+            df["Name"] = parcel_names[mask_sig]
+        if parcel_indices is not None:
+            df["LabelID"] = parcel_indices[mask_sig]
+        if parcel_atlas is not None:
+            df["Atlas"] = parcel_atlas[mask_sig]
+    else:
+        cols = ["x", "y", "z", "effect", "q"]
+        if parcel_names is not None:
+            cols.append("Name")
+        if parcel_indices is not None:
+            cols.append("LabelID")
+        if parcel_atlas is not None:
+            cols.append("Atlas")
+        df = pd.DataFrame({c: [] for c in cols})
     for k, v in label_cols.items():
         df[k] = v
     df.to_csv(out_path, index=False)
@@ -772,6 +780,8 @@ def main() -> None:
 
     # Save outputs
     print("[Step 7] Saving outputs...")
+    perm_dir = os.path.join(args.out_dir, f"permutation{chunk_suffix}")
+    os.makedirs(perm_dir, exist_ok=True)
     results = {
         "within": [],
         "groupdiff": [],
@@ -783,7 +793,7 @@ def main() -> None:
     sig_csvs = []
     # Placebo within-condition
     for cond, group, obs_mean, p_perm, q_perm in within_results:
-        base = os.path.join(args.out_dir, f"within_{cond}_{group}_PLC{chunk_suffix}")
+        base = os.path.join(perm_dir, f"within_{cond}_{group}_PLC")
         save_map(obs_mean, mask, mask_img, base + "_mean.nii.gz")
         save_map(q_perm, mask, mask_img, base + "_q.nii.gz")
         if use_tfce:
@@ -807,7 +817,7 @@ def main() -> None:
 
     # Placebo group diff
     for cond, obs_diff, p_perm, q_perm in groupdiff_results:
-        base = os.path.join(args.out_dir, f"diff_{cond}_SAD-HC_PLC{chunk_suffix}")
+        base = os.path.join(perm_dir, f"diff_{cond}_SAD-HC_PLC")
         save_map(obs_diff, mask, mask_img, base + "_diff.nii.gz")
         save_map(q_perm, mask, mask_img, base + "_q.nii.gz")
         if use_tfce:
@@ -832,7 +842,7 @@ def main() -> None:
 
     # OXT-PLC modulation
     for cond, group, obs_diff, p_perm, q_perm in mod_results:
-        base = os.path.join(args.out_dir, f"mod_{cond}_{group}_OXT-PLC{chunk_suffix}")
+        base = os.path.join(perm_dir, f"mod_{cond}_{group}_OXT-PLC")
         save_map(obs_diff, mask, mask_img, base + "_diff.nii.gz")
         save_map(q_perm, mask, mask_img, base + "_q.nii.gz")
         if use_tfce:
@@ -855,8 +865,8 @@ def main() -> None:
             sig_csvs.append(sig_csv)
 
     results_path = os.path.join(
-        args.out_dir,
-        f"analysis_27_results_wholebrain_rst{chunk_suffix}.npz",
+        perm_dir,
+        "analysis_27_results_wholebrain_rst.npz",
     )
     np.savez_compressed(results_path, **results)
     print(f"[Saved] Results dict: {results_path}")

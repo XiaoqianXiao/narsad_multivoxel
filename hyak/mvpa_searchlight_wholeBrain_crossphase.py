@@ -885,16 +885,18 @@ def main() -> None:
                                 "Atlas": atl[i],
                             })
 
-    if summary_rows:
-        pd.DataFrame(summary_rows).to_csv(
-            os.path.join(args.out_dir, f"crossphase_summary_contrasts{chunk_suffix}.csv"),
-            index=False,
-        )
-    if merged_rows:
-        pd.DataFrame(merged_rows).to_csv(
-            os.path.join(args.out_dir, f"crossphase_sig_merged{chunk_suffix}.csv"),
-            index=False,
-        )
+    summary_cols = ["Condition", "Contrast", "N_sig_vox"]
+    summary_df = pd.DataFrame(summary_rows, columns=summary_cols)
+    summary_df.to_csv(
+        os.path.join(perm_dir, f"crossphase_summary_contrasts{chunk_suffix}.csv"),
+        index=False,
+    )
+    merged_cols = ["Contrast", "Condition", "x", "y", "z", "p", "q", "Name", "LabelID", "Atlas"]
+    merged_df = pd.DataFrame(merged_rows, columns=merged_cols)
+    merged_df.to_csv(
+        os.path.join(perm_dir, f"crossphase_sig_merged{chunk_suffix}.csv"),
+        index=False,
+    )
 
     print("Done.")
 

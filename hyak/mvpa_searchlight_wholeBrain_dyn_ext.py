@@ -949,18 +949,18 @@ def main() -> None:
                                     "LabelID": ids[i],
                                     "Atlas": atl[i],
                                 })
-    if summary_rows:
-        summary_df = pd.DataFrame(summary_rows)
-        summary_df.to_csv(
-            os.path.join(args.out_dir, f"dynamic_summary_contrasts{chunk_suffix}.csv"),
-            index=False,
-        )
-    if merged_rows:
-        merged_df = pd.DataFrame(merged_rows)
-        merged_df.to_csv(
-            os.path.join(args.out_dir, f"dynamic_sig_merged{chunk_suffix}.csv"),
-            index=False,
-        )
+    summary_cols = ["Pair", "Metric", "Contrast", "N_sig_vox"]
+    summary_df = pd.DataFrame(summary_rows, columns=summary_cols)
+    summary_df.to_csv(
+        os.path.join(perm_dir, f"dynamic_summary_contrasts{chunk_suffix}.csv"),
+        index=False,
+    )
+    merged_cols = ["Contrast", "Pair", "Metric", "x", "y", "z", "p", "q", "Name", "LabelID", "Atlas"]
+    merged_df = pd.DataFrame(merged_rows, columns=merged_cols)
+    merged_df.to_csv(
+        os.path.join(perm_dir, f"dynamic_sig_merged{chunk_suffix}.csv"),
+        index=False,
+    )
 
     print("Done.")
 
