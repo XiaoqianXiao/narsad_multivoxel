@@ -18,7 +18,7 @@ MEM="120G"
 CPUS=32
 CHUNKS=384
 N_PERM=5000
-MODE="dyn"  # all | ext | rst | dyn | crossphase
+MODE="crossphase"  # all | ext | rst | dyn | crossphase
 POST_MERGE_FLAG="--post_merge_tfce"
 
 mkdir -p "$LOG_DIR"
