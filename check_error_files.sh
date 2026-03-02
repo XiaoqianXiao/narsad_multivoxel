@@ -92,3 +92,12 @@ for file in *.err; do
         fi
     fi
 done
+
+for file in *.out; do
+    if [[ -f "$file" ]]; then
+        last_line=$(tail -n 1 "$file" 2>/dev/null)
+        if [[ "$last_line" != *"[Saved] Subject maps for post-merge TFCE"* ]]; then
+            echo "$file"
+        fi
+    fi
+done

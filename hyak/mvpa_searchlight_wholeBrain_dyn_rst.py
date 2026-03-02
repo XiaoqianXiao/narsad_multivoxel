@@ -808,14 +808,19 @@ def main() -> None:
                     q_path = os.path.join(perm_dir, f"{pair_name}_{group}_PLC_{metric}_q.nii.gz")
                     if os.path.exists(q_path):
                         q_img = nib.load(q_path).get_fdata()
-                        n_sig = int(np.sum((q_img <= 0.05) & np.isfinite(q_img)))
+                        valid_mask_path = q_path.replace("_q.nii.gz", "_validmask.nii.gz")
+                        if os.path.exists(valid_mask_path):
+                            valid_mask = nib.load(valid_mask_path).get_fdata() > 0
+                        else:
+                            valid_mask = mask
+                        n_sig = int(np.sum((q_img <= 0.05) & np.isfinite(q_img) & valid_mask))
                         summary_rows.append({
                             "Pair": pair_name,
                             "Metric": metric,
                             "Contrast": f"{group} PLC (mean>0)",
                             "N_sig_vox": n_sig,
                         })
-                        sig_mask = (q_img <= 0.05) & np.isfinite(q_img) & mask
+                        sig_mask = (q_img <= 0.05) & np.isfinite(q_img) & valid_mask
                         if np.any(sig_mask):
                             sig_coords = coords[sig_mask[mask]]
                             q_vals = q_img[mask][sig_mask[mask]]
@@ -854,14 +859,19 @@ def main() -> None:
                 q_path = os.path.join(perm_dir, f"{pair_name}_SAD-HC_PLC_{metric}_q.nii.gz")
                 if os.path.exists(q_path):
                     q_img = nib.load(q_path).get_fdata()
-                    n_sig = int(np.sum((q_img <= 0.05) & np.isfinite(q_img)))
+                    valid_mask_path = q_path.replace("_q.nii.gz", "_validmask.nii.gz")
+                    if os.path.exists(valid_mask_path):
+                        valid_mask = nib.load(valid_mask_path).get_fdata() > 0
+                    else:
+                        valid_mask = mask
+                    n_sig = int(np.sum((q_img <= 0.05) & np.isfinite(q_img) & valid_mask))
                     summary_rows.append({
                         "Pair": pair_name,
                         "Metric": metric,
                         "Contrast": "SAD-HC PLC",
                         "N_sig_vox": n_sig,
                     })
-                    sig_mask = (q_img <= 0.05) & np.isfinite(q_img) & mask
+                    sig_mask = (q_img <= 0.05) & np.isfinite(q_img) & valid_mask
                     if np.any(sig_mask):
                         sig_coords = coords[sig_mask[mask]]
                         q_vals = q_img[mask][sig_mask[mask]]
@@ -901,14 +911,19 @@ def main() -> None:
                     q_path = os.path.join(perm_dir, f"{pair_name}_{group}_OXT-PLC_{metric}_q.nii.gz")
                     if os.path.exists(q_path):
                         q_img = nib.load(q_path).get_fdata()
-                        n_sig = int(np.sum((q_img <= 0.05) & np.isfinite(q_img)))
+                        valid_mask_path = q_path.replace("_q.nii.gz", "_validmask.nii.gz")
+                        if os.path.exists(valid_mask_path):
+                            valid_mask = nib.load(valid_mask_path).get_fdata() > 0
+                        else:
+                            valid_mask = mask
+                        n_sig = int(np.sum((q_img <= 0.05) & np.isfinite(q_img) & valid_mask))
                         summary_rows.append({
                             "Pair": pair_name,
                             "Metric": metric,
                             "Contrast": f"{group} OXT-PLC",
                             "N_sig_vox": n_sig,
                         })
-                        sig_mask = (q_img <= 0.05) & np.isfinite(q_img) & mask
+                        sig_mask = (q_img <= 0.05) & np.isfinite(q_img) & valid_mask
                         if np.any(sig_mask):
                             sig_coords = coords[sig_mask[mask]]
                             q_vals = q_img[mask][sig_mask[mask]]
