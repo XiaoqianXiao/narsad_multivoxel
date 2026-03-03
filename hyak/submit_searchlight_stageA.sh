@@ -19,7 +19,8 @@ CPUS=32
 CHUNKS=384
 N_PERM=5000
 MODE="crossphase"  # all | ext | rst | dyn | crossphase
-POST_MERGE_FLAG="--post_merge_tfce"
+# Stage A should never use post-merge TFCE
+POST_MERGE_FLAG=""
 
 mkdir -p "$LOG_DIR"
 mkdir -p "$OUT_BASE"/{ext,rst,dyn_ext,dyn_rst,crossphase}

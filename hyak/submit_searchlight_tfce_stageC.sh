@@ -17,6 +17,7 @@ TIME="4:00:00"
 MEM="120G"
 CPUS=32
 N_PERM=5000
+POST_MERGE_FLAG="--post_merge_tfce"
 
 mkdir -p "$LOG_DIR"
 module load apptainer 2>/dev/null || true
@@ -37,7 +38,7 @@ submit() {
     --job-name="$name" \
     --output="$LOG_DIR/${name}_%j.out" \
     --error="$LOG_DIR/${name}_%j.err" \
-    --wrap="apptainer exec -B ${PROJECT_ROOT}:${PROJECT_ROOT} -B ${APP_PATH}:/app -B ${OUT_BASE}:/output_dir ${CONTAINER_SIF} python3 /app/${script} --project_root ${PROJECT_ROOT} --out_dir /output_dir/${out_dir}/merged --reference_lss ${REFERENCE_LSS} --glasser_atlas ${GLASSER_ATLAS} --tian_atlas ${TIAN_ATLAS} --n_jobs ${CPUS} --n_perm ${N_PERM} --post_merge_tfce ${extra_args}"
+    --wrap="apptainer exec -B ${PROJECT_ROOT}:${PROJECT_ROOT} -B ${APP_PATH}:/app -B ${OUT_BASE}:/output_dir ${CONTAINER_SIF} python3 /app/${script} --project_root ${PROJECT_ROOT} --out_dir /output_dir/${out_dir}/merged --reference_lss ${REFERENCE_LSS} --glasser_atlas ${GLASSER_ATLAS} --tian_atlas ${TIAN_ATLAS} --n_jobs ${CPUS} --n_perm ${N_PERM} ${POST_MERGE_FLAG} ${extra_args}"
 }
 
 # Extinction (per condition)
