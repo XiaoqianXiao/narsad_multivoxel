@@ -746,6 +746,62 @@ def main() -> None:
                 if use_tfce and valid_mask is not None:
                     save_map(valid_mask.astype(float), mask, mask_img, base + "_validmask.nii.gz")
 
+        # OXT-PLC modulation group difference (interaction)
+        sad_oxt = [s for s, d in subj_data.items() if d.group == "SAD" and d.drug == "Oxytocin"]
+        sad_plc = [s for s, d in subj_data.items() if d.group == "SAD" and d.drug == "Placebo"]
+        hc_oxt = [s for s, d in subj_data.items() if d.group == "HC" and d.drug == "Oxytocin"]
+        hc_plc = [s for s, d in subj_data.items() if d.group == "HC" and d.drug == "Placebo"]
+        if len(sad_oxt) >= 2 and len(sad_plc) >= 2 and len(hc_oxt) >= 2 and len(hc_plc) >= 2:
+            vals_sad_oxt = np.stack([subj_maps[s][cond] for s in sad_oxt], axis=0)
+            vals_sad_plc = np.stack([subj_maps[s][cond] for s in sad_plc], axis=0)
+            vals_hc_oxt = np.stack([subj_maps[s][cond] for s in hc_oxt], axis=0)
+            vals_hc_plc = np.stack([subj_maps[s][cond] for s in hc_plc], axis=0)
+            obs = (np.nanmean(vals_sad_oxt, axis=0) - np.nanmean(vals_sad_plc, axis=0)) - (
+                np.nanmean(vals_hc_oxt, axis=0) - np.nanmean(vals_hc_plc, axis=0)
+            )
+            if use_tfce:
+                all_subs = sad_oxt + sad_plc + hc_oxt + hc_plc
+                group_vec = np.array([1.0] * (len(sad_oxt) + len(sad_plc)) + [-1.0] * (len(hc_oxt) + len(hc_plc)))
+                drug_vec = np.array([1.0] * len(sad_oxt) + [-1.0] * len(sad_plc) + [1.0] * len(hc_oxt) + [-1.0] * len(hc_plc))
+                tested = (group_vec * drug_vec)[:, None]
+                values = np.stack([subj_maps[s][cond] for s in all_subs], axis=0)
+                p, valid_mask = tfce_pvals(values, tested, mask_img, args.n_perm, True, args.seed, args.n_jobs, model_intercept=True)
+            else:
+                valid = np.isfinite(obs)
+                count = np.zeros(n_vox, dtype=int)
+                oxt_all = sad_oxt + hc_oxt
+                plc_all = sad_plc + hc_plc
+                labels_oxt = np.array(["SAD"] * len(sad_oxt) + ["HC"] * len(hc_oxt))
+                labels_plc = np.array(["SAD"] * len(sad_plc) + ["HC"] * len(hc_plc))
+                for _ in range(args.n_perm):
+                    perm_oxt = rng.permutation(labels_oxt)
+                    perm_plc = rng.permutation(labels_plc)
+                    sad_oxt_idx = perm_oxt == "SAD"
+                    hc_oxt_idx = perm_oxt == "HC"
+                    sad_plc_idx = perm_plc == "SAD"
+                    hc_plc_idx = perm_plc == "HC"
+                    if sad_oxt_idx.sum() < 2 or hc_oxt_idx.sum() < 2 or sad_plc_idx.sum() < 2 or hc_plc_idx.sum() < 2:
+                        continue
+                    perm_sad_oxt = np.stack([subj_maps[s][cond] for s, m in zip(oxt_all, sad_oxt_idx) if m], axis=0)
+                    perm_hc_oxt = np.stack([subj_maps[s][cond] for s, m in zip(oxt_all, hc_oxt_idx) if m], axis=0)
+                    perm_sad_plc = np.stack([subj_maps[s][cond] for s, m in zip(plc_all, sad_plc_idx) if m], axis=0)
+                    perm_hc_plc = np.stack([subj_maps[s][cond] for s, m in zip(plc_all, hc_plc_idx) if m], axis=0)
+                    perm_diff = (np.nanmean(perm_sad_oxt, axis=0) - np.nanmean(perm_sad_plc, axis=0)) - (
+                        np.nanmean(perm_hc_oxt, axis=0) - np.nanmean(perm_hc_plc, axis=0)
+                    )
+                    perm_valid = valid & np.isfinite(perm_diff)
+                    count[perm_valid] += (np.abs(perm_diff[perm_valid]) >= np.abs(obs[perm_valid])).astype(int)
+                p = np.full(n_vox, np.nan, dtype=float)
+                p[valid] = (count[valid] + 1) / (args.n_perm + 1)
+                valid_mask = None
+            q = fdr_q(p)
+            base = os.path.join(perm_dir, f"crossphase_{cond}_SAD-HC_OXT-PLC")
+            save_map(obs, mask, mask_img, base + "_diff.nii.gz")
+            save_map(p, mask, mask_img, base + "_p.nii.gz")
+            save_map(q, mask, mask_img, base + "_q.nii.gz")
+            if use_tfce and valid_mask is not None:
+                save_map(valid_mask.astype(float), mask, mask_img, base + "_validmask.nii.gz")
+
     # summary tables + merged table
     summary_rows = []
     merged_rows = []
@@ -887,9 +943,9 @@ def main() -> None:
                         else:
                             atl = np.array([None] * len(q_vals))
                         for i in range(len(q_vals)):
-                            merged_rows.append({
-                                "Contrast": f"crossphase_{cond}_{group}_OXT-PLC",
-                                "Condition": cond,
+                                merged_rows.append({
+                                    "Contrast": f"crossphase_{cond}_{group}_OXT-PLC",
+                                    "Condition": cond,
                                 "x": sig_coords[i, 0],
                                 "y": sig_coords[i, 1],
                                 "z": sig_coords[i, 2],
@@ -897,8 +953,56 @@ def main() -> None:
                                 "q": float(q_vals[i]),
                                 "Name": names[i],
                                 "LabelID": ids[i],
-                                "Atlas": atl[i],
-                            })
+                                    "Atlas": atl[i],
+                                })
+            q_path = os.path.join(perm_dir, f"crossphase_{cond}_SAD-HC_OXT-PLC_q.nii.gz")
+            if os.path.exists(q_path):
+                q_img = nib.load(q_path).get_fdata()
+                valid_mask_path = q_path.replace("_q.nii.gz", "_validmask.nii.gz")
+                if os.path.exists(valid_mask_path):
+                    valid_mask = nib.load(valid_mask_path).get_fdata() > 0
+                else:
+                    valid_mask = mask
+                n_sig = int(np.sum((q_img <= 0.05) & np.isfinite(q_img) & valid_mask))
+                summary_rows.append({
+                    "Condition": cond,
+                    "Contrast": "SAD-HC OXT-PLC",
+                    "N_sig_vox": n_sig,
+                })
+                sig_mask = (q_img <= 0.05) & np.isfinite(q_img) & valid_mask
+                if np.any(sig_mask):
+                    sig_coords = coords[sig_mask[mask]]
+                    q_vals = q_img[mask][sig_mask[mask]]
+                    p_path = os.path.join(perm_dir, f"crossphase_{cond}_SAD-HC_OXT-PLC_p.nii.gz")
+                    p_vals = None
+                    if os.path.exists(p_path):
+                        p_img = nib.load(p_path).get_fdata()
+                        p_vals = p_img[mask][sig_mask[mask]]
+                    if parcel_names is not None:
+                        names = parcel_names[sig_mask[mask]]
+                    else:
+                        names = np.array([None] * len(q_vals))
+                    if parcel_indices is not None:
+                        ids = parcel_indices[sig_mask[mask]]
+                    else:
+                        ids = np.array([None] * len(q_vals))
+                    if parcel_atlas is not None:
+                        atl = parcel_atlas[sig_mask[mask]]
+                    else:
+                        atl = np.array([None] * len(q_vals))
+                    for i in range(len(q_vals)):
+                        merged_rows.append({
+                            "Contrast": f"crossphase_{cond}_SAD-HC_OXT-PLC",
+                            "Condition": cond,
+                            "x": sig_coords[i, 0],
+                            "y": sig_coords[i, 1],
+                            "z": sig_coords[i, 2],
+                            "p": float(p_vals[i]) if p_vals is not None else np.nan,
+                            "q": float(q_vals[i]),
+                            "Name": names[i],
+                            "LabelID": ids[i],
+                            "Atlas": atl[i],
+                        })
 
     summary_cols = ["Condition", "Contrast", "N_sig_vox"]
     summary_df = pd.DataFrame(summary_rows, columns=summary_cols)
