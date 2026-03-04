@@ -18,7 +18,7 @@ MEM="120G"
 CPUS=32
 CHUNKS=384
 N_PERM=5000
-MODE="dyn"  # all | ext | rst | dyn | crossphase
+MODE="ext"  # all | ext | rst | dyn | crossphase
 # Stage A should never use post-merge TFCE
 POST_MERGE_FLAG=""
 
