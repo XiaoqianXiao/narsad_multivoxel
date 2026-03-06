@@ -505,6 +505,78 @@ def load_subject_maps_from_disk(
     return subj_scores, subj_data
 
 
+def load_crosshalf_maps_from_disk(
+    maps_dir: str,
+    cond_list: List[str],
+    pair_list: List[Tuple[str, str]],
+    mask: np.ndarray,
+) -> Tuple[
+    Dict[str, Dict[str, np.ndarray]],
+    Dict[str, Dict[str, np.ndarray]],
+    Dict[str, Dict[str, Dict[str, np.ndarray]]],
+    Dict[str, Dict[str, Dict[str, np.ndarray]]],
+    Dict[str, SubjectData],
+    bool,
+]:
+    meta_path = os.path.join(maps_dir, "subj_meta.csv")
+    if not os.path.exists(meta_path):
+        raise FileNotFoundError(f"Missing subj_meta.csv in {maps_dir}")
+    meta_df = pd.read_csv(meta_path)
+    subj_scores: Dict[str, Dict[str, np.ndarray]] = {}
+    pair_scores: Dict[str, Dict[str, np.ndarray]] = {}
+    subj_scores_half: Dict[str, Dict[str, Dict[str, np.ndarray]]] = {"H1": {}, "H2": {}}
+    pair_scores_half: Dict[str, Dict[str, Dict[str, np.ndarray]]] = {"H1": {}, "H2": {}}
+    subj_data: Dict[str, SubjectData] = {}
+    has_half = False
+    for row in meta_df.itertuples(index=False):
+        s_id = str(row.Subject).strip()
+        subj_scores[s_id] = {}
+        pair_scores[s_id] = {}
+        for cond in cond_list:
+            map_path = os.path.join(maps_dir, f"subjmap_{cond}_{s_id}.nii.gz")
+            if not os.path.exists(map_path):
+                raise FileNotFoundError(f"Missing subject map: {map_path}")
+            subj_scores[s_id][cond] = nib.load(map_path).get_fdata()[mask]
+        for cond_a, cond_b in pair_list:
+            pair_name = f"{cond_a}_vs_{cond_b}"
+            map_path = os.path.join(maps_dir, f"subjmap_cross_{pair_name}_{s_id}.nii.gz")
+            if not os.path.exists(map_path):
+                raise FileNotFoundError(f"Missing cross map: {map_path}")
+            pair_scores[s_id][pair_name] = nib.load(map_path).get_fdata()[mask]
+
+        h1_probe = os.path.join(maps_dir, f"subjmap_{cond_list[0]}_{s_id}_H1.nii.gz")
+        h2_probe = os.path.join(maps_dir, f"subjmap_{cond_list[0]}_{s_id}_H2.nii.gz")
+        if os.path.exists(h1_probe) and os.path.exists(h2_probe):
+            has_half = True
+            subj_scores_half["H1"][s_id] = {}
+            subj_scores_half["H2"][s_id] = {}
+            pair_scores_half["H1"][s_id] = {}
+            pair_scores_half["H2"][s_id] = {}
+            for cond in cond_list:
+                h1_path = os.path.join(maps_dir, f"subjmap_{cond}_{s_id}_H1.nii.gz")
+                h2_path = os.path.join(maps_dir, f"subjmap_{cond}_{s_id}_H2.nii.gz")
+                if not os.path.exists(h1_path) or not os.path.exists(h2_path):
+                    raise FileNotFoundError(f"Missing half maps for {s_id} {cond}")
+                subj_scores_half["H1"][s_id][cond] = nib.load(h1_path).get_fdata()[mask]
+                subj_scores_half["H2"][s_id][cond] = nib.load(h2_path).get_fdata()[mask]
+            for cond_a, cond_b in pair_list:
+                pair_name = f"{cond_a}_vs_{cond_b}"
+                h1_path = os.path.join(maps_dir, f"subjmap_cross_{pair_name}_{s_id}_H1.nii.gz")
+                h2_path = os.path.join(maps_dir, f"subjmap_cross_{pair_name}_{s_id}_H2.nii.gz")
+                if not os.path.exists(h1_path) or not os.path.exists(h2_path):
+                    raise FileNotFoundError(f"Missing half cross maps for {s_id} {pair_name}")
+                pair_scores_half["H1"][s_id][pair_name] = nib.load(h1_path).get_fdata()[mask]
+                pair_scores_half["H2"][s_id][pair_name] = nib.load(h2_path).get_fdata()[mask]
+
+        subj_data[s_id] = SubjectData(
+            X=np.empty((0, 0)),
+            y=np.empty(0),
+            group=row.Group,
+            drug=row.Drug,
+        )
+    return subj_scores, pair_scores, subj_scores_half, pair_scores_half, subj_data, has_half
+
+
 def save_sig_csv(
     out_path: str,
     coords: np.ndarray,
@@ -561,6 +633,9 @@ def main() -> None:
     parser.add_argument("--n_jobs", type=int, default=get_default_n_jobs(), help="Parallel workers")
     parser.add_argument("--batch_size", type=int, default=256, help="Voxels per batch")
     parser.add_argument("--cond", default=None, help="Run a single condition (CS-, CSS, CSR)")
+    parser.add_argument("--cross_half_only", action="store_true", help="(Deprecated) Alias for --cross_half_stage")
+    parser.add_argument("--cross_half_stage", action="store_true", help="Compute and save cross-condition + half-split subject maps (chunkable)")
+    parser.add_argument("--cross_half_tfce", action="store_true", help="Run TFCE on merged cross-condition + half-split subject maps")
     parser.add_argument("--chunk_idx", type=int, default=None, help="Voxel chunk index (0-based)")
     parser.add_argument("--chunk_count", type=int, default=None, help="Total voxel chunks")
     parser.add_argument("--no_tfce", action="store_true", help="Disable TFCE (use voxelwise FDR)")
@@ -568,6 +643,12 @@ def main() -> None:
     parser.add_argument("--save_trial_npz", action="store_true", help="Save trial-level searchlight scores (NPZ)")
     parser.add_argument("--out_dir", default=None)
     args = parser.parse_args()
+    if args.cross_half_only:
+        args.cross_half_stage = True
+    if args.cross_half_tfce and args.chunk_idx is not None:
+        raise RuntimeError("--cross_half_tfce cannot be used with chunking.")
+    if args.cross_half_tfce and args.no_tfce:
+        raise RuntimeError("--cross_half_tfce requires TFCE (do not use --no_tfce).")
 
     project_root = args.project_root
     if args.phase3_npz is None:
@@ -775,6 +856,504 @@ def main() -> None:
                 continue
             out.append(s_id)
         return out
+
+    def run_cross_half_effects(
+        perm_dir: str,
+        coords: np.ndarray,
+        subj_data_cur: Dict[str, SubjectData],
+        subj_scores_cur: Dict[str, Dict[str, np.ndarray]],
+        pair_scores_cur: Dict[str, Dict[str, np.ndarray]],
+        half_label: str,
+        suffix: str,
+    ) -> None:
+        def select_subjects_cur(group: str | None = None, drug: str | None = None) -> List[str]:
+            out = []
+            for s_id, s_data in subj_data_cur.items():
+                if group is not None and s_data.group != group:
+                    continue
+                if drug is not None and s_data.drug != drug:
+                    continue
+                out.append(s_id)
+            return out
+
+        # within/placebo
+        for cond in cond_list:
+            for group in ["SAD", "HC"]:
+                subs = select_subjects_cur(group=group, drug="Placebo")
+                if not subs:
+                    continue
+                obs_mat = np.stack([subj_scores_cur[s][cond] for s in subs], axis=0)
+                obs_mean = np.nanmean(obs_mat, axis=0)
+                if use_tfce:
+                    tested = np.ones((len(subs), 1), dtype=float)
+                    p_perm, valid_mask = tfce_pvals(obs_mat, tested, mask_img, args.n_perm, True, args.seed, args.n_jobs, model_intercept=False)
+                else:
+                    valid = np.isfinite(obs_mean)
+                    count = np.zeros(n_vox, dtype=int)
+                    for _ in range(args.n_perm):
+                        perm_means = []
+                        for s in subs:
+                            s_data = subj_data_cur[s]
+                            y_perm = rng.permutation(s_data.y)
+                            perm_scores = np.full(n_vox, np.nan)
+                            results_perm = Parallel(n_jobs=args.n_jobs, prefer="threads")(
+                                delayed(_score_cond_batch)(s_data.X, y_perm, neighbors, cond, args.min_voxels, batch)
+                                for batch in batches
+                            )
+                            for voxels, vals in results_perm:
+                                perm_scores[voxels] = vals
+                            perm_means.append(perm_scores)
+                        perm_mean = np.nanmean(np.stack(perm_means, axis=0), axis=0)
+                        perm_valid = valid & np.isfinite(perm_mean)
+                        count[perm_valid] += (perm_mean[perm_valid] >= obs_mean[perm_valid]).astype(int)
+                    p_perm = np.full(n_vox, np.nan, dtype=float)
+                    p_perm[valid] = (count[valid] + 1) / (args.n_perm + 1)
+                    valid_mask = None
+                q_perm = p_perm.copy() if use_tfce else fdr_q(p_perm)
+                base = os.path.join(perm_dir, f"within_{cond}_{group}_PLC{suffix}")
+                save_map(obs_mean, mask, mask_img, base + "_mean.nii.gz")
+                save_map(q_perm, mask, mask_img, base + "_q.nii.gz")
+                if use_tfce and valid_mask is not None:
+                    save_map(valid_mask.astype(float), mask, mask_img, base + "_validmask.nii.gz")
+                sig_csv = base + "_sig.csv"
+                save_sig_csv(sig_csv, coords, obs_mean, q_perm, {
+                    "contrast": f"within_placebo_{half_label}",
+                    "Condition": cond,
+                    "Group": group,
+                    "Half": half_label,
+                }, parcel_names, parcel_indices, parcel_atlas)
+
+        # placebo group difference
+        for cond in cond_list:
+            sad_subs = select_subjects_cur(group="SAD", drug="Placebo")
+            hc_subs = select_subjects_cur(group="HC", drug="Placebo")
+            if len(sad_subs) < 2 or len(hc_subs) < 2:
+                continue
+            obs_sad = np.stack([subj_scores_cur[s][cond] for s in sad_subs], axis=0)
+            obs_hc = np.stack([subj_scores_cur[s][cond] for s in hc_subs], axis=0)
+            obs_diff = np.nanmean(obs_sad, axis=0) - np.nanmean(obs_hc, axis=0)
+            if use_tfce:
+                tested = np.array([1.0] * len(sad_subs) + [-1.0] * len(hc_subs))[:, None]
+                values = np.stack([subj_scores_cur[s][cond] for s in sad_subs + hc_subs], axis=0)
+                p_perm, valid_mask = tfce_pvals(values, tested, mask_img, args.n_perm, True, args.seed, args.n_jobs, model_intercept=True)
+            else:
+                valid = np.isfinite(obs_diff)
+                all_subs = sad_subs + hc_subs
+                labels = np.array(["SAD"] * len(sad_subs) + ["HC"] * len(hc_subs))
+                count = np.zeros(n_vox, dtype=int)
+                for _ in range(args.n_perm):
+                    perm_labels = rng.permutation(labels)
+                    sad_idx = perm_labels == "SAD"
+                    hc_idx = perm_labels == "HC"
+                    if sad_idx.sum() < 2 or hc_idx.sum() < 2:
+                        continue
+                    perm_sad = np.stack([subj_scores_cur[s][cond] for s, m in zip(all_subs, sad_idx) if m], axis=0)
+                    perm_hc = np.stack([subj_scores_cur[s][cond] for s, m in zip(all_subs, hc_idx) if m], axis=0)
+                    perm_diff = np.nanmean(perm_sad, axis=0) - np.nanmean(perm_hc, axis=0)
+                    perm_valid = valid & np.isfinite(perm_diff)
+                    count[perm_valid] += (np.abs(perm_diff[perm_valid]) >= np.abs(obs_diff[perm_valid])).astype(int)
+                p_perm = np.full(n_vox, np.nan, dtype=float)
+                p_perm[valid] = (count[valid] + 1) / (args.n_perm + 1)
+                valid_mask = None
+            q_perm = p_perm.copy() if use_tfce else fdr_q(p_perm)
+            base = os.path.join(perm_dir, f"diff_{cond}_SAD-HC_PLC{suffix}")
+            save_map(obs_diff, mask, mask_img, base + "_diff.nii.gz")
+            save_map(q_perm, mask, mask_img, base + "_q.nii.gz")
+            if use_tfce and valid_mask is not None:
+                save_map(valid_mask.astype(float), mask, mask_img, base + "_validmask.nii.gz")
+            sig_csv = base + "_sig.csv"
+            save_sig_csv(sig_csv, coords, obs_diff, q_perm, {
+                "contrast": f"groupdiff_placebo_{half_label}",
+                "Condition": cond,
+                "GroupA": "SAD",
+                "GroupB": "HC",
+                "Half": half_label,
+            }, parcel_names, parcel_indices, parcel_atlas)
+
+        # OXT-PLC modulation within group
+        for cond in cond_list:
+            for group in ["SAD", "HC"]:
+                oxt_subs = select_subjects_cur(group=group, drug="Oxytocin")
+                plc_subs = select_subjects_cur(group=group, drug="Placebo")
+                if len(oxt_subs) < 2 or len(plc_subs) < 2:
+                    continue
+                obs_oxt = np.stack([subj_scores_cur[s][cond] for s in oxt_subs], axis=0)
+                obs_plc = np.stack([subj_scores_cur[s][cond] for s in plc_subs], axis=0)
+                obs_diff = np.nanmean(obs_oxt, axis=0) - np.nanmean(obs_plc, axis=0)
+                if use_tfce:
+                    tested = np.array([1.0] * len(oxt_subs) + [-1.0] * len(plc_subs))[:, None]
+                    values = np.stack([subj_scores_cur[s][cond] for s in oxt_subs + plc_subs], axis=0)
+                    p_perm, valid_mask = tfce_pvals(values, tested, mask_img, args.n_perm, True, args.seed, args.n_jobs, model_intercept=True)
+                else:
+                    valid = np.isfinite(obs_diff)
+                    all_subs = oxt_subs + plc_subs
+                    labels = np.array(["OXT"] * len(oxt_subs) + ["PLC"] * len(plc_subs))
+                    count = np.zeros(n_vox, dtype=int)
+                    for _ in range(args.n_perm):
+                        perm_labels = rng.permutation(labels)
+                        oxt_idx = perm_labels == "OXT"
+                        plc_idx = perm_labels == "PLC"
+                        if oxt_idx.sum() < 2 or plc_idx.sum() < 2:
+                            continue
+                        perm_oxt = np.stack([subj_scores_cur[s][cond] for s, m in zip(all_subs, oxt_idx) if m], axis=0)
+                        perm_plc = np.stack([subj_scores_cur[s][cond] for s, m in zip(all_subs, plc_idx) if m], axis=0)
+                        perm_diff = np.nanmean(perm_oxt, axis=0) - np.nanmean(perm_plc, axis=0)
+                        perm_valid = valid & np.isfinite(perm_diff)
+                        count[perm_valid] += (np.abs(perm_diff[perm_valid]) >= np.abs(obs_diff[perm_valid])).astype(int)
+                    p_perm = np.full(n_vox, np.nan, dtype=float)
+                    p_perm[valid] = (count[valid] + 1) / (args.n_perm + 1)
+                    valid_mask = None
+                q_perm = p_perm.copy() if use_tfce else fdr_q(p_perm)
+                base = os.path.join(perm_dir, f"mod_{cond}_{group}_OXT-PLC{suffix}")
+                save_map(obs_diff, mask, mask_img, base + "_diff.nii.gz")
+                save_map(q_perm, mask, mask_img, base + "_q.nii.gz")
+                if use_tfce and valid_mask is not None:
+                    save_map(valid_mask.astype(float), mask, mask_img, base + "_validmask.nii.gz")
+                sig_csv = base + "_sig.csv"
+                save_sig_csv(sig_csv, coords, obs_diff, q_perm, {
+                    "contrast": f"modulation_{half_label}",
+                    "Condition": cond,
+                    "Group": group,
+                    "Half": half_label,
+                }, parcel_names, parcel_indices, parcel_atlas)
+
+        # OXT-PLC modulation group difference (interaction)
+        for cond in cond_list:
+            sad_oxt = select_subjects_cur(group="SAD", drug="Oxytocin")
+            sad_plc = select_subjects_cur(group="SAD", drug="Placebo")
+            hc_oxt = select_subjects_cur(group="HC", drug="Oxytocin")
+            hc_plc = select_subjects_cur(group="HC", drug="Placebo")
+            if len(sad_oxt) < 2 or len(sad_plc) < 2 or len(hc_oxt) < 2 or len(hc_plc) < 2:
+                continue
+            obs_sad_oxt = np.stack([subj_scores_cur[s][cond] for s in sad_oxt], axis=0)
+            obs_sad_plc = np.stack([subj_scores_cur[s][cond] for s in sad_plc], axis=0)
+            obs_hc_oxt = np.stack([subj_scores_cur[s][cond] for s in hc_oxt], axis=0)
+            obs_hc_plc = np.stack([subj_scores_cur[s][cond] for s in hc_plc], axis=0)
+            obs_diff = (np.nanmean(obs_sad_oxt, axis=0) - np.nanmean(obs_sad_plc, axis=0)) - (
+                np.nanmean(obs_hc_oxt, axis=0) - np.nanmean(obs_hc_plc, axis=0)
+            )
+            if use_tfce:
+                all_subs = sad_oxt + sad_plc + hc_oxt + hc_plc
+                group_vec = np.array([1.0] * (len(sad_oxt) + len(sad_plc)) + [-1.0] * (len(hc_oxt) + len(hc_plc)))
+                drug_vec = np.array([1.0] * len(sad_oxt) + [-1.0] * len(sad_plc) + [1.0] * len(hc_oxt) + [-1.0] * len(hc_plc))
+                tested = (group_vec * drug_vec)[:, None]
+                values = np.stack([subj_scores_cur[s][cond] for s in all_subs], axis=0)
+                p_perm, valid_mask = tfce_pvals(values, tested, mask_img, args.n_perm, True, args.seed, args.n_jobs, model_intercept=True)
+            else:
+                valid = np.isfinite(obs_diff)
+                count = np.zeros(n_vox, dtype=int)
+                oxt_all = sad_oxt + hc_oxt
+                plc_all = sad_plc + hc_plc
+                labels_oxt = np.array(["SAD"] * len(sad_oxt) + ["HC"] * len(hc_oxt))
+                labels_plc = np.array(["SAD"] * len(sad_plc) + ["HC"] * len(hc_plc))
+                for _ in range(args.n_perm):
+                    perm_oxt = rng.permutation(labels_oxt)
+                    perm_plc = rng.permutation(labels_plc)
+                    sad_oxt_idx = perm_oxt == "SAD"
+                    hc_oxt_idx = perm_oxt == "HC"
+                    sad_plc_idx = perm_plc == "SAD"
+                    hc_plc_idx = perm_plc == "HC"
+                    if sad_oxt_idx.sum() < 2 or hc_oxt_idx.sum() < 2 or sad_plc_idx.sum() < 2 or hc_plc_idx.sum() < 2:
+                        continue
+                    perm_sad_oxt = np.stack([subj_scores_cur[s][cond] for s, m in zip(oxt_all, sad_oxt_idx) if m], axis=0)
+                    perm_hc_oxt = np.stack([subj_scores_cur[s][cond] for s, m in zip(oxt_all, hc_oxt_idx) if m], axis=0)
+                    perm_sad_plc = np.stack([subj_scores_cur[s][cond] for s, m in zip(plc_all, sad_plc_idx) if m], axis=0)
+                    perm_hc_plc = np.stack([subj_scores_cur[s][cond] for s, m in zip(plc_all, hc_plc_idx) if m], axis=0)
+                    perm_diff = (np.nanmean(perm_sad_oxt, axis=0) - np.nanmean(perm_sad_plc, axis=0)) - (
+                        np.nanmean(perm_hc_oxt, axis=0) - np.nanmean(perm_hc_plc, axis=0)
+                    )
+                    perm_valid = valid & np.isfinite(perm_diff)
+                    count[perm_valid] += (np.abs(perm_diff[perm_valid]) >= np.abs(obs_diff[perm_valid])).astype(int)
+                p_perm = np.full(n_vox, np.nan, dtype=float)
+                p_perm[valid] = (count[valid] + 1) / (args.n_perm + 1)
+                valid_mask = None
+            q_perm = p_perm.copy() if use_tfce else fdr_q(p_perm)
+            base = os.path.join(perm_dir, f"mod_{cond}_SAD-HC_OXT-PLC{suffix}")
+            save_map(obs_diff, mask, mask_img, base + "_diff.nii.gz")
+            save_map(q_perm, mask, mask_img, base + "_q.nii.gz")
+            if use_tfce and valid_mask is not None:
+                save_map(valid_mask.astype(float), mask, mask_img, base + "_validmask.nii.gz")
+            sig_csv = base + "_sig.csv"
+            save_sig_csv(sig_csv, coords, obs_diff, q_perm, {
+                "contrast": f"modulation_groupdiff_{half_label}",
+                "Condition": cond,
+                "GroupA": "SAD",
+                "GroupB": "HC",
+                "Half": half_label,
+            }, parcel_names, parcel_indices, parcel_atlas)
+
+        # cross-condition similarity (between conditions)
+        pair_names = [f"{a}_vs_{b}" for a, b in PAIR_LIST]
+        for pair_name in pair_names:
+            # within placebo
+            for group in ["SAD", "HC"]:
+                subs = select_subjects_cur(group=group, drug="Placebo")
+                if not subs:
+                    continue
+                obs_mat = np.stack([pair_scores_cur[s][pair_name] for s in subs], axis=0)
+                obs_mean = np.nanmean(obs_mat, axis=0)
+                if use_tfce:
+                    tested = np.ones((len(subs), 1), dtype=float)
+                    p_perm, valid_mask = tfce_pvals(obs_mat, tested, mask_img, args.n_perm, True, args.seed, args.n_jobs, model_intercept=False)
+                else:
+                    valid = np.isfinite(obs_mean)
+                    count = np.zeros(n_vox, dtype=int)
+                    for _ in range(args.n_perm):
+                        perm_means = []
+                        for s in subs:
+                            s_data = subj_data_cur[s]
+                            y_perm = rng.permutation(s_data.y)
+                            perm_scores = np.full(n_vox, np.nan)
+                            cond_a, cond_b = pair_name.split("_vs_")
+                            results_perm = Parallel(n_jobs=args.n_jobs, prefer="threads")(
+                                delayed(_score_pair_batch)(s_data.X, y_perm, neighbors, cond_a, cond_b, args.min_voxels, batch)
+                                for batch in batches
+                            )
+                            for voxels, vals in results_perm:
+                                perm_scores[voxels] = vals
+                            perm_means.append(perm_scores)
+                        perm_mean = np.nanmean(np.stack(perm_means, axis=0), axis=0)
+                        perm_valid = valid & np.isfinite(perm_mean)
+                        count[perm_valid] += (perm_mean[perm_valid] >= obs_mean[perm_valid]).astype(int)
+                    p_perm = np.full(n_vox, np.nan, dtype=float)
+                    p_perm[valid] = (count[valid] + 1) / (args.n_perm + 1)
+                    valid_mask = None
+                q_perm = p_perm.copy() if use_tfce else fdr_q(p_perm)
+                base = os.path.join(perm_dir, f"cross_{pair_name}_{group}_PLC{suffix}")
+                save_map(obs_mean, mask, mask_img, base + "_mean.nii.gz")
+                save_map(q_perm, mask, mask_img, base + "_q.nii.gz")
+                if use_tfce and valid_mask is not None:
+                    save_map(valid_mask.astype(float), mask, mask_img, base + "_validmask.nii.gz")
+                sig_csv = base + "_sig.csv"
+                save_sig_csv(sig_csv, coords, obs_mean, q_perm, {
+                    "contrast": f"cross_within_placebo_{half_label}",
+                    "Pair": pair_name,
+                    "Group": group,
+                    "Half": half_label,
+                }, parcel_names, parcel_indices, parcel_atlas)
+
+            # placebo group diff
+            sad_subs = select_subjects_cur(group="SAD", drug="Placebo")
+            hc_subs = select_subjects_cur(group="HC", drug="Placebo")
+            if len(sad_subs) >= 2 and len(hc_subs) >= 2:
+                obs_sad = np.stack([pair_scores_cur[s][pair_name] for s in sad_subs], axis=0)
+                obs_hc = np.stack([pair_scores_cur[s][pair_name] for s in hc_subs], axis=0)
+                obs_diff = np.nanmean(obs_sad, axis=0) - np.nanmean(obs_hc, axis=0)
+                if use_tfce:
+                    tested = np.array([1.0] * len(sad_subs) + [-1.0] * len(hc_subs))[:, None]
+                    values = np.stack([pair_scores_cur[s][pair_name] for s in sad_subs + hc_subs], axis=0)
+                    p_perm, valid_mask = tfce_pvals(values, tested, mask_img, args.n_perm, True, args.seed, args.n_jobs, model_intercept=True)
+                else:
+                    valid = np.isfinite(obs_diff)
+                    all_subs = sad_subs + hc_subs
+                    labels = np.array(["SAD"] * len(sad_subs) + ["HC"] * len(hc_subs))
+                    count = np.zeros(n_vox, dtype=int)
+                    for _ in range(args.n_perm):
+                        perm_labels = rng.permutation(labels)
+                        sad_idx = perm_labels == "SAD"
+                        hc_idx = perm_labels == "HC"
+                        if sad_idx.sum() < 2 or hc_idx.sum() < 2:
+                            continue
+                        perm_sad = np.stack([pair_scores_cur[s][pair_name] for s, m in zip(all_subs, sad_idx) if m], axis=0)
+                        perm_hc = np.stack([pair_scores_cur[s][pair_name] for s, m in zip(all_subs, hc_idx) if m], axis=0)
+                        perm_diff = np.nanmean(perm_sad, axis=0) - np.nanmean(perm_hc, axis=0)
+                        perm_valid = valid & np.isfinite(perm_diff)
+                        count[perm_valid] += (np.abs(perm_diff[perm_valid]) >= np.abs(obs_diff[perm_valid])).astype(int)
+                    p_perm = np.full(n_vox, np.nan, dtype=float)
+                    p_perm[valid] = (count[valid] + 1) / (args.n_perm + 1)
+                    valid_mask = None
+                q_perm = p_perm.copy() if use_tfce else fdr_q(p_perm)
+                base = os.path.join(perm_dir, f"cross_{pair_name}_SAD-HC_PLC{suffix}")
+                save_map(obs_diff, mask, mask_img, base + "_diff.nii.gz")
+                save_map(q_perm, mask, mask_img, base + "_q.nii.gz")
+                if use_tfce and valid_mask is not None:
+                    save_map(valid_mask.astype(float), mask, mask_img, base + "_validmask.nii.gz")
+                sig_csv = base + "_sig.csv"
+                save_sig_csv(sig_csv, coords, obs_diff, q_perm, {
+                    "contrast": f"cross_groupdiff_placebo_{half_label}",
+                    "Pair": pair_name,
+                    "GroupA": "SAD",
+                    "GroupB": "HC",
+                    "Half": half_label,
+                }, parcel_names, parcel_indices, parcel_atlas)
+
+            # OXT-PLC modulation within group
+            for group in ["SAD", "HC"]:
+                oxt_subs = select_subjects_cur(group=group, drug="Oxytocin")
+                plc_subs = select_subjects_cur(group=group, drug="Placebo")
+                if len(oxt_subs) < 2 or len(plc_subs) < 2:
+                    continue
+                obs_oxt = np.stack([pair_scores_cur[s][pair_name] for s in oxt_subs], axis=0)
+                obs_plc = np.stack([pair_scores_cur[s][pair_name] for s in plc_subs], axis=0)
+                obs_diff = np.nanmean(obs_oxt, axis=0) - np.nanmean(obs_plc, axis=0)
+                if use_tfce:
+                    tested = np.array([1.0] * len(oxt_subs) + [-1.0] * len(plc_subs))[:, None]
+                    values = np.stack([pair_scores_cur[s][pair_name] for s in oxt_subs + plc_subs], axis=0)
+                    p_perm, valid_mask = tfce_pvals(values, tested, mask_img, args.n_perm, True, args.seed, args.n_jobs, model_intercept=True)
+                else:
+                    valid = np.isfinite(obs_diff)
+                    all_subs = oxt_subs + plc_subs
+                    labels = np.array(["OXT"] * len(oxt_subs) + ["PLC"] * len(plc_subs))
+                    count = np.zeros(n_vox, dtype=int)
+                    for _ in range(args.n_perm):
+                        perm_labels = rng.permutation(labels)
+                        oxt_idx = perm_labels == "OXT"
+                        plc_idx = perm_labels == "PLC"
+                        if oxt_idx.sum() < 2 or plc_idx.sum() < 2:
+                            continue
+                        perm_oxt = np.stack([pair_scores_cur[s][pair_name] for s, m in zip(all_subs, oxt_idx) if m], axis=0)
+                        perm_plc = np.stack([pair_scores_cur[s][pair_name] for s, m in zip(all_subs, plc_idx) if m], axis=0)
+                        perm_diff = np.nanmean(perm_oxt, axis=0) - np.nanmean(perm_plc, axis=0)
+                        perm_valid = valid & np.isfinite(perm_diff)
+                        count[perm_valid] += (np.abs(perm_diff[perm_valid]) >= np.abs(obs_diff[perm_valid])).astype(int)
+                    p_perm = np.full(n_vox, np.nan, dtype=float)
+                    p_perm[valid] = (count[valid] + 1) / (args.n_perm + 1)
+                    valid_mask = None
+                q_perm = p_perm.copy() if use_tfce else fdr_q(p_perm)
+                base = os.path.join(perm_dir, f"cross_{pair_name}_{group}_OXT-PLC{suffix}")
+                save_map(obs_diff, mask, mask_img, base + "_diff.nii.gz")
+                save_map(q_perm, mask, mask_img, base + "_q.nii.gz")
+                if use_tfce and valid_mask is not None:
+                    save_map(valid_mask.astype(float), mask, mask_img, base + "_validmask.nii.gz")
+                sig_csv = base + "_sig.csv"
+                save_sig_csv(sig_csv, coords, obs_diff, q_perm, {
+                    "contrast": f"cross_modulation_{half_label}",
+                    "Pair": pair_name,
+                    "Group": group,
+                    "Half": half_label,
+                }, parcel_names, parcel_indices, parcel_atlas)
+
+            # OXT-PLC modulation group difference (interaction)
+            sad_oxt = select_subjects_cur(group="SAD", drug="Oxytocin")
+            sad_plc = select_subjects_cur(group="SAD", drug="Placebo")
+            hc_oxt = select_subjects_cur(group="HC", drug="Oxytocin")
+            hc_plc = select_subjects_cur(group="HC", drug="Placebo")
+            if len(sad_oxt) >= 2 and len(sad_plc) >= 2 and len(hc_oxt) >= 2 and len(hc_plc) >= 2:
+                obs_sad_oxt = np.stack([pair_scores_cur[s][pair_name] for s in sad_oxt], axis=0)
+                obs_sad_plc = np.stack([pair_scores_cur[s][pair_name] for s in sad_plc], axis=0)
+                obs_hc_oxt = np.stack([pair_scores_cur[s][pair_name] for s in hc_oxt], axis=0)
+                obs_hc_plc = np.stack([pair_scores_cur[s][pair_name] for s in hc_plc], axis=0)
+                obs_diff = (np.nanmean(obs_sad_oxt, axis=0) - np.nanmean(obs_sad_plc, axis=0)) - (
+                    np.nanmean(obs_hc_oxt, axis=0) - np.nanmean(obs_hc_plc, axis=0)
+                )
+                if use_tfce:
+                    all_subs = sad_oxt + sad_plc + hc_oxt + hc_plc
+                    group_vec = np.array([1.0] * (len(sad_oxt) + len(sad_plc)) + [-1.0] * (len(hc_oxt) + len(hc_plc)))
+                    drug_vec = np.array([1.0] * len(sad_oxt) + [-1.0] * len(sad_plc) + [1.0] * len(hc_oxt) + [-1.0] * len(hc_plc))
+                    tested = (group_vec * drug_vec)[:, None]
+                    values = np.stack([pair_scores_cur[s][pair_name] for s in all_subs], axis=0)
+                    p_perm, valid_mask = tfce_pvals(values, tested, mask_img, args.n_perm, True, args.seed, args.n_jobs, model_intercept=True)
+                else:
+                    valid = np.isfinite(obs_diff)
+                    count = np.zeros(n_vox, dtype=int)
+                    oxt_all = sad_oxt + hc_oxt
+                    plc_all = sad_plc + hc_plc
+                    labels_oxt = np.array(["SAD"] * len(sad_oxt) + ["HC"] * len(hc_oxt))
+                    labels_plc = np.array(["SAD"] * len(sad_plc) + ["HC"] * len(hc_plc))
+                    for _ in range(args.n_perm):
+                        perm_oxt = rng.permutation(labels_oxt)
+                        perm_plc = rng.permutation(labels_plc)
+                        sad_oxt_idx = perm_oxt == "SAD"
+                        hc_oxt_idx = perm_oxt == "HC"
+                        sad_plc_idx = perm_plc == "SAD"
+                        hc_plc_idx = perm_plc == "HC"
+                        if sad_oxt_idx.sum() < 2 or hc_oxt_idx.sum() < 2 or sad_plc_idx.sum() < 2 or hc_plc_idx.sum() < 2:
+                            continue
+                        perm_sad_oxt = np.stack([pair_scores_cur[s][pair_name] for s, m in zip(oxt_all, sad_oxt_idx) if m], axis=0)
+                        perm_hc_oxt = np.stack([pair_scores_cur[s][pair_name] for s, m in zip(oxt_all, hc_oxt_idx) if m], axis=0)
+                        perm_sad_plc = np.stack([pair_scores_cur[s][pair_name] for s, m in zip(plc_all, sad_plc_idx) if m], axis=0)
+                        perm_hc_plc = np.stack([pair_scores_cur[s][pair_name] for s, m in zip(plc_all, hc_plc_idx) if m], axis=0)
+                        perm_diff = (np.nanmean(perm_sad_oxt, axis=0) - np.nanmean(perm_sad_plc, axis=0)) - (
+                            np.nanmean(perm_hc_oxt, axis=0) - np.nanmean(perm_hc_plc, axis=0)
+                        )
+                        perm_valid = valid & np.isfinite(perm_diff)
+                        count[perm_valid] += (np.abs(perm_diff[perm_valid]) >= np.abs(obs_diff[perm_valid])).astype(int)
+                    p_perm = np.full(n_vox, np.nan, dtype=float)
+                    p_perm[valid] = (count[valid] + 1) / (args.n_perm + 1)
+                    valid_mask = None
+                q_perm = p_perm.copy() if use_tfce else fdr_q(p_perm)
+                base = os.path.join(perm_dir, f"cross_{pair_name}_SAD-HC_OXT-PLC{suffix}")
+                save_map(obs_diff, mask, mask_img, base + "_diff.nii.gz")
+                save_map(q_perm, mask, mask_img, base + "_q.nii.gz")
+                if use_tfce and valid_mask is not None:
+                    save_map(valid_mask.astype(float), mask, mask_img, base + "_validmask.nii.gz")
+                sig_csv = base + "_sig.csv"
+                save_sig_csv(sig_csv, coords, obs_diff, q_perm, {
+                    "contrast": f"cross_modulation_groupdiff_{half_label}",
+                    "Pair": pair_name,
+                    "GroupA": "SAD",
+                    "GroupB": "HC",
+                    "Half": half_label,
+                }, parcel_names, parcel_indices, parcel_atlas)
+
+    if args.cross_half_stage:
+        if post_merge_stage:
+            raise RuntimeError("cross_half_stage requires raw trial data (not post-merge TFCE).")
+        cross_dir = os.path.join(args.out_dir, "crosshalf_subj_maps")
+        os.makedirs(cross_dir, exist_ok=True)
+        meta_rows = []
+        for s_id, s_data in subj_data.items():
+            for cond in cond_list:
+                values = subj_scores[s_id][cond]
+                out_name = f"subjmap_{cond}_{s_id}{chunk_suffix}.nii.gz"
+                save_map(values, mask, mask_img, os.path.join(cross_dir, out_name))
+            for pair_name, values in pair_scores[s_id].items():
+                out_name = f"subjmap_cross_{pair_name}_{s_id}{chunk_suffix}.nii.gz"
+                save_map(values, mask, mask_img, os.path.join(cross_dir, out_name))
+            if subj_scores_half["H1"] and subj_scores_half["H2"]:
+                for cond in cond_list:
+                    save_map(
+                        subj_scores_half["H1"][s_id][cond],
+                        mask,
+                        mask_img,
+                        os.path.join(cross_dir, f"subjmap_{cond}_{s_id}_H1{chunk_suffix}.nii.gz"),
+                    )
+                    save_map(
+                        subj_scores_half["H2"][s_id][cond],
+                        mask,
+                        mask_img,
+                        os.path.join(cross_dir, f"subjmap_{cond}_{s_id}_H2{chunk_suffix}.nii.gz"),
+                    )
+                for pair_name, values in pair_scores_half["H1"][s_id].items():
+                    save_map(
+                        values,
+                        mask,
+                        mask_img,
+                        os.path.join(cross_dir, f"subjmap_cross_{pair_name}_{s_id}_H1{chunk_suffix}.nii.gz"),
+                    )
+                for pair_name, values in pair_scores_half["H2"][s_id].items():
+                    save_map(
+                        values,
+                        mask,
+                        mask_img,
+                        os.path.join(cross_dir, f"subjmap_cross_{pair_name}_{s_id}_H2{chunk_suffix}.nii.gz"),
+                    )
+            meta_rows.append({
+                "Subject": s_id,
+                "Group": s_data.group,
+                "Drug": s_data.drug,
+            })
+        pd.DataFrame(meta_rows).to_csv(os.path.join(cross_dir, "subj_meta.csv"), index=False)
+        print("[Saved] Cross-half subject maps.")
+        return
+
+    if args.cross_half_tfce:
+        cross_dir = os.path.join(args.out_dir, "crosshalf_subj_maps")
+        subj_scores, pair_scores, subj_scores_half, pair_scores_half, subj_data, has_half = load_crosshalf_maps_from_disk(
+            cross_dir, cond_list, PAIR_LIST, mask
+        )
+        perm_dir = os.path.join(args.out_dir, "crosshalf_permutation")
+        os.makedirs(perm_dir, exist_ok=True)
+        datasets = [("FULL", "", subj_data, subj_scores, pair_scores)]
+        if has_half and subj_scores_half["H1"] and subj_scores_half["H2"]:
+            datasets.extend([
+                ("H1", "_H1", subj_data, subj_scores_half["H1"], pair_scores_half["H1"]),
+                ("H2", "_H2", subj_data, subj_scores_half["H2"], pair_scores_half["H2"]),
+            ])
+        for half_label, suffix, subj_data_cur, subj_scores_cur, pair_scores_cur in datasets:
+            run_cross_half_effects(perm_dir, coords, subj_data_cur, subj_scores_cur, pair_scores_cur, half_label, suffix)
+        print("[Done] Cross-half TFCE.")
+        return
 
     # 4.1 Placebo within-condition (permute condition labels within subject)
     print("[Step 4] Placebo within-condition (label permutation) ...")

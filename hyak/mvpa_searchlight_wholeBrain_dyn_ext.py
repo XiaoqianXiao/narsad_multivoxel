@@ -95,6 +95,37 @@ def build_batches(indices: np.ndarray, batch_size: int) -> List[np.ndarray]:
         raise ValueError("batch_size must be >= 1")
     return [indices[i:i + batch_size] for i in range(0, indices.size, batch_size)]
 
+def split_half_indices(y_sub: np.ndarray, cond_list: List[str]) -> Dict[str, Tuple[np.ndarray, np.ndarray]]:
+    halves: Dict[str, Tuple[np.ndarray, np.ndarray]] = {}
+    for cond in cond_list:
+        idx = np.where(y_sub == cond)[0]
+        if idx.size == 0:
+            halves[cond] = (np.array([], dtype=int), np.array([], dtype=int))
+            continue
+        split = idx.size // 2
+        halves[cond] = (idx[:split], idx[split:])
+    return halves
+
+
+def subset_subject_by_half(subj: SubjectData, cond_list: List[str], half: str) -> SubjectData:
+    halves = split_half_indices(subj.y, cond_list)
+    keep = []
+    for cond in cond_list:
+        idx_first, idx_second = halves[cond]
+        if half == "H1":
+            keep.append(idx_first)
+        else:
+            keep.append(idx_second)
+    if keep:
+        idx = np.sort(np.concatenate(keep))
+    else:
+        idx = np.array([], dtype=int)
+    return SubjectData(
+        X=subj.X[idx],
+        y=subj.y[idx],
+        group=subj.group,
+        drug=subj.drug,
+    )
 
 
 
@@ -218,6 +249,65 @@ def load_subject_maps_from_disk(
             drug=row.Drug,
         )
     return subj_maps, subj_data
+
+
+def load_crosshalf_maps_from_disk(
+    maps_dir: str,
+    mask: np.ndarray,
+) -> Tuple[
+    Dict[str, Dict[Tuple[str, str], Dict[str, np.ndarray]]],
+    Dict[str, Dict[Tuple[str, str], Dict[str, np.ndarray]]],
+    Dict[str, Dict[Tuple[str, str], Dict[str, np.ndarray]]],
+    Dict[str, SubjectData],
+    bool,
+]:
+    meta_path = os.path.join(maps_dir, "subj_meta.csv")
+    if not os.path.exists(meta_path):
+        raise FileNotFoundError(f"Missing subj_meta.csv in {maps_dir}")
+    meta_df = pd.read_csv(meta_path)
+    subj_maps: Dict[str, Dict[Tuple[str, str], Dict[str, np.ndarray]]] = {}
+    subj_maps_half: Dict[str, Dict[Tuple[str, str], Dict[str, np.ndarray]]] = {}
+    subj_maps_half2: Dict[str, Dict[Tuple[str, str], Dict[str, np.ndarray]]] = {}
+    subj_data: Dict[str, SubjectData] = {}
+    has_half = False
+    for row in meta_df.itertuples(index=False):
+        s_id = str(row.Subject).strip()
+        subj_maps[s_id] = {}
+        subj_maps_half[s_id] = {}
+        subj_maps_half2[s_id] = {}
+        for pair in PAIR_LIST:
+            pair_name = f"{pair[0]}_vs_{pair[1]}"
+            delta_path = os.path.join(maps_dir, f"subjmap_{pair_name}_delta_{s_id}.nii.gz")
+            slope_path = os.path.join(maps_dir, f"subjmap_{pair_name}_slope_{s_id}.nii.gz")
+            if not os.path.exists(delta_path) or not os.path.exists(slope_path):
+                raise FileNotFoundError(f"Missing subject maps for {s_id} {pair_name}")
+            subj_maps[s_id][pair] = {
+                "delta": nib.load(delta_path).get_fdata()[mask],
+                "slope": nib.load(slope_path).get_fdata()[mask],
+            }
+
+            h1_delta = os.path.join(maps_dir, f"subjmap_{pair_name}_delta_{s_id}_H1.nii.gz")
+            h1_slope = os.path.join(maps_dir, f"subjmap_{pair_name}_slope_{s_id}_H1.nii.gz")
+            h2_delta = os.path.join(maps_dir, f"subjmap_{pair_name}_delta_{s_id}_H2.nii.gz")
+            h2_slope = os.path.join(maps_dir, f"subjmap_{pair_name}_slope_{s_id}_H2.nii.gz")
+            if os.path.exists(h1_delta) and os.path.exists(h1_slope) and os.path.exists(h2_delta) and os.path.exists(h2_slope):
+                has_half = True
+                subj_maps_half[s_id][pair] = {
+                    "delta": nib.load(h1_delta).get_fdata()[mask],
+                    "slope": nib.load(h1_slope).get_fdata()[mask],
+                }
+                subj_maps_half2[s_id][pair] = {
+                    "delta": nib.load(h2_delta).get_fdata()[mask],
+                    "slope": nib.load(h2_slope).get_fdata()[mask],
+                }
+
+        subj_data[s_id] = SubjectData(
+            X=np.empty((0, 0)),
+            y=np.empty(0),
+            group=row.Group,
+            drug=row.Drug,
+        )
+    return subj_maps, subj_maps_half, subj_maps_half2, subj_data, has_half
 
 
 def compute_subject_dynamic_trial_scores(
@@ -380,6 +470,43 @@ def _dynamic_batch(
     return voxels, delta_vals, slope_vals
 
 
+def compute_subject_dynamic_maps(
+    subj: SubjectData,
+    neighbors: List[List[int]],
+    n_voxels: int,
+    min_voxels: int,
+    batches: List[np.ndarray],
+    n_jobs: int,
+    early_n: int,
+    late_n: int,
+) -> Dict[Tuple[str, str], Dict[str, np.ndarray]]:
+    subj_maps: Dict[Tuple[str, str], Dict[str, np.ndarray]] = {}
+    for pair in PAIR_LIST:
+        delta_map = np.full(n_voxels, np.nan)
+        slope_map = np.full(n_voxels, np.nan)
+        results = Parallel(n_jobs=n_jobs, prefer="threads")(
+            delayed(_dynamic_batch)(
+                subj.X,
+                subj.y,
+                neighbors,
+                early_n,
+                late_n,
+                pair,
+                min_voxels,
+                batch,
+            )
+            for batch in batches
+        )
+        for voxels, delta_vals, slope_vals in results:
+            delta_map[voxels] = delta_vals
+            slope_map[voxels] = slope_vals
+        subj_maps[pair] = {
+            "delta": delta_map,
+            "slope": slope_map,
+        }
+    return subj_maps
+
+
 def _dynamic_trial_batch(
     X_sub: np.ndarray,
     y_sub: np.ndarray,
@@ -449,8 +576,17 @@ def main() -> None:
     parser.add_argument("--no_tfce", action="store_true", help="Disable TFCE (use voxelwise FDR)")
     parser.add_argument("--post_merge_tfce", action="store_true", help="Save subject maps and skip TFCE until post-merge")
     parser.add_argument("--save_trial_npz", action="store_true", help="Save trial-level searchlight scores (NPZ)")
+    parser.add_argument("--cross_half_only", action="store_true", help="(Deprecated) Alias for --cross_half_stage")
+    parser.add_argument("--cross_half_stage", action="store_true", help="Compute and save half-split subject maps (chunkable)")
+    parser.add_argument("--cross_half_tfce", action="store_true", help="Run TFCE on merged half-split subject maps")
     parser.add_argument("--out_dir", default=None)
     args = parser.parse_args()
+    if args.cross_half_only:
+        args.cross_half_stage = True
+    if args.cross_half_tfce and args.chunk_idx is not None:
+        raise RuntimeError("--cross_half_tfce cannot be used with chunking.")
+    if args.cross_half_tfce and args.no_tfce:
+        raise RuntimeError("--cross_half_tfce requires TFCE (do not use --no_tfce).")
 
     project_root = args.project_root
     if args.npz is None:
@@ -545,30 +681,16 @@ def main() -> None:
             print("[Skip] Trial-level NPZ requires raw trial data; not available in post-merge TFCE stage.")
     else:
         for s_id, s_data in subj_data.items():
-            subj_maps[s_id] = {}
-            for pair in PAIR_LIST:
-                delta_map = np.full(n_vox, np.nan)
-                slope_map = np.full(n_vox, np.nan)
-                results = Parallel(n_jobs=args.n_jobs, prefer="threads")(
-                    delayed(_dynamic_batch)(
-                        s_data.X,
-                        s_data.y,
-                        neighbors,
-                        args.early_n,
-                        args.late_n,
-                        pair,
-                        args.min_voxels,
-                        batch,
-                    )
-                    for batch in batches
-                )
-                for voxels, delta_vals, slope_vals in results:
-                    delta_map[voxels] = delta_vals
-                    slope_map[voxels] = slope_vals
-                subj_maps[s_id][pair] = {
-                    "delta": delta_map,
-                    "slope": slope_map,
-                }
+            subj_maps[s_id] = compute_subject_dynamic_maps(
+                s_data,
+                neighbors,
+                n_vox,
+                args.min_voxels,
+                batches,
+                args.n_jobs,
+                args.early_n,
+                args.late_n,
+            )
 
         if args.save_trial_npz:
             trial_dir = os.path.join(args.out_dir, "trial_npz")
@@ -596,6 +718,226 @@ def main() -> None:
                     )
             print("[Saved] Trial-level NPZ maps.")
 
+    # compute first/second half subject maps for all effects
+    subj_data_half: Dict[str, Dict[str, SubjectData]] = {"H1": {}, "H2": {}}
+    subj_maps_half: Dict[str, Dict[str, Dict[Tuple[str, str], Dict[str, np.ndarray]]]] = {"H1": {}, "H2": {}}
+    if post_merge_stage:
+        print("[Skip] Half-split effects require raw trial data.")
+    else:
+        if args.cross_half_stage:
+            for s_id, s_data in subj_data.items():
+                for half in ["H1", "H2"]:
+                    half_data = subset_subject_by_half(s_data, CS_LABELS, half)
+                    subj_data_half[half][s_id] = half_data
+                    subj_maps_half[half][s_id] = compute_subject_dynamic_maps(
+                        half_data,
+                        neighbors,
+                        n_vox,
+                        args.min_voxels,
+                        batches,
+                        args.n_jobs,
+                        args.early_n,
+                        args.late_n,
+                    )
+
+    def run_dyn_group_level(
+        subj_maps_cur: Dict[str, Dict[Tuple[str, str], Dict[str, np.ndarray]]],
+        subj_data_cur: Dict[str, SubjectData],
+        perm_dir: str,
+        suffix: str,
+    ) -> None:
+        # Permutation testing at group level (delta and slope)
+        for pair in PAIR_LIST:
+            pair_name = f"{pair[0]}_vs_{pair[1]}"
+            # Placebo within-group
+            for group in ["SAD", "HC"]:
+                for metric in ["delta", "slope"]:
+                    subs = [s for s, d in subj_data_cur.items() if d.group == group and d.drug == "Placebo"]
+                    if len(subs) < 2:
+                        continue
+                    vals = np.stack([subj_maps_cur[s][pair][metric] for s in subs], axis=0)
+                    if use_tfce:
+                        obs, p, valid_mask = permute_sign_flip(vals, args.n_perm, rng, two_tailed=not args.one_tailed)
+                    else:
+                        obs, p = permute_sign_flip(vals, args.n_perm, rng, two_tailed=not args.one_tailed)
+                        valid_mask = None
+                    q = fdr_q(p)
+                    base = os.path.join(perm_dir, f"{pair_name}_{group}_PLC_{metric}{suffix}")
+                    save_map(obs, mask, mask_img, base + "_mean.nii.gz")
+                    save_map(p, mask, mask_img, base + "_p.nii.gz")
+                    save_map(q, mask, mask_img, base + "_q.nii.gz")
+                    if use_tfce and valid_mask is not None:
+                        save_map(valid_mask.astype(float), mask, mask_img, base + "_validmask.nii.gz")
+
+            # Placebo group difference SAD vs HC (two-tailed)
+            for metric in ["delta", "slope"]:
+                sad_subs = [s for s, d in subj_data_cur.items() if d.group == "SAD" and d.drug == "Placebo"]
+                hc_subs = [s for s, d in subj_data_cur.items() if d.group == "HC" and d.drug == "Placebo"]
+                if len(sad_subs) < 2 or len(hc_subs) < 2:
+                    continue
+                vals_sad = np.stack([subj_maps_cur[s][pair][metric] for s in sad_subs], axis=0)
+                vals_hc = np.stack([subj_maps_cur[s][pair][metric] for s in hc_subs], axis=0)
+                if use_tfce:
+                    obs, p, valid_mask = permute_group_diff(vals_sad, vals_hc, args.n_perm, rng)
+                else:
+                    obs, p = permute_group_diff(vals_sad, vals_hc, args.n_perm, rng)
+                    valid_mask = None
+                q = fdr_q(p)
+                base = os.path.join(perm_dir, f"{pair_name}_SAD-HC_PLC_{metric}{suffix}")
+                save_map(obs, mask, mask_img, base + "_diff.nii.gz")
+                save_map(p, mask, mask_img, base + "_p.nii.gz")
+                save_map(q, mask, mask_img, base + "_q.nii.gz")
+                if use_tfce and valid_mask is not None:
+                    save_map(valid_mask.astype(float), mask, mask_img, base + "_validmask.nii.gz")
+
+            # Oxytocin modulation within group (OXT-PLC, two-tailed)
+            for group in ["SAD", "HC"]:
+                for metric in ["delta", "slope"]:
+                    oxt_subs = [s for s, d in subj_data_cur.items() if d.group == group and d.drug == "Oxytocin"]
+                    plc_subs = [s for s, d in subj_data_cur.items() if d.group == group and d.drug == "Placebo"]
+                    if len(oxt_subs) < 2 or len(plc_subs) < 2:
+                        continue
+                    vals_oxt = np.stack([subj_maps_cur[s][pair][metric] for s in oxt_subs], axis=0)
+                    vals_plc = np.stack([subj_maps_cur[s][pair][metric] for s in plc_subs], axis=0)
+                    if use_tfce:
+                        obs, p, valid_mask = permute_group_diff(vals_oxt, vals_plc, args.n_perm, rng)
+                    else:
+                        obs, p = permute_group_diff(vals_oxt, vals_plc, args.n_perm, rng)
+                        valid_mask = None
+                    q = fdr_q(p)
+                    base = os.path.join(perm_dir, f"{pair_name}_{group}_OXT-PLC_{metric}{suffix}")
+                    save_map(obs, mask, mask_img, base + "_diff.nii.gz")
+                    save_map(p, mask, mask_img, base + "_p.nii.gz")
+                    save_map(q, mask, mask_img, base + "_q.nii.gz")
+                    if use_tfce and valid_mask is not None:
+                        save_map(valid_mask.astype(float), mask, mask_img, base + "_validmask.nii.gz")
+
+            # OXT-PLC modulation group difference (interaction; two-tailed)
+            for metric in ["delta", "slope"]:
+                sad_oxt = [s for s, d in subj_data_cur.items() if d.group == "SAD" and d.drug == "Oxytocin"]
+                sad_plc = [s for s, d in subj_data_cur.items() if d.group == "SAD" and d.drug == "Placebo"]
+                hc_oxt = [s for s, d in subj_data_cur.items() if d.group == "HC" and d.drug == "Oxytocin"]
+                hc_plc = [s for s, d in subj_data_cur.items() if d.group == "HC" and d.drug == "Placebo"]
+                if len(sad_oxt) < 2 or len(sad_plc) < 2 or len(hc_oxt) < 2 or len(hc_plc) < 2:
+                    continue
+                vals_sad_oxt = np.stack([subj_maps_cur[s][pair][metric] for s in sad_oxt], axis=0)
+                vals_sad_plc = np.stack([subj_maps_cur[s][pair][metric] for s in sad_plc], axis=0)
+                vals_hc_oxt = np.stack([subj_maps_cur[s][pair][metric] for s in hc_oxt], axis=0)
+                vals_hc_plc = np.stack([subj_maps_cur[s][pair][metric] for s in hc_plc], axis=0)
+                obs = (np.nanmean(vals_sad_oxt, axis=0) - np.nanmean(vals_sad_plc, axis=0)) - (
+                    np.nanmean(vals_hc_oxt, axis=0) - np.nanmean(vals_hc_plc, axis=0)
+                )
+                if use_tfce:
+                    all_subs = sad_oxt + sad_plc + hc_oxt + hc_plc
+                    group_vec = np.array([1.0] * (len(sad_oxt) + len(sad_plc)) + [-1.0] * (len(hc_oxt) + len(hc_plc)))
+                    drug_vec = np.array([1.0] * len(sad_oxt) + [-1.0] * len(sad_plc) + [1.0] * len(hc_oxt) + [-1.0] * len(hc_plc))
+                    tested = (group_vec * drug_vec)[:, None]
+                    values = np.stack([subj_maps_cur[s][pair][metric] for s in all_subs], axis=0)
+                    p, valid_mask = tfce_pvals(values, tested, mask_img, args.n_perm, True, args.seed, args.n_jobs, model_intercept=True)
+                else:
+                    valid = np.isfinite(obs)
+                    count = np.zeros(n_vox, dtype=int)
+                    oxt_all = sad_oxt + hc_oxt
+                    plc_all = sad_plc + hc_plc
+                    labels_oxt = np.array(["SAD"] * len(sad_oxt) + ["HC"] * len(hc_oxt))
+                    labels_plc = np.array(["SAD"] * len(sad_plc) + ["HC"] * len(hc_plc))
+                    for _ in range(args.n_perm):
+                        perm_oxt = rng.permutation(labels_oxt)
+                        perm_plc = rng.permutation(labels_plc)
+                        sad_oxt_idx = perm_oxt == "SAD"
+                        hc_oxt_idx = perm_oxt == "HC"
+                        sad_plc_idx = perm_plc == "SAD"
+                        hc_plc_idx = perm_plc == "HC"
+                        if sad_oxt_idx.sum() < 2 or hc_oxt_idx.sum() < 2 or sad_plc_idx.sum() < 2 or hc_plc_idx.sum() < 2:
+                            continue
+                        perm_sad_oxt = np.stack([subj_maps_cur[s][pair][metric] for s, m in zip(oxt_all, sad_oxt_idx) if m], axis=0)
+                        perm_hc_oxt = np.stack([subj_maps_cur[s][pair][metric] for s, m in zip(oxt_all, hc_oxt_idx) if m], axis=0)
+                        perm_sad_plc = np.stack([subj_maps_cur[s][pair][metric] for s, m in zip(plc_all, sad_plc_idx) if m], axis=0)
+                        perm_hc_plc = np.stack([subj_maps_cur[s][pair][metric] for s, m in zip(plc_all, hc_plc_idx) if m], axis=0)
+                        perm_diff = (np.nanmean(perm_sad_oxt, axis=0) - np.nanmean(perm_sad_plc, axis=0)) - (
+                            np.nanmean(perm_hc_oxt, axis=0) - np.nanmean(perm_hc_plc, axis=0)
+                        )
+                        perm_valid = valid & np.isfinite(perm_diff)
+                        count[perm_valid] += (np.abs(perm_diff[perm_valid]) >= np.abs(obs[perm_valid])).astype(int)
+                    p = np.full(n_vox, np.nan, dtype=float)
+                    p[valid] = (count[valid] + 1) / (args.n_perm + 1)
+                    valid_mask = None
+                q = fdr_q(p)
+                base = os.path.join(perm_dir, f"{pair_name}_SAD-HC_OXT-PLC_{metric}{suffix}")
+                save_map(obs, mask, mask_img, base + "_diff.nii.gz")
+                save_map(p, mask, mask_img, base + "_p.nii.gz")
+                save_map(q, mask, mask_img, base + "_q.nii.gz")
+                if use_tfce and valid_mask is not None:
+                    save_map(valid_mask.astype(float), mask, mask_img, base + "_validmask.nii.gz")
+
+    if args.cross_half_stage:
+        if post_merge_stage:
+            raise RuntimeError("cross_half_stage requires raw trial data (not post-merge TFCE).")
+        cross_dir = os.path.join(args.out_dir, "crosshalf_subj_maps")
+        os.makedirs(cross_dir, exist_ok=True)
+        meta_rows = []
+        for s_id, s_data in subj_data.items():
+            for pair in PAIR_LIST:
+                pair_name = f"{pair[0]}_vs_{pair[1]}"
+                delta_vals = subj_maps[s_id][pair]["delta"]
+                slope_vals = subj_maps[s_id][pair]["slope"]
+                save_map(
+                    delta_vals,
+                    mask,
+                    mask_img,
+                    os.path.join(cross_dir, f"subjmap_{pair_name}_delta_{s_id}{chunk_suffix}.nii.gz"),
+                )
+                save_map(
+                    slope_vals,
+                    mask,
+                    mask_img,
+                    os.path.join(cross_dir, f"subjmap_{pair_name}_slope_{s_id}{chunk_suffix}.nii.gz"),
+                )
+                if subj_maps_half["H1"] and subj_maps_half["H2"]:
+                    save_map(
+                        subj_maps_half["H1"][s_id][pair]["delta"],
+                        mask,
+                        mask_img,
+                        os.path.join(cross_dir, f"subjmap_{pair_name}_delta_{s_id}_H1{chunk_suffix}.nii.gz"),
+                    )
+                    save_map(
+                        subj_maps_half["H1"][s_id][pair]["slope"],
+                        mask,
+                        mask_img,
+                        os.path.join(cross_dir, f"subjmap_{pair_name}_slope_{s_id}_H1{chunk_suffix}.nii.gz"),
+                    )
+                    save_map(
+                        subj_maps_half["H2"][s_id][pair]["delta"],
+                        mask,
+                        mask_img,
+                        os.path.join(cross_dir, f"subjmap_{pair_name}_delta_{s_id}_H2{chunk_suffix}.nii.gz"),
+                    )
+                    save_map(
+                        subj_maps_half["H2"][s_id][pair]["slope"],
+                        mask,
+                        mask_img,
+                        os.path.join(cross_dir, f"subjmap_{pair_name}_slope_{s_id}_H2{chunk_suffix}.nii.gz"),
+                    )
+            meta_rows.append({
+                "Subject": s_id,
+                "Group": s_data.group,
+                "Drug": s_data.drug,
+            })
+        pd.DataFrame(meta_rows).to_csv(os.path.join(cross_dir, "subj_meta.csv"), index=False)
+        print("[Saved] Cross-half subject maps.")
+        return
+
+    if args.cross_half_tfce:
+        cross_dir = os.path.join(args.out_dir, "crosshalf_subj_maps")
+        subj_maps_full, h1_maps, h2_maps, subj_data, has_half = load_crosshalf_maps_from_disk(cross_dir, mask)
+        perm_dir = os.path.join(args.out_dir, "crosshalf_permutation")
+        os.makedirs(perm_dir, exist_ok=True)
+        run_dyn_group_level(subj_maps_full, subj_data, perm_dir, "")
+        if has_half:
+            run_dyn_group_level(h1_maps, subj_data, perm_dir, "_H1")
+            run_dyn_group_level(h2_maps, subj_data, perm_dir, "_H2")
+        print("[Done] Cross-half TFCE.")
+        return
     if args.post_merge_tfce and not post_merge_stage:
         subj_dir = os.path.join(args.out_dir, "subj_maps")
         os.makedirs(subj_dir, exist_ok=True)

@@ -1,8 +1,9 @@
 # Searchlight Workflow (Chunked Subject Maps + Post-Merge TFCE)
 
-This workflow runs whole-brain searchlight analyses in two stages:
+This workflow runs whole-brain searchlight analyses in three stages:
 1) **Chunked subject-map generation** (fast, parallel)
-2) **Post-merge TFCE** (single run per analysis/condition)
+2) **Merge chunk outputs** (per mode)
+3) **Post-merge TFCE** (single run per analysis/condition)
 
 All scripts are in `hyak/` and run on Hyak via Apptainer.
 
@@ -105,6 +106,39 @@ Each merged folder will contain:
 - `*_summary_contrasts.csv`
 - `*_sig_merged.csv`
 - `dynamic_summary.csv` / `crossphase_summary.csv` (as applicable)
+
+---
+
+## Cross-Half Pipeline (A2 → B2 → C2)
+This pipeline computes **cross‑condition similarity + half‑split effects** using the same 3‑stage flow, but writes to separate folders.
+
+### A2) Chunked cross-half subject maps
+```bash
+bash submit_searchlight_crosshalf_stageA2.sh
+```
+Outputs (per mode):
+```
+${OUT_BASE}/ext/crosshalf_subj_maps
+${OUT_BASE}/rst/crosshalf_subj_maps
+${OUT_BASE}/dyn_ext/crosshalf_subj_maps
+${OUT_BASE}/dyn_rst/crosshalf_subj_maps
+${OUT_BASE}/crossphase/crosshalf_subj_maps
+```
+
+### B2) Merge chunked cross-half maps
+```bash
+bash submit_merge_crosshalf_stageB2.sh
+```
+This merges chunked files inside each `crosshalf_subj_maps` folder.
+
+### C2) Post-merge TFCE on cross-half maps
+```bash
+bash submit_searchlight_crosshalf_stageC2.sh
+```
+Outputs (per mode):
+```
+${OUT_BASE}/<mode>/crosshalf_permutation
+```
 
 ---
 
