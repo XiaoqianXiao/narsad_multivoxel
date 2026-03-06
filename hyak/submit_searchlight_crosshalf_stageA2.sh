@@ -18,7 +18,7 @@ MEM="120G"
 CPUS=32
 CHUNKS=384
 N_PERM=5000
-MODE="crossphase"  # ext | rst | dyn | crossphase | all
+MODE="ext"  # ext | rst | dyn | crossphase | all
 
 mkdir -p "$LOG_DIR"
 
