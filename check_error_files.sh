@@ -87,7 +87,7 @@ done
 for file in *.err; do
     if [[ -f "$file" ]]; then
         last_line=$(tail -n 1 "$file" 2>/dev/null)
-        if [[ "$last_line" == *"ERROR"* ]]; then
+        if [[ "$last_line" == *"error"* ]]; then
             echo "$file"
         fi
     fi

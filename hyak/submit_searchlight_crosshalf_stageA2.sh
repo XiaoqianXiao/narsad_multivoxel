@@ -13,12 +13,12 @@ TIAN_ATLAS="/gscratch/fang/NARSAD/ROI/Tian/3T/Subcortex-Only/Tian_Subcortex_S4_3
 LOG_DIR="/gscratch/fang/NARSAD/logs/searchlight_crosshalf"
 PARTITION="ckpt-all"
 ACCOUNT="fang"
-TIME="12:00:00"
+TIME="4:00:00"
 MEM="120G"
 CPUS=32
 CHUNKS=384
 N_PERM=5000
-MODE="ext"  # ext | rst | dyn | crossphase | all
+MODE="dyn"  # ext | rst | dyn | crossphase | all
 
 mkdir -p "$LOG_DIR"
 

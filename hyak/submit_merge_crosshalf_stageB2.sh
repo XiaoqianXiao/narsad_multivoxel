@@ -9,11 +9,11 @@ OUT_BASE="/gscratch/scrubbed/fanglab/xiaoqian/NARSAD/LSS/searchlight"
 LOG_DIR="/gscratch/fang/NARSAD/logs/searchlight_crosshalf_merge"
 PARTITION="ckpt-all"
 ACCOUNT="fang"
-TIME="2:00:00"
+TIME="4:00:00"
 MEM="64G"
 CPUS=8
 
-MODE="all"  # all | ext | rst | dyn | crossphase
+MODE="dyn"  # all | ext | rst | dyn | crossphase
 
 mkdir -p "$LOG_DIR"
 module load apptainer 2>/dev/null || true
