@@ -731,6 +731,7 @@ def main() -> None:
     valid_voxels = subset_voxels_by_chunk(valid_voxels, args.chunk_idx, args.chunk_count)
     batches = build_batches(valid_voxels, args.batch_size)
     chunk_suffix = f"_chunk{args.chunk_idx:03d}" if args.chunk_idx is not None else ""
+    cond_list = CS_LABELS
 
     # intersect subjects across phases
     sub_common = np.intersect1d(np.unique(sub_ext), np.unique(sub_rst))
