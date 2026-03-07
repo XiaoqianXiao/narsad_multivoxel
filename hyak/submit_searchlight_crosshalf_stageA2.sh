@@ -16,7 +16,7 @@ ACCOUNT="fang"
 TIME="4:00:00"
 MEM="120G"
 CPUS=32
-CHUNKS=384
+CHUNKS=512 #384 for others
 N_PERM=5000
 MODE="ext"  # ext | rst | dyn | crossphase | all
 
