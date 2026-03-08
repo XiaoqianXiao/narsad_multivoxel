@@ -13,7 +13,7 @@ TIME="4:00:00"
 MEM="64G"
 CPUS=8
 
-MODE="dyn"  # all | ext | rst | dyn | crossphase
+MODE="ext"  # all | ext | rst | dyn | crossphase
 
 mkdir -p "$LOG_DIR"
 module load apptainer 2>/dev/null || true
