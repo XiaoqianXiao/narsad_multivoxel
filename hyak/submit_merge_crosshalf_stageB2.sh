@@ -7,9 +7,9 @@ APP_PATH="/gscratch/scrubbed/fanglab/xiaoqian/repo/narsad_multivoxel/hyak"
 OUT_BASE="/gscratch/scrubbed/fanglab/xiaoqian/NARSAD/LSS/searchlight"
 
 LOG_DIR="/gscratch/fang/NARSAD/logs/searchlight_crosshalf_merge"
-PARTITION="ckpt-all"
+PARTITION="cpu-g2" #"ckpt-all"
 ACCOUNT="fang"
-TIME="4:00:00"
+TIME="12:00:00"
 MEM="64G"
 CPUS=8
 

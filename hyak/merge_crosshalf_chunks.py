@@ -28,11 +28,19 @@ def merge_maps(folder: Path) -> int:
     merged = 0
     for base, files in groups.items():
         ref = nib.load(str(files[0]))
-        stack = []
+        sum_arr = np.zeros(ref.shape, dtype=np.float64)
+        count = np.zeros(ref.shape, dtype=np.uint16)
         for f in files:
             d = nib.load(str(f)).get_fdata()
-            stack.append(d)
-        data = np.nanmean(np.stack(stack, axis=0), axis=0)
+            finite = np.isfinite(d)
+            if not np.any(finite):
+                continue
+            sum_arr[finite] += d[finite]
+            count[finite] += 1
+        data = np.full(ref.shape, np.nan, dtype=np.float32)
+        valid = count > 0
+        if np.any(valid):
+            data[valid] = (sum_arr[valid] / count[valid]).astype(np.float32, copy=False)
         out_path = folder / base
         nib.save(nib.Nifti1Image(data, ref.affine), str(out_path))
         merged += 1
