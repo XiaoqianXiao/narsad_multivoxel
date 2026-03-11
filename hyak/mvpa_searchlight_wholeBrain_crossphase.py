@@ -761,6 +761,8 @@ def main() -> None:
     # ------------------------------------------------------------------
     # Permutation testing helpers (use_tfce, mask_img, args in scope)
     # ------------------------------------------------------------------
+    rng = np.random.default_rng(args.seed)
+
     def permute_group_diff(values_a, values_b, n_perm, rng):
         obs = np.nanmean(values_a, axis=0) - np.nanmean(values_b, axis=0)
         if use_tfce:
@@ -1254,7 +1256,6 @@ def main() -> None:
         df.to_csv(os.path.join(args.out_dir, f"crossphase_summary{chunk_suffix}.csv"), index=False)
 
     # permutation tests
-    rng = np.random.default_rng(args.seed)
     perm_dir = os.path.join(args.out_dir, f"permutation{chunk_suffix}")
     os.makedirs(perm_dir, exist_ok=True)
 
