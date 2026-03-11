@@ -217,6 +217,36 @@ def save_map(values: np.ndarray, mask: np.ndarray, ref_img: nib.Nifti1Image, out
     nib.save(img_out, out_path)
 
 
+def permute_sign_flip(
+    values: np.ndarray,
+    n_perm: int,
+    rng: np.random.Generator,
+    two_tailed: bool,
+    use_tfce: bool,
+    mask_img: nib.Nifti1Image,
+    args: argparse.Namespace,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray | None]:
+    """Sign-flip test for mean (optionally two-tailed)."""
+    obs = np.nanmean(values, axis=0)
+    if use_tfce:
+        tested = np.ones((values.shape[0], 1), dtype=float)
+        p, valid_mask = tfce_pvals(values, tested, mask_img, n_perm, True, args.seed, args.n_jobs, model_intercept=False)
+        return obs, p, valid_mask
+    valid = np.isfinite(obs)
+    count = np.zeros(obs.shape[0], dtype=int)
+    for _ in range(n_perm):
+        signs = rng.choice([-1, 1], size=values.shape[0])[:, None]
+        perm = np.nanmean(values * signs, axis=0)
+        perm_valid = valid & np.isfinite(perm)
+        if two_tailed:
+            count[perm_valid] += (np.abs(perm[perm_valid]) >= np.abs(obs[perm_valid])).astype(int)
+        else:
+            count[perm_valid] += (perm[perm_valid] >= obs[perm_valid]).astype(int)
+    p = np.full(obs.shape[0], np.nan, dtype=float)
+    p[valid] = (count[valid] + 1) / (n_perm + 1)
+    return obs, p, None
+
+
 def load_subject_maps_from_disk(
     out_dir: str,
     mask: np.ndarray,
@@ -757,10 +787,13 @@ def main() -> None:
                         continue
                     vals = np.stack([subj_maps_cur[s][pair][metric] for s in subs], axis=0)
                     if use_tfce:
-                        obs, p, valid_mask = permute_sign_flip(vals, args.n_perm, rng, two_tailed=not args.one_tailed)
+                        obs, p, valid_mask = permute_sign_flip(
+                            vals, args.n_perm, rng, two_tailed=not args.one_tailed, use_tfce=use_tfce, mask_img=mask_img, args=args
+                        )
                     else:
-                        obs, p = permute_sign_flip(vals, args.n_perm, rng, two_tailed=not args.one_tailed)
-                        valid_mask = None
+                        obs, p, valid_mask = permute_sign_flip(
+                            vals, args.n_perm, rng, two_tailed=not args.one_tailed, use_tfce=use_tfce, mask_img=mask_img, args=args
+                        )
                     q = fdr_q(p)
                     base = os.path.join(perm_dir, f"{pair_name}_{group}_PLC_{metric}{suffix}")
                     save_map(obs, mask, mask_img, base + "_mean.nii.gz")
@@ -995,27 +1028,6 @@ def main() -> None:
         p[valid] = (count[valid] + 1) / (n_perm + 1)
         return obs, p
 
-    def permute_sign_flip(values, n_perm, rng, two_tailed=False):
-        """Sign-flip test for mean (optionally two-tailed)."""
-        obs = np.nanmean(values, axis=0)
-        if use_tfce:
-            tested = np.ones((values.shape[0], 1), dtype=float)
-            p, valid_mask = tfce_pvals(values, tested, mask_img, n_perm, True, args.seed, args.n_jobs, model_intercept=False)
-            return obs, p, valid_mask
-        valid = np.isfinite(obs)
-        count = np.zeros(obs.shape[0], dtype=int)
-        for _ in range(n_perm):
-            signs = rng.choice([-1, 1], size=values.shape[0])[:, None]
-            perm = np.nanmean(values * signs, axis=0)
-            perm_valid = valid & np.isfinite(perm)
-            if two_tailed:
-                count[perm_valid] += (np.abs(perm[perm_valid]) >= np.abs(obs[perm_valid])).astype(int)
-            else:
-                count[perm_valid] += (perm[perm_valid] >= obs[perm_valid]).astype(int)
-        p = np.full(obs.shape[0], np.nan, dtype=float)
-        p[valid] = (count[valid] + 1) / (n_perm + 1)
-        return obs, p
-
     def fdr_q(pvals):
         if use_tfce:
             return pvals
@@ -1076,11 +1088,9 @@ def main() -> None:
                 if len(subs) < 2:
                     continue
                 vals = np.stack([subj_maps[s][pair][metric] for s in subs], axis=0)
-                if use_tfce:
-                    obs, p, valid_mask = permute_sign_flip(vals, args.n_perm, rng, two_tailed=not args.one_tailed)
-                else:
-                    obs, p = permute_sign_flip(vals, args.n_perm, rng, two_tailed=not args.one_tailed)
-                    valid_mask = None
+                obs, p, valid_mask = permute_sign_flip(
+                    vals, args.n_perm, rng, two_tailed=not args.one_tailed, use_tfce=use_tfce, mask_img=mask_img, args=args
+                )
                 q = fdr_q(p)
                 base = os.path.join(perm_dir, f"{pair_name}_{group}_PLC_{metric}")
                 save_map(obs, mask, mask_img, base + "_mean.nii.gz")

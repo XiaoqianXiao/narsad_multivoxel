@@ -16,7 +16,7 @@ TIME="12:00:00"
 MEM="120G"
 CPUS=32
 N_PERM=5000
-MODE="all"  # all | ext | rst | dyn | crossphase
+MODE="crossphase"  # all | ext | rst | dyn | crossphase
 
 mkdir -p "$LOG_DIR"
 module load apptainer 2>/dev/null || true

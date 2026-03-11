@@ -303,8 +303,10 @@ def load_crosshalf_maps_from_disk(
                 pair_scores_half["H2"][s_id][pair_name] = nib.load(h2_path).get_fdata()[mask]
 
         subj_data[s_id] = SubjectData(
-            X=np.empty((0, 0)),
-            y=np.empty(0),
+            X_ext=np.empty((0, 0)),
+            y_ext=np.empty(0),
+            X_rst=np.empty((0, 0)),
+            y_rst=np.empty(0),
             group=row.Group,
             drug=row.Drug,
         )
