@@ -247,6 +247,38 @@ def permute_sign_flip(
     return obs, p, None
 
 
+def permute_group_diff(
+    values_a: np.ndarray,
+    values_b: np.ndarray,
+    n_perm: int,
+    rng: np.random.Generator,
+    use_tfce: bool,
+    mask_img: nib.Nifti1Image,
+    args: argparse.Namespace,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray | None]:
+    """Two-tailed permutation of group labels on voxel-wise means."""
+    obs = np.nanmean(values_a, axis=0) - np.nanmean(values_b, axis=0)
+    if use_tfce:
+        tested = np.array([1.0] * values_a.shape[0] + [-1.0] * values_b.shape[0])[:, None]
+        values = np.concatenate([values_a, values_b], axis=0)
+        p, valid_mask = tfce_pvals(values, tested, mask_img, n_perm, True, args.seed, args.n_jobs, model_intercept=True)
+        return obs, p, valid_mask
+    valid = np.isfinite(obs)
+    pooled = np.concatenate([values_a, values_b], axis=0)
+    n_a = values_a.shape[0]
+    count = np.zeros(obs.shape[0], dtype=int)
+    for _ in range(n_perm):
+        idx = rng.permutation(pooled.shape[0])
+        a_idx = idx[:n_a]
+        b_idx = idx[n_a:]
+        perm = np.nanmean(pooled[a_idx], axis=0) - np.nanmean(pooled[b_idx], axis=0)
+        perm_valid = valid & np.isfinite(perm)
+        count[perm_valid] += (np.abs(perm[perm_valid]) >= np.abs(obs[perm_valid])).astype(int)
+    p = np.full(obs.shape[0], np.nan, dtype=float)
+    p[valid] = (count[valid] + 1) / (n_perm + 1)
+    return obs, p, None
+
+
 def load_subject_maps_from_disk(
     out_dir: str,
     mask: np.ndarray,
@@ -823,11 +855,9 @@ def main() -> None:
                     continue
                 vals_sad = np.stack([subj_maps_cur[s][pair][metric] for s in sad_subs], axis=0)
                 vals_hc = np.stack([subj_maps_cur[s][pair][metric] for s in hc_subs], axis=0)
-                if use_tfce:
-                    obs, p, valid_mask = permute_group_diff(vals_sad, vals_hc, args.n_perm, rng)
-                else:
-                    obs, p = permute_group_diff(vals_sad, vals_hc, args.n_perm, rng)
-                    valid_mask = None
+                obs, p, valid_mask = permute_group_diff(
+                    vals_sad, vals_hc, args.n_perm, rng, use_tfce=use_tfce, mask_img=mask_img, args=args
+                )
                 q = fdr_q(p)
                 base = os.path.join(perm_dir, f"{pair_name}_SAD-HC_PLC_{metric}{suffix}")
                 save_map(obs, mask, mask_img, base + "_diff.nii.gz")
@@ -845,11 +875,9 @@ def main() -> None:
                         continue
                     vals_oxt = np.stack([subj_maps_cur[s][pair][metric] for s in oxt_subs], axis=0)
                     vals_plc = np.stack([subj_maps_cur[s][pair][metric] for s in plc_subs], axis=0)
-                    if use_tfce:
-                        obs, p, valid_mask = permute_group_diff(vals_oxt, vals_plc, args.n_perm, rng)
-                    else:
-                        obs, p = permute_group_diff(vals_oxt, vals_plc, args.n_perm, rng)
-                        valid_mask = None
+                    obs, p, valid_mask = permute_group_diff(
+                        vals_oxt, vals_plc, args.n_perm, rng, use_tfce=use_tfce, mask_img=mask_img, args=args
+                    )
                     q = fdr_q(p)
                     base = os.path.join(perm_dir, f"{pair_name}_{group}_OXT-PLC_{metric}{suffix}")
                     save_map(obs, mask, mask_img, base + "_diff.nii.gz")
@@ -1018,29 +1046,6 @@ def main() -> None:
     # ------------------------------------------------------------------
     # Permutation testing + FDR (group-level)
     # ------------------------------------------------------------------
-    def permute_group_diff(values_a, values_b, n_perm, rng):
-        """Two-tailed permutation of group labels on voxel-wise means."""
-        obs = np.nanmean(values_a, axis=0) - np.nanmean(values_b, axis=0)
-        if use_tfce:
-            tested = np.array([1.0] * values_a.shape[0] + [-1.0] * values_b.shape[0])[:, None]
-            values = np.concatenate([values_a, values_b], axis=0)
-            p, valid_mask = tfce_pvals(values, tested, mask_img, n_perm, True, args.seed, args.n_jobs, model_intercept=True)
-            return obs, p, valid_mask
-        valid = np.isfinite(obs)
-        pooled = np.concatenate([values_a, values_b], axis=0)
-        n_a = values_a.shape[0]
-        count = np.zeros(obs.shape[0], dtype=int)
-        for _ in range(n_perm):
-            idx = rng.permutation(pooled.shape[0])
-            a_idx = idx[:n_a]
-            b_idx = idx[n_a:]
-            perm = np.nanmean(pooled[a_idx], axis=0) - np.nanmean(pooled[b_idx], axis=0)
-            perm_valid = valid & np.isfinite(perm)
-            count[perm_valid] += (np.abs(perm[perm_valid]) >= np.abs(obs[perm_valid])).astype(int)
-        p = np.full(obs.shape[0], np.nan, dtype=float)
-        p[valid] = (count[valid] + 1) / (n_perm + 1)
-        return obs, p
-
     print("[Step] Saving group-level mean maps + CSV summaries...")
     rows = []
     for pair in PAIR_LIST:
@@ -1108,11 +1113,9 @@ def main() -> None:
                 continue
             vals_sad = np.stack([subj_maps[s][pair][metric] for s in sad_subs], axis=0)
             vals_hc = np.stack([subj_maps[s][pair][metric] for s in hc_subs], axis=0)
-            if use_tfce:
-                obs, p, valid_mask = permute_group_diff(vals_sad, vals_hc, args.n_perm, rng)
-            else:
-                obs, p = permute_group_diff(vals_sad, vals_hc, args.n_perm, rng)
-                valid_mask = None
+            obs, p, valid_mask = permute_group_diff(
+                vals_sad, vals_hc, args.n_perm, rng, use_tfce=use_tfce, mask_img=mask_img, args=args
+            )
             q = fdr_q(p)
             base = os.path.join(perm_dir, f"{pair_name}_SAD-HC_PLC_{metric}")
             save_map(obs, mask, mask_img, base + "_diff.nii.gz")
@@ -1130,11 +1133,9 @@ def main() -> None:
                     continue
                 vals_oxt = np.stack([subj_maps[s][pair][metric] for s in oxt_subs], axis=0)
                 vals_plc = np.stack([subj_maps[s][pair][metric] for s in plc_subs], axis=0)
-                if use_tfce:
-                    obs, p, valid_mask = permute_group_diff(vals_oxt, vals_plc, args.n_perm, rng)
-                else:
-                    obs, p = permute_group_diff(vals_oxt, vals_plc, args.n_perm, rng)
-                    valid_mask = None
+                obs, p, valid_mask = permute_group_diff(
+                    vals_oxt, vals_plc, args.n_perm, rng, use_tfce=use_tfce, mask_img=mask_img, args=args
+                )
                 q = fdr_q(p)
                 base = os.path.join(perm_dir, f"{pair_name}_{group}_OXT-PLC_{metric}")
                 save_map(obs, mask, mask_img, base + "_diff.nii.gz")
