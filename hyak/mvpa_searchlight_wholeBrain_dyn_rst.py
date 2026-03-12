@@ -770,6 +770,8 @@ def main() -> None:
                         args.late_n,
                     )
 
+    rng = np.random.default_rng(args.seed)
+
     def run_dyn_group_level(
         subj_maps_cur: Dict[str, Dict[Tuple[str, str], Dict[str, np.ndarray]]],
         subj_data_cur: Dict[str, SubjectData],
@@ -1075,7 +1077,6 @@ def main() -> None:
     # ------------------------------------------------------------------
     # Permutation testing at group level (delta and slope)
     # ------------------------------------------------------------------
-    rng = np.random.default_rng(args.seed)
     perm_dir = os.path.join(args.out_dir, f"permutation{chunk_suffix}")
     os.makedirs(perm_dir, exist_ok=True)
 
