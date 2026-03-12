@@ -772,6 +772,17 @@ def main() -> None:
 
     rng = np.random.default_rng(args.seed)
 
+    def fdr_q(pvals):
+        if use_tfce:
+            return pvals
+        q = np.full_like(pvals, np.nan, dtype=float)
+        mask = np.isfinite(pvals)
+        if mask.any():
+            from statsmodels.stats.multitest import multipletests
+            _, qv, _, _ = multipletests(pvals[mask], alpha=0.05, method="fdr_bh")
+            q[mask] = qv
+        return q
+
     def run_dyn_group_level(
         subj_maps_cur: Dict[str, Dict[Tuple[str, str], Dict[str, np.ndarray]]],
         subj_data_cur: Dict[str, SubjectData],
@@ -1029,17 +1040,6 @@ def main() -> None:
         p = np.full(obs.shape[0], np.nan, dtype=float)
         p[valid] = (count[valid] + 1) / (n_perm + 1)
         return obs, p
-
-    def fdr_q(pvals):
-        if use_tfce:
-            return pvals
-        q = np.full_like(pvals, np.nan, dtype=float)
-        mask = np.isfinite(pvals)
-        if mask.any():
-            from statsmodels.stats.multitest import multipletests
-            _, qv, _, _ = multipletests(pvals[mask], alpha=0.05, method="fdr_bh")
-            q[mask] = qv
-        return q
 
     print("[Step] Saving group-level mean maps + CSV summaries...")
     rows = []
