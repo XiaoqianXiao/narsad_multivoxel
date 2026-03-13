@@ -217,6 +217,45 @@ def save_map(values: np.ndarray, mask: np.ndarray, ref_img: nib.Nifti1Image, out
     nib.save(img_out, out_path)
 
 
+def save_sig_csv(
+    out_path: str,
+    coords: np.ndarray,
+    effect: np.ndarray,
+    qvals: np.ndarray,
+    label_cols: Dict[str, str],
+    parcel_names: np.ndarray | None = None,
+    parcel_indices: np.ndarray | None = None,
+    parcel_atlas: np.ndarray | None = None,
+) -> None:
+    mask_sig = np.isfinite(qvals) & (qvals <= 0.05)
+    if np.any(mask_sig):
+        df = pd.DataFrame({
+            "x": coords[mask_sig, 0],
+            "y": coords[mask_sig, 1],
+            "z": coords[mask_sig, 2],
+            "effect": effect[mask_sig],
+            "q": qvals[mask_sig],
+        })
+        if parcel_names is not None:
+            df["Name"] = parcel_names[mask_sig]
+        if parcel_indices is not None:
+            df["LabelID"] = parcel_indices[mask_sig]
+        if parcel_atlas is not None:
+            df["Atlas"] = parcel_atlas[mask_sig]
+    else:
+        cols = ["x", "y", "z", "effect", "q"]
+        if parcel_names is not None:
+            cols.append("Name")
+        if parcel_indices is not None:
+            cols.append("LabelID")
+        if parcel_atlas is not None:
+            cols.append("Atlas")
+        df = pd.DataFrame({c: [] for c in cols})
+    for k, v in label_cols.items():
+        df[k] = v
+    df.to_csv(out_path, index=False)
+
+
 def permute_sign_flip(
     values: np.ndarray,
     n_perm: int,
@@ -840,12 +879,19 @@ def main() -> None:
                             vals, args.n_perm, rng, two_tailed=not args.one_tailed, use_tfce=use_tfce, mask_img=mask_img, args=args
                         )
                     q = fdr_q(p)
-                    base = os.path.join(perm_dir, f"{pair_name}_{group}_PLC_{metric}{suffix}")
-                    save_map(obs, mask, mask_img, base + "_mean.nii.gz")
-                    save_map(p, mask, mask_img, base + "_p.nii.gz")
-                    save_map(q, mask, mask_img, base + "_q.nii.gz")
-                    if use_tfce and valid_mask is not None:
-                        save_map(valid_mask.astype(float), mask, mask_img, base + "_validmask.nii.gz")
+                base = os.path.join(perm_dir, f"{pair_name}_{group}_PLC_{metric}{suffix}")
+                save_map(obs, mask, mask_img, base + "_mean.nii.gz")
+                save_map(p, mask, mask_img, base + "_p.nii.gz")
+                save_map(q, mask, mask_img, base + "_q.nii.gz")
+                if use_tfce and valid_mask is not None:
+                    save_map(valid_mask.astype(float), mask, mask_img, base + "_validmask.nii.gz")
+                save_sig_csv(base + "_sig.csv", coords, obs, q, {
+                    "contrast": "within_placebo",
+                    "Pair": pair_name,
+                    "Group": group,
+                    "Metric": metric,
+                    "Half": suffix.lstrip("_") if suffix else "FULL",
+                }, parcel_names, parcel_indices, parcel_atlas)
 
             # Placebo group difference SAD vs HC (two-tailed)
             for metric in ["delta", "slope"]:
@@ -865,6 +911,14 @@ def main() -> None:
                 save_map(q, mask, mask_img, base + "_q.nii.gz")
                 if use_tfce and valid_mask is not None:
                     save_map(valid_mask.astype(float), mask, mask_img, base + "_validmask.nii.gz")
+                save_sig_csv(base + "_sig.csv", coords, obs, q, {
+                    "contrast": "groupdiff_placebo",
+                    "Pair": pair_name,
+                    "GroupA": "SAD",
+                    "GroupB": "HC",
+                    "Metric": metric,
+                    "Half": suffix.lstrip("_") if suffix else "FULL",
+                }, parcel_names, parcel_indices, parcel_atlas)
 
             # Oxytocin modulation within group (OXT-PLC, two-tailed)
             for group in ["SAD", "HC"]:
@@ -885,6 +939,13 @@ def main() -> None:
                     save_map(q, mask, mask_img, base + "_q.nii.gz")
                     if use_tfce and valid_mask is not None:
                         save_map(valid_mask.astype(float), mask, mask_img, base + "_validmask.nii.gz")
+                    save_sig_csv(base + "_sig.csv", coords, obs, q, {
+                        "contrast": "modulation_within",
+                        "Pair": pair_name,
+                        "Group": group,
+                        "Metric": metric,
+                        "Half": suffix.lstrip("_") if suffix else "FULL",
+                    }, parcel_names, parcel_indices, parcel_atlas)
 
             # OXT-PLC modulation group difference (interaction; two-tailed)
             for metric in ["delta", "slope"]:
@@ -943,6 +1004,14 @@ def main() -> None:
                 save_map(q, mask, mask_img, base + "_q.nii.gz")
                 if use_tfce and valid_mask is not None:
                     save_map(valid_mask.astype(float), mask, mask_img, base + "_validmask.nii.gz")
+                save_sig_csv(base + "_sig.csv", coords, obs, q, {
+                    "contrast": "modulation_groupdiff",
+                    "Pair": pair_name,
+                    "GroupA": "SAD",
+                    "GroupB": "HC",
+                    "Metric": metric,
+                    "Half": suffix.lstrip("_") if suffix else "FULL",
+                }, parcel_names, parcel_indices, parcel_atlas)
 
     if args.cross_half_stage:
         if post_merge_stage:

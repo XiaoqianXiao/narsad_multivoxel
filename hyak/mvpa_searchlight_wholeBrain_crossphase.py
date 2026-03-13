@@ -209,6 +209,45 @@ def save_map(values: np.ndarray, mask: np.ndarray, ref_img: nib.Nifti1Image, out
     nib.save(img_out, out_path)
 
 
+def save_sig_csv(
+    out_path: str,
+    coords: np.ndarray,
+    effect: np.ndarray,
+    qvals: np.ndarray,
+    label_cols: Dict[str, str],
+    parcel_names: np.ndarray | None = None,
+    parcel_indices: np.ndarray | None = None,
+    parcel_atlas: np.ndarray | None = None,
+) -> None:
+    mask_sig = np.isfinite(qvals) & (qvals <= 0.05)
+    if np.any(mask_sig):
+        df = pd.DataFrame({
+            "x": coords[mask_sig, 0],
+            "y": coords[mask_sig, 1],
+            "z": coords[mask_sig, 2],
+            "effect": effect[mask_sig],
+            "q": qvals[mask_sig],
+        })
+        if parcel_names is not None:
+            df["Name"] = parcel_names[mask_sig]
+        if parcel_indices is not None:
+            df["LabelID"] = parcel_indices[mask_sig]
+        if parcel_atlas is not None:
+            df["Atlas"] = parcel_atlas[mask_sig]
+    else:
+        cols = ["x", "y", "z", "effect", "q"]
+        if parcel_names is not None:
+            cols.append("Name")
+        if parcel_indices is not None:
+            cols.append("LabelID")
+        if parcel_atlas is not None:
+            cols.append("Atlas")
+        df = pd.DataFrame({c: [] for c in cols})
+    for k, v in label_cols.items():
+        df[k] = v
+    df.to_csv(out_path, index=False)
+
+
 def load_subject_maps_from_disk(
     out_dir: str,
     mask: np.ndarray,
@@ -953,6 +992,13 @@ def main() -> None:
                     save_map(q, mask, mask_img, base + "_q.nii.gz")
                     if use_tfce and valid_mask is not None:
                         save_map(valid_mask.astype(float), mask, mask_img, base + "_validmask.nii.gz")
+                    save_sig_csv(base + "_sig.csv", coords, obs, q, {
+                        "contrast": "within_condition",
+                        "Condition": cond,
+                        "Group": group,
+                        "Drug": drug,
+                        "Half": half_label,
+                    }, parcel_names, parcel_indices, parcel_atlas)
 
             # placebo group diff
             sad_subs = [s for s, d in subj_data_cur.items() if d.group == "SAD" and d.drug == "Placebo"]
@@ -972,6 +1018,13 @@ def main() -> None:
                 save_map(q, mask, mask_img, base + "_q.nii.gz")
                 if use_tfce and valid_mask is not None:
                     save_map(valid_mask.astype(float), mask, mask_img, base + "_validmask.nii.gz")
+                save_sig_csv(base + "_sig.csv", coords, obs, q, {
+                    "contrast": "groupdiff_placebo",
+                    "Condition": cond,
+                    "GroupA": "SAD",
+                    "GroupB": "HC",
+                    "Half": half_label,
+                }, parcel_names, parcel_indices, parcel_atlas)
 
             # OXT-PLC modulation within group
             for group in ["SAD", "HC"]:
@@ -992,6 +1045,12 @@ def main() -> None:
                     save_map(q, mask, mask_img, base + "_q.nii.gz")
                     if use_tfce and valid_mask is not None:
                         save_map(valid_mask.astype(float), mask, mask_img, base + "_validmask.nii.gz")
+                    save_sig_csv(base + "_sig.csv", coords, obs, q, {
+                        "contrast": "modulation_within",
+                        "Condition": cond,
+                        "Group": group,
+                        "Half": half_label,
+                    }, parcel_names, parcel_indices, parcel_atlas)
 
             # OXT-PLC modulation group difference (interaction)
             sad_oxt = [s for s, d in subj_data_cur.items() if d.group == "SAD" and d.drug == "Oxytocin"]
@@ -1048,6 +1107,13 @@ def main() -> None:
                 save_map(q, mask, mask_img, base + "_q.nii.gz")
                 if use_tfce and valid_mask is not None:
                     save_map(valid_mask.astype(float), mask, mask_img, base + "_validmask.nii.gz")
+                save_sig_csv(base + "_sig.csv", coords, obs, q, {
+                    "contrast": "modulation_groupdiff",
+                    "Condition": cond,
+                    "GroupA": "SAD",
+                    "GroupB": "HC",
+                    "Half": half_label,
+                }, parcel_names, parcel_indices, parcel_atlas)
 
         # between-condition crossphase similarity
         for pair in PAIR_LIST:
@@ -1070,6 +1136,13 @@ def main() -> None:
                     save_map(q, mask, mask_img, base + "_q.nii.gz")
                     if use_tfce and valid_mask is not None:
                         save_map(valid_mask.astype(float), mask, mask_img, base + "_validmask.nii.gz")
+                    save_sig_csv(base + "_sig.csv", coords, obs, q, {
+                        "contrast": "cross_within",
+                        "Pair": pair_name,
+                        "Group": group,
+                        "Drug": drug,
+                        "Half": half_label,
+                    }, parcel_names, parcel_indices, parcel_atlas)
 
             sad_subs = [s for s, d in subj_data_cur.items() if d.group == "SAD" and d.drug == "Placebo"]
             hc_subs = [s for s, d in subj_data_cur.items() if d.group == "HC" and d.drug == "Placebo"]
@@ -1088,6 +1161,13 @@ def main() -> None:
                 save_map(q, mask, mask_img, base + "_q.nii.gz")
                 if use_tfce and valid_mask is not None:
                     save_map(valid_mask.astype(float), mask, mask_img, base + "_validmask.nii.gz")
+                save_sig_csv(base + "_sig.csv", coords, obs, q, {
+                    "contrast": "cross_groupdiff_placebo",
+                    "Pair": pair_name,
+                    "GroupA": "SAD",
+                    "GroupB": "HC",
+                    "Half": half_label,
+                }, parcel_names, parcel_indices, parcel_atlas)
 
             for group in ["SAD", "HC"]:
                 oxt_subs = [s for s, d in subj_data_cur.items() if d.group == group and d.drug == "Oxytocin"]
@@ -1107,6 +1187,12 @@ def main() -> None:
                     save_map(q, mask, mask_img, base + "_q.nii.gz")
                     if use_tfce and valid_mask is not None:
                         save_map(valid_mask.astype(float), mask, mask_img, base + "_validmask.nii.gz")
+                    save_sig_csv(base + "_sig.csv", coords, obs, q, {
+                        "contrast": "cross_modulation_within",
+                        "Pair": pair_name,
+                        "Group": group,
+                        "Half": half_label,
+                    }, parcel_names, parcel_indices, parcel_atlas)
 
             sad_oxt = [s for s, d in subj_data_cur.items() if d.group == "SAD" and d.drug == "Oxytocin"]
             sad_plc = [s for s, d in subj_data_cur.items() if d.group == "SAD" and d.drug == "Placebo"]
@@ -1162,6 +1248,13 @@ def main() -> None:
                 save_map(q, mask, mask_img, base + "_q.nii.gz")
                 if use_tfce and valid_mask is not None:
                     save_map(valid_mask.astype(float), mask, mask_img, base + "_validmask.nii.gz")
+                save_sig_csv(base + "_sig.csv", coords, obs, q, {
+                    "contrast": "cross_modulation_groupdiff",
+                    "Pair": pair_name,
+                    "GroupA": "SAD",
+                    "GroupB": "HC",
+                    "Half": half_label,
+                }, parcel_names, parcel_indices, parcel_atlas)
 
     if args.cross_half_stage:
         if post_merge_stage:
