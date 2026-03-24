@@ -394,16 +394,27 @@ def run_pairwise_decoding_analysis(X, y, subjects, n_repeats=10):
                 
                 best_model = gs.best_estimator_
                 
-                # Standard accuracy on the Outer Test Fold
-                y_pred = best_model.predict(X_pair[test_idx])
-                fold_acc = accuracy_score(y_pair[test_idx], y_pred)
-                repeat_scores.append(fold_acc)
+                # Forced-Choice logic on the Outer Test Fold
+                raw_val = best_model.decision_function(X_pair[test_idx])
+                scores_2d = np.column_stack((-raw_val, raw_val)) if raw_val.ndim == 1 else raw_val
+
+                val_df = pd.DataFrame(scores_2d, columns=best_model.classes_)
+                val_df['sub'] = sub_pair[test_idx]
+                val_df['y'] = y_pair[test_idx]
+                mean_val = val_df.groupby(['sub', 'y']).mean().reset_index()
+
+                fold_fc_acc = compute_pairwise_forced_choice(
+                    mean_val['y'].values,
+                    mean_val[best_model.classes_].values,
+                    best_model.classes_
+                )
+                repeat_scores.append(fold_fc_acc)
             
             all_repeat_scores.extend(repeat_scores)
             
         avg_cv_acc = np.mean(all_repeat_scores)
         std_cv_acc = np.std(all_repeat_scores) # Total variance across all repeats/folds
-        print(f"  > Final Mean Accuracy ({n_repeats} repeats): {avg_cv_acc:.4f} (+/- {std_cv_acc:.4f})")
+        print(f"  > Final Mean Forced-Choice Accuracy ({n_repeats} repeats): {avg_cv_acc:.4f} (+/- {std_cv_acc:.4f})")
 
         # ---------------------------------------------------------------------
         # PHASE 2: MODEL GENERATION (Refit on Full Data)
@@ -1666,6 +1677,8 @@ sns.heatmap(spatial_matrix, annot=annot_spatial, fmt="", cmap="RdBu_r", center=0
 ax4.set_title("Spatial Specificity")
 
 plt.tight_layout()
+_save_fig("analysis_11_neural_dissociation")
+_save_fig("results_11_neural_dissociation")
 plt.show()
 
 # Save Results
@@ -2421,6 +2434,8 @@ ax3.text(0.8, -0.15, f"SAD: {get_sig_star(p_b_sad_0)}", transform=ax3.get_xaxis_
 ax3.text(1.2, -0.15, f"HC: {get_sig_star(p_b_hc_0)}", transform=ax3.get_xaxis_transform(), ha='center', fontsize=14, color='#4c72b0')
 
 plt.tight_layout()
+_save_fig("analysis_12_topology")
+_save_fig("results_12_topology")
 plt.show()
 
 # Store Results
@@ -4519,7 +4534,11 @@ else:
         nib.save(img, os.path.join(out_dir, fname))
 
         title = f"RSM {group_key} {phase_key.upper()} - {stage}"
-        plotting.plot_stat_map(img, title=title, display_mode='ortho', threshold=np.nanpercentile(vals, 90))
+        display = plotting.plot_stat_map(img, title=title, display_mode='ortho', threshold=np.nanpercentile(vals, 90))
+        try:
+            display.savefig(os.path.join(out_dir, f"{fname.replace('.nii.gz','')}.png"))
+        except Exception as exc:
+            print(f"  ! Failed to save plot for {fname}: {exc}")
 
         # ROI summary
         for roi_name, idxs in roi_feature_idx.items():
@@ -4551,7 +4570,11 @@ else:
         fname = f"rsm_{contrast_name}_{phase_key}_{stage}.nii.gz"
         nib.save(img, os.path.join(out_dir, fname))
         title = f"RSM {contrast_name} {phase_key.upper()} - {stage}"
-        plotting.plot_stat_map(img, title=title, display_mode='ortho', threshold=np.nanpercentile(vals, 90))
+        display = plotting.plot_stat_map(img, title=title, display_mode='ortho', threshold=np.nanpercentile(vals, 90))
+        try:
+            display.savefig(os.path.join(out_dir, f"{fname.replace('.nii.gz','')}.png"))
+        except Exception as exc:
+            print(f"  ! Failed to save plot for {fname}: {exc}")
 
     # Save ROI summary CSV
     roi_df = pd.DataFrame(roi_rows)
