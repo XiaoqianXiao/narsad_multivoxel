@@ -16,7 +16,7 @@ MEM="120G"
 CPUS=32
 
 # Parallel settings (script will auto-tune if not set)
-N_JOBS=1
+N_JOBS=8
 N_JOBS_CV=1
 
 mkdir -p "$LOG_DIR"
