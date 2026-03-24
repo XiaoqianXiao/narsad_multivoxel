@@ -90,6 +90,8 @@ C_POINTS = 20
 _parser = argparse.ArgumentParser(add_help=False)
 _parser.add_argument("--project_root", default=os.environ.get("PROJECT_ROOT", "/gscratch/fang/NARSAD"))
 _parser.add_argument("--output_dir", default=os.environ.get("OUTPUT_DIR"))
+_parser.add_argument("--phase2_npz", default=os.environ.get("PHASE2_NPZ"))
+_parser.add_argument("--phase3_npz", default=os.environ.get("PHASE3_NPZ"))
 _parser.add_argument("--n_jobs", type=int, default=int(os.environ.get("N_JOBS", "1")))
 _parser.add_argument("--n_jobs_cv", type=int, default=int(os.environ.get("N_JOBS_CV", "1")))
 _args, _ = _parser.parse_known_args()
@@ -154,8 +156,24 @@ data_root = os.path.join(
     "firstLevel",
     "all_subjects"
 )
-phase2_npz_path = os.path.join(data_root, "phase2_X_ext_y_ext_voxels_schaefer_tian.npz")
-phase3_npz_path = os.path.join(data_root, "phase3_X_reinst_y_reinst_voxels_schaefer_tian.npz")
+phase2_npz_path = _args.phase2_npz or os.path.join(data_root, "phase2_X_ext_y_ext_voxels_schaefer_tian.npz")
+phase3_npz_path = _args.phase3_npz or os.path.join(data_root, "phase3_X_reinst_y_reinst_voxels_schaefer_tian.npz")
+
+def _resolve_npz(path: str, filename: str) -> str:
+    if os.path.exists(path):
+        return path
+    search_root = os.path.join(project_root, "MRI/derivatives/fMRI_analysis/LSS/firstLevel/all_subjects")
+    matches = glob.glob(os.path.join(search_root, "**", filename), recursive=True)
+    if len(matches) == 1:
+        return matches[0]
+    if len(matches) > 1:
+        raise FileNotFoundError(
+            f"Multiple matches for {filename}. Set --phase2_npz/--phase3_npz explicitly. Matches: {matches}"
+        )
+    raise FileNotFoundError(f"Could not find {filename} under {search_root}. Set --phase2_npz/--phase3_npz.")
+
+phase2_npz_path = _resolve_npz(phase2_npz_path, "phase2_X_ext_y_ext_voxels_schaefer_tian.npz")
+phase3_npz_path = _resolve_npz(phase3_npz_path, "phase3_X_reinst_y_reinst_voxels_schaefer_tian.npz")
 
 phase2_npz = np.load(phase2_npz_path, allow_pickle=True)
 phase3_npz = np.load(phase3_npz_path, allow_pickle=True)
