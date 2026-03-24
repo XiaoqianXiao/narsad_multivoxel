@@ -90,33 +90,23 @@ C_POINTS = 20
 _parser = argparse.ArgumentParser(add_help=False)
 _parser.add_argument("--project_root", default=os.environ.get("PROJECT_ROOT", "/gscratch/fang/NARSAD"))
 _parser.add_argument("--output_dir", default=os.environ.get("OUTPUT_DIR"))
-_parser.add_argument("--phase2_npz", default=os.environ.get("PHASE2_NPZ"))
-_parser.add_argument("--phase3_npz", default=os.environ.get("PHASE3_NPZ"))
 _parser.add_argument("--n_jobs", type=int, default=int(os.environ.get("N_JOBS", "1")))
 _parser.add_argument("--n_jobs_cv", type=int, default=int(os.environ.get("N_JOBS_CV", "1")))
 _args, _ = _parser.parse_known_args()
 PROJECT_ROOT = _args.project_root
 OUTPUT_DIR = _args.output_dir
-
-# Auto-tune parallelism for Hyak if not explicitly provided
-_env_n_jobs = os.environ.get("N_JOBS")
-_env_n_jobs_cv = os.environ.get("N_JOBS_CV")
-_slurm_cpus = os.environ.get("SLURM_CPUS_PER_TASK")
-try:
-    _cpu = int(_slurm_cpus) if _slurm_cpus else os.cpu_count() or 1
-except ValueError:
-    _cpu = os.cpu_count() or 1
-
-# Default policy: allow outer parallel, avoid nested oversubscription
-_auto_n_jobs = max(1, min(16, _cpu // 2))
-_auto_n_jobs_cv = 1 if _auto_n_jobs > 1 else max(1, min(4, _cpu))
-
 N_JOBS = _args.n_jobs
 N_JOBS_CV = _args.n_jobs_cv
-if _env_n_jobs is None and _args.n_jobs == 1:
-    N_JOBS = _auto_n_jobs
-if _env_n_jobs_cv is None and _args.n_jobs_cv == 1:
-    N_JOBS_CV = _auto_n_jobs_cv
+
+# If running single-threaded at the Python level, allow BLAS to use CPUs.
+if N_JOBS == 1 and N_JOBS_CV == 1:
+    _slurm_cpus = os.environ.get("SLURM_CPUS_PER_TASK")
+    try:
+        _cpu = int(_slurm_cpus) if _slurm_cpus else (os.cpu_count() or 1)
+    except ValueError:
+        _cpu = os.cpu_count() or 1
+    for _var in ("OMP_NUM_THREADS", "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS", "NUMEXPR_NUM_THREADS"):
+        os.environ.setdefault(_var, str(_cpu))
 
 # Output root for all analyses
 if OUTPUT_DIR:
@@ -156,24 +146,8 @@ data_root = os.path.join(
     "firstLevel",
     "all_subjects"
 )
-phase2_npz_path = _args.phase2_npz or os.path.join(data_root, "phase2_X_ext_y_ext_voxels_schaefer_tian.npz")
-phase3_npz_path = _args.phase3_npz or os.path.join(data_root, "phase3_X_reinst_y_reinst_voxels_schaefer_tian.npz")
-
-def _resolve_npz(path: str, filename: str) -> str:
-    if os.path.exists(path):
-        return path
-    search_root = os.path.join(project_root, "MRI/derivatives/fMRI_analysis/LSS/firstLevel/all_subjects")
-    matches = glob.glob(os.path.join(search_root, "**", filename), recursive=True)
-    if len(matches) == 1:
-        return matches[0]
-    if len(matches) > 1:
-        raise FileNotFoundError(
-            f"Multiple matches for {filename}. Set --phase2_npz/--phase3_npz explicitly. Matches: {matches}"
-        )
-    raise FileNotFoundError(f"Could not find {filename} under {search_root}. Set --phase2_npz/--phase3_npz.")
-
-phase2_npz_path = _resolve_npz(phase2_npz_path, "phase2_X_ext_y_ext_voxels_schaefer_tian.npz")
-phase3_npz_path = _resolve_npz(phase3_npz_path, "phase3_X_reinst_y_reinst_voxels_schaefer_tian.npz")
+phase2_npz_path = os.path.join(data_root, "phase2_X_ext_y_ext_voxels_schaefer_tian.npz")
+phase3_npz_path = os.path.join(data_root, "phase3_X_reinst_y_reinst_voxels_schaefer_tian.npz")
 
 phase2_npz = np.load(phase2_npz_path, allow_pickle=True)
 phase3_npz = np.load(phase3_npz_path, allow_pickle=True)
