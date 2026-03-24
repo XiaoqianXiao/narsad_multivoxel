@@ -694,6 +694,12 @@ def forced_choice_scorer(estimator, X, y) -> float:
     return compute_forced_choice_accuracy(y, scores, estimator.classes_)
 
 #------------------------------
+def compute_pairwise_forced_choice(y_true, scores, class_labels):
+    """Forced-choice accuracy given decision-score columns per class."""
+    scores_arr = np.asarray(scores)
+    return compute_forced_choice_accuracy(y_true, scores_arr, class_labels)
+
+#------------------------------
 def compute_perm_importance_simple(model, X, y, n_repeats=10):
     """
     Calculates permutation importance for a model.
