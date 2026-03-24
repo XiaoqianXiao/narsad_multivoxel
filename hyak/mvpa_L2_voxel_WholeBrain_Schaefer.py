@@ -55,7 +55,7 @@ import statsmodels.formula.api as smf
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from typing import Dict, List, Union
+from typing import Dict, List, Union, Sequence
 import plotly.graph_objects as go
 # Nice plotting defaults
 sns.set_context("poster")
