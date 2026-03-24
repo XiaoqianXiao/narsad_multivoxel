@@ -318,7 +318,9 @@ def run_perm_simple(X, y, groups, n_iters):
     pipe = build_binary_pipeline()
     cv = get_cv(y, groups, n_splits=N_SPLITS, shuffle=False)
     
-    for _ in range(n_iters):
+    for i in range(n_iters):
+        if i == 0 or (i + 1) % 100 == 0:
+            print(f"    perm {i + 1}/{n_iters}")
         # 1. Shuffle labels randomly (breaking the relationship between X and y)
         np.random.shuffle(y_shuffled)
         
@@ -796,7 +798,9 @@ def perm_ttest_ind(data1, data2, n_perm=N_PERMUTATION):
     
     rng = np.random.default_rng(42) # Fixed seed
     
-    for _ in range(n_perm):
+    for i in range(n_perm):
+        if i == 0 or (i + 1) % 500 == 0:
+            print(f"    perm {i + 1}/{n_perm}")
         shuffled = rng.permutation(pooled)
         # Split into two groups of same size as originals
         g1 = shuffled[:n1]
@@ -4415,15 +4419,17 @@ else:
         return y_perm
 
 
-    def permutation_null_maps(X, y, sub, stage, n_perm=200):
-        rng = np.random.default_rng(42)
-        null_maps = []
-        for _ in tqdm(range(n_perm), desc=f"Permuting ({stage})", leave=False):
-            y_perm = permute_labels_within_subject(y, sub, rng)
-            mats = build_stage_vectors(X, y_perm, sub, stage)
-            m = compute_searchlight_map(mats)
-            if m is not None:
-                null_maps.append(m)
+def permutation_null_maps(X, y, sub, stage, n_perm=200):
+    rng = np.random.default_rng(42)
+    null_maps = []
+    for i in tqdm(range(n_perm), desc=f"Permuting ({stage})", leave=False):
+        if i == 0 or (i + 1) % 50 == 0:
+            print(f"    {stage} perm {i + 1}/{n_perm}")
+        y_perm = permute_labels_within_subject(y, sub, rng)
+        mats = build_stage_vectors(X, y_perm, sub, stage)
+        m = compute_searchlight_map(mats)
+        if m is not None:
+            null_maps.append(m)
         if not null_maps:
             return None
         return np.array(null_maps)
