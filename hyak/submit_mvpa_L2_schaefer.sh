@@ -19,6 +19,7 @@ N_JOBS=16
 N_JOBS_CV=1
 
 mkdir -p "$LOG_DIR"
+mkdir -p "$OUT_BASE"
 module load apptainer 2>/dev/null || true
 
 sbatch \
