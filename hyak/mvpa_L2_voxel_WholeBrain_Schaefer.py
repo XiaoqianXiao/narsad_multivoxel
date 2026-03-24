@@ -144,7 +144,7 @@ data_root = os.path.join(
     project_root,
     "MRI/derivatives/fMRI_analysis/LSS",
     "firstLevel",
-    "all_subjects"
+    "all_subjects/group_level"
 )
 phase2_npz_path = os.path.join(data_root, "phase2_X_ext_y_ext_voxels_schaefer_tian.npz")
 phase3_npz_path = os.path.join(data_root, "phase3_X_reinst_y_reinst_voxels_schaefer_tian.npz")
