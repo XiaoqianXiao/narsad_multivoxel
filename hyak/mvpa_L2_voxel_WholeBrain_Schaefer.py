@@ -689,6 +689,22 @@ def compute_forced_choice_accuracy(
     y_pred = forced_choice_predict(scores, classes)
     return float(np.mean(y_true == y_pred))
 
+def compute_subject_forced_choice_accs(
+    y_true: np.ndarray,
+    scores: np.ndarray,
+    subjects: np.ndarray,
+    classes: Sequence[str],
+) -> np.ndarray:
+    """Compute per-subject forced-choice accuracies from decision scores."""
+    y_pred = forced_choice_predict(scores, classes)
+    accs = []
+    for sub in np.unique(subjects):
+        mask = subjects == sub
+        if np.sum(mask) == 0:
+            continue
+        accs.append(float(np.mean(y_true[mask] == y_pred[mask])))
+    return np.array(accs)
+
 
 def forced_choice_scorer(estimator, X, y) -> float:
     """Scorer wrapper for GridSearchCV/cross_val_score."""
