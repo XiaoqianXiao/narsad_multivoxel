@@ -147,3 +147,52 @@ ${OUT_BASE}/<mode>/crosshalf_permutation
 - **Post-merge TFCE** is the only stage that produces significance maps and summary CSVs.
 - Use `CHUNKS=384` for chunked subject maps under 4h walltime.
 - Atlas mask is now **Schaefer‑400 (17-network, 2mm MNI) + Tian subcortex**.
+
+## MVPA L2 Whole-Brain (Schaefer+Tian) Stage/Resume Workflow
+
+This pipeline supports per-cell stages (Cells 6–17) with checkpointing. Cells 1–5 always run.
+
+### Checkpoints
+Saved to:
+`/gscratch/scrubbed/fanglab/xiaoqian/NARSAD/LSS/results/wholebrain_parcellation_schaefer/checkpoints`
+
+Each stage writes `cell_XX.joblib` and later stages can load them using `--resume`.
+
+### Run a Single Stage
+```bash
+bash hyak/submit_mvpa_L2_schaefer_stage.sh 10 --resume
+```
+
+### Run All Stages (6–17)
+```bash
+bash hyak/submit_mvpa_L2_schaefer_driver.sh
+```
+
+### Notes
+- Stage 10 covers **Analysis 1.3** (Top 5% Features) **and** the **Single-Trial Trajectories** block.
+- All outputs are written to:
+  `/gscratch/scrubbed/fanglab/xiaoqian/NARSAD/LSS/results/wholebrain_parcellation_schaefer`
+
+### Stage Dependencies (Cells 6–17)
+Cells 1–5 always run. Stages 6–17 are analysis stages with checkpoints/intermediates.
+
+```
+Stage 6
+├─ Stage 7
+└─ Stage 8
+   ├─ Stage 9
+   ├─ Stage 10
+   ├─ Stage 11
+   ├─ Stage 12
+   ├─ Stage 13
+   ├─ Stage 14
+   ├─ Stage 15
+   ├─ Stage 16
+   └─ Stage 17
+```
+
+Interpretation:
+- **Stage 6** is the root analysis step.
+- **Stage 7** depends on Stage 6.
+- **Stage 8** depends on Stage 6.
+- **Stages 9–17** depend on Stage 8 (they need `importance_scores`/`importance_masks`).
