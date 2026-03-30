@@ -12,7 +12,7 @@ LOG_DIR="/gscratch/fang/NARSAD/logs/mvpa_l2_schaefer"
 PARTITION="cpu-g2"
 ACCOUNT="fang"
 TIME="96:00:00"
-MEM="120G"
+MEM="100G"
 CPUS=16
 
 # Parallel settings
