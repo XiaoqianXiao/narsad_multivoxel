@@ -93,6 +93,9 @@ _parser.add_argument("--project_root", default=os.environ.get("PROJECT_ROOT", "/
 _parser.add_argument("--output_dir", default=os.environ.get("OUTPUT_DIR"))
 _parser.add_argument("--stage", type=int, default=None, help="Run a single analysis cell (6-17).")
 _parser.add_argument("--resume", action="store_true", help="Load checkpoints for prior cells when running a single stage.")
+_parser.add_argument("--stage8_group", default=os.environ.get("STAGE8_GROUP", "ALL"),
+                    choices=["SAD", "HC", "ALL"],
+                    help="For stage 8, compute importance for SAD, HC, or ALL.")
 _parser.add_argument("--n_jobs", type=int, default=int(os.environ.get("N_JOBS", "1")))
 _parser.add_argument("--n_jobs_cv", type=int, default=int(os.environ.get("N_JOBS_CV", "1")))
 _args, _ = _parser.parse_known_args()
@@ -2255,57 +2258,71 @@ if STAGE is None or STAGE == 8:
     n_repeats = 100 # Number of permutation iterations for importance
     importance_masks = {}
     importance_scores = {}
-    
+    stage8_group = _args.stage8_group.upper()
+
+    # If resuming, merge any existing stage 8 intermediates (SAD/HC)
+    if RESUME:
+        try:
+            prev = load_intermediate("stage08_importance")
+            if isinstance(prev, dict):
+                importance_masks.update(prev.get("importance_masks", {}))
+                importance_scores.update(prev.get("importance_scores", {}))
+                print(f"  > Loaded existing stage08_importance for merge: {list(importance_scores.keys())}")
+        except FileNotFoundError:
+            pass
+
     # =============================================================================
     # 1. Compute Importance for SAD
     # =============================================================================
-    print("1. Computing Importance for SAD Placebo...")
-    
-    # Slice Data (CSR vs CSS only)
-    mask_sad = np.isin(y_sad, target_pair)
-    X_sad_p = X_sad[mask_sad]
-    y_sad_p = y_sad[mask_sad]
-    sub_sad_p = sub_sad[mask_sad]
-    
-    # Compute Importance (CV-based)
-    imp_sad_mean = compute_perm_importance_cv(
-        res_sad['model'], X_sad_p, y_sad_p, sub_sad_p,
-        n_repeats=n_repeats, n_splits=SUBJECT_CV_SPLITS
-    )
-    
-    # Define Mask: Top 5% most important voxels
-    PERCENTILE_THRESH = 95
-    thr_sad = np.percentile(imp_sad_mean, PERCENTILE_THRESH)
-    mask_sad_sig = imp_sad_mean >= thr_sad
-    importance_masks['SAD'] = mask_sad_sig
-    importance_scores['SAD'] = imp_sad_mean
-    
-    print(f"   > SAD: Found {np.sum(mask_sad_sig)} predictive voxels (Top 5%, thr={thr_sad:.6f}).")
-    
+    if stage8_group in ("SAD", "ALL"):
+        print("1. Computing Importance for SAD Placebo...")
+
+        # Slice Data (CSR vs CSS only)
+        mask_sad = np.isin(y_sad, target_pair)
+        X_sad_p = X_sad[mask_sad]
+        y_sad_p = y_sad[mask_sad]
+        sub_sad_p = sub_sad[mask_sad]
+
+        # Compute Importance (CV-based)
+        imp_sad_mean = compute_perm_importance_cv(
+            res_sad['model'], X_sad_p, y_sad_p, sub_sad_p,
+            n_repeats=n_repeats, n_splits=SUBJECT_CV_SPLITS
+        )
+
+        # Define Mask: Top 5% most important voxels
+        PERCENTILE_THRESH = 95
+        thr_sad = np.percentile(imp_sad_mean, PERCENTILE_THRESH)
+        mask_sad_sig = imp_sad_mean >= thr_sad
+        importance_masks['SAD'] = mask_sad_sig
+        importance_scores['SAD'] = imp_sad_mean
+
+        print(f"   > SAD: Found {np.sum(mask_sad_sig)} predictive voxels (Top 5%, thr={thr_sad:.6f}).")
+
     # =============================================================================
     # 2. Compute Importance for HC
     # =============================================================================
-    print("2. Computing Importance for HC Placebo...")
-    
-    # Slice Data
-    mask_hc = np.isin(y_hc, target_pair)
-    X_hc_p = X_hc[mask_hc]
-    y_hc_p = y_hc[mask_hc]
-    sub_hc_p = sub_hc[mask_hc]
-    
-    # Compute Importance (CV-based)
-    imp_hc_mean = compute_perm_importance_cv(
-        res_hc['model'], X_hc_p, y_hc_p, sub_hc_p,
-        n_repeats=n_repeats, n_splits=SUBJECT_CV_SPLITS
-    )
-    
-    # Define Mask: Top 5% most important voxels
-    thr_hc = np.percentile(imp_hc_mean, PERCENTILE_THRESH)
-    mask_hc_sig = imp_hc_mean >= thr_hc
-    importance_masks['HC'] = mask_hc_sig
-    importance_scores['HC'] = imp_hc_mean
-    
-    print(f"   > HC:  Found {np.sum(mask_hc_sig)} predictive voxels (Top 5%, thr={thr_hc:.6f}).")
+    if stage8_group in ("HC", "ALL"):
+        print("2. Computing Importance for HC Placebo...")
+
+        # Slice Data
+        mask_hc = np.isin(y_hc, target_pair)
+        X_hc_p = X_hc[mask_hc]
+        y_hc_p = y_hc[mask_hc]
+        sub_hc_p = sub_hc[mask_hc]
+
+        # Compute Importance (CV-based)
+        imp_hc_mean = compute_perm_importance_cv(
+            res_hc['model'], X_hc_p, y_hc_p, sub_hc_p,
+            n_repeats=n_repeats, n_splits=SUBJECT_CV_SPLITS
+        )
+
+        # Define Mask: Top 5% most important voxels
+        thr_hc = np.percentile(imp_hc_mean, PERCENTILE_THRESH)
+        mask_hc_sig = imp_hc_mean >= thr_hc
+        importance_masks['HC'] = mask_hc_sig
+        importance_scores['HC'] = imp_hc_mean
+
+        print(f"   > HC:  Found {np.sum(mask_hc_sig)} predictive voxels (Top 5%, thr={thr_hc:.6f}).")
     
     # =============================================================================
     # 3. Visualization (River Plot)
@@ -2313,22 +2330,24 @@ if STAGE is None or STAGE == 8:
     print("3. Generating River Plot...")
     
     # Prepare dictionary for plotting function
-    plot_data = {
-        'SAD Placebo': imp_sad_mean,
-        'HC Placebo': imp_hc_mean
-    }
-    
+    plot_data = {}
+    if 'SAD' in importance_scores:
+        plot_data['SAD Placebo'] = importance_scores['SAD']
+    if 'HC' in importance_scores:
+        plot_data['HC Placebo'] = importance_scores['HC']
+
     # Use the helper function from Cell 4
     # Assumes make_river_plot_importance handles the figure creation
     try:
-        make_river_plot_importance(
-            plot_data,
-            parcel_names_ext,
-            top_k=20,  # Show top 20 most important features per group
-            title="Neural Signatures (Permutation Importance)"
-        )
-        _save_fig("analysis_8_importance_river")
-        _save_fig("results_8_importance_river")
+        if plot_data:
+            make_river_plot_importance(
+                plot_data,
+                parcel_names_ext,
+                top_k=20,  # Show top 20 most important features per group
+                title="Neural Signatures (Permutation Importance)"
+            )
+            _save_fig("analysis_8_importance_river")
+            _save_fig("results_8_importance_river")
     except Exception as e:
         print(f"  ! Visualization skipped due to error: {e}")
     
@@ -2339,16 +2358,16 @@ if STAGE is None or STAGE == 8:
         "importance_masks": importance_masks,
         "importance_scores": importance_scores,
         "PERCENTILE_THRESH": PERCENTILE_THRESH,
-        "thr_sad": thr_sad,
-        "thr_hc": thr_hc,
+        "thr_sad": locals().get("thr_sad"),
+        "thr_hc": locals().get("thr_hc"),
         "parcel_names_ext": parcel_names_ext,
     })
     save_intermediate("stage08_importance", {
         "importance_masks": importance_masks,
         "importance_scores": importance_scores,
         "PERCENTILE_THRESH": PERCENTILE_THRESH,
-        "thr_sad": thr_sad,
-        "thr_hc": thr_hc,
+        "thr_sad": locals().get("thr_sad"),
+        "thr_hc": locals().get("thr_hc"),
         "parcel_names_ext": parcel_names_ext,
     })
     

@@ -13,10 +13,10 @@ PARTITION="cpu-g2"
 ACCOUNT="fang"
 TIME="96:00:00"
 MEM="120G"
-CPUS=32
+CPUS=16
 
 # Parallel settings
-N_JOBS=32
+N_JOBS=16
 N_JOBS_CV=1
 
 if [[ $# -lt 1 ]]; then
