@@ -159,6 +159,42 @@ def load_intermediate(name: str):
     print(f"[Intermediate] Loaded {name} <- {path}")
     return obj
 
+def ensure_importance_loaded():
+    """Ensure importance_scores/masks are available, preferring intermediates."""
+    global importance_scores, importance_masks
+    if "importance_scores" in globals() and importance_scores:
+        return importance_scores, importance_masks
+
+    merged_scores = {}
+    merged_masks = {}
+
+    # Try combined Stage 08 intermediate first
+    try:
+        prev = load_intermediate("stage08_importance")
+        merged_scores.update(prev.get("importance_scores", {}))
+        merged_masks.update(prev.get("importance_masks", {}))
+    except FileNotFoundError:
+        pass
+
+    # Then try per-group intermediates
+    for grp in ("SAD", "HC"):
+        try:
+            prev = load_intermediate(f"stage08_importance_{grp}")
+            merged_scores.update(prev.get("importance_scores", {}))
+            merged_masks.update(prev.get("importance_masks", {}))
+        except FileNotFoundError:
+            continue
+
+    if not merged_scores:
+        raise FileNotFoundError(
+            "Missing importance intermediates. Expected stage08_importance.joblib "
+            "or stage08_importance_{SAD,HC}.joblib in /intermediate."
+        )
+
+    importance_scores = merged_scores
+    importance_masks = merged_masks
+    return importance_scores, importance_masks
+
 def load_checkpoint(cell_id: int) -> dict:
     """Load checkpoint data for a given analysis cell."""
     path = _ckpt_path(cell_id)
@@ -2357,6 +2393,9 @@ if STAGE is None or STAGE == 8:
     print("Cell 8: Importance masks generated and stored in 'importance_masks'.")
     _save_result("results_8_importance_masks", importance_masks)
     _save_result("results_8_importance_scores", importance_scores)
+    for grp in importance_scores.keys():
+        _save_result(f"results_8_importance_masks_{grp}", {grp: importance_masks.get(grp)})
+        _save_result(f"results_8_importance_scores_{grp}", {grp: importance_scores.get(grp)})
     save_checkpoint(8, {
         "importance_masks": importance_masks,
         "importance_scores": importance_scores,
@@ -2373,6 +2412,15 @@ if STAGE is None or STAGE == 8:
         "thr_hc": locals().get("thr_hc"),
         "parcel_names_ext": parcel_names_ext,
     })
+    for grp in importance_scores.keys():
+        save_intermediate(f"stage08_importance_{grp}", {
+            "importance_masks": {grp: importance_masks.get(grp)},
+            "importance_scores": {grp: importance_scores.get(grp)},
+            "PERCENTILE_THRESH": PERCENTILE_THRESH,
+            "thr_sad": locals().get("thr_sad"),
+            "thr_hc": locals().get("thr_hc"),
+            "parcel_names_ext": parcel_names_ext,
+        })
     
 # %% [cell 11]
 if STAGE is None or STAGE == 9:
@@ -2397,7 +2445,7 @@ if STAGE is None or STAGE == 9:
     print(f"\n[Step 0] Selecting Top {100-PERCENTILE_THRESH}% Neural Features...")
     
     if 'importance_scores' not in locals() or not importance_scores:
-        raise ValueError("Importance scores not found! Please run Cell 8 first.")
+        importance_scores, importance_masks = ensure_importance_loaded()
     
     def get_top_percentile_mask(scores, percentile):
         thresh = np.percentile(scores, percentile)
@@ -2677,8 +2725,8 @@ if STAGE is None or STAGE == 10:
     # =============================================================================
     print(f"\n[Step 0] Setup & Data Loading...")
     
-    if 'importance_scores' not in locals(): 
-        raise ValueError("Run Cell 8 first.")
+    if 'importance_scores' not in locals():
+        importance_scores, importance_masks = ensure_importance_loaded()
     
     # 1. Select Top 5% Features
     def get_top_percentile_mask(scores, percentile):
@@ -3190,8 +3238,8 @@ if STAGE is None or STAGE == 11:
     # 0. Setup Feature Masks (Native) & Best Params
     # Rationale: entropy/kurtosis should reflect the full positive-importance decision space.
     # =============================================================================
-    if 'importance_scores' not in locals(): 
-        raise ValueError("Run Cell 8 first to generate 'importance_scores'.")
+    if 'importance_scores' not in locals():
+        importance_scores, importance_masks = ensure_importance_loaded()
     
     def get_significant_mask(scores): 
         return scores > 0
@@ -3623,7 +3671,7 @@ if STAGE is None or STAGE == 13:
     print(f"\n[Step 0] Setup & Data Loading...")
     
     if 'importance_scores' not in locals():
-        raise ValueError("Importance scores not found! Please run Stage 8 first.")
+        importance_scores, importance_masks = ensure_importance_loaded()
     if "SAD" not in importance_scores or "HC" not in importance_scores:
         missing = [g for g in ("SAD", "HC") if g not in importance_scores]
         raise ValueError(
@@ -3826,8 +3874,8 @@ if STAGE is None or STAGE == 14:
     # =============================================================================
     # 0. Setup: Masks & Data
     # =============================================================================
-    if 'importance_scores' not in locals(): 
-        raise ValueError("Importance scores missing. Run Cell 8.")
+    if 'importance_scores' not in locals():
+        importance_scores, importance_masks = ensure_importance_loaded()
     
     # Define Native Networks
     def get_significant_mask(scores): return scores > 0
