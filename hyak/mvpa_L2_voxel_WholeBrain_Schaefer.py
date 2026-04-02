@@ -1608,8 +1608,11 @@ if RESUME and STAGE is not None:
             except FileNotFoundError:
                 continue
         if not loaded:
-            _ckpt = load_checkpoint(_cid)
-            globals().update(_ckpt)
+            try:
+                _ckpt = load_checkpoint(_cid)
+                globals().update(_ckpt)
+            except FileNotFoundError:
+                print(f"[Resume] Skipping missing checkpoint for cell {_cid}.")
 
 # %% [cell 7]
 if STAGE is None or STAGE == 6:
