@@ -3619,8 +3619,14 @@ if STAGE is None or STAGE == 13:
     # =============================================================================
     print(f"\n[Step 0] Setup & Data Loading...")
     
-    if 'importance_scores' not in locals(): 
-        raise ValueError("Importance scores not found! Please run Cell 8 first.")
+    if 'importance_scores' not in locals():
+        raise ValueError("Importance scores not found! Please run Stage 8 first.")
+    if "SAD" not in importance_scores or "HC" not in importance_scores:
+        missing = [g for g in ("SAD", "HC") if g not in importance_scores]
+        raise ValueError(
+            f"Stage 9 requires importance_scores for both SAD and HC. Missing: {missing}. "
+            "Run Stage 8 with --stage8_group SAD and --stage8_group HC (or ALL), then resume."
+        )
     
     def get_top_percentile_mask(scores, percentile):
         thresh = np.percentile(scores, percentile)
