@@ -2295,6 +2295,7 @@ if STAGE is None or STAGE == 8:
     # Settings
     target_pair = ['CSR', 'CSS']
     n_repeats = 100 # Number of permutation iterations for importance
+    PERCENTILE_THRESH = 95  # Top 5% most important voxels
     importance_masks = {}
     importance_scores = {}
     stage8_group = _args.stage8_group.upper()
@@ -2329,7 +2330,6 @@ if STAGE is None or STAGE == 8:
         )
 
         # Define Mask: Top 5% most important voxels
-        PERCENTILE_THRESH = 95
         thr_sad = np.percentile(imp_sad_mean, PERCENTILE_THRESH)
         mask_sad_sig = imp_sad_mean >= thr_sad
         importance_masks['SAD'] = mask_sad_sig
