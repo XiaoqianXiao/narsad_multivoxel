@@ -96,6 +96,12 @@ _parser.add_argument("--resume", action="store_true", help="Load checkpoints for
 _parser.add_argument("--stage8_group", default=os.environ.get("STAGE8_GROUP", "ALL"),
                     choices=["SAD", "HC", "ALL"],
                     help="For stage 8, compute importance for SAD, HC, or ALL.")
+_parser.add_argument("--importance_source", default=os.environ.get("IMPORTANCE_SOURCE", "auto"),
+                    choices=["auto", "combined", "group"],
+                    help="How to load stage08 importance for downstream stages: "
+                         "'combined' uses only stage08_importance.joblib; "
+                         "'group' requires stage08_importance_SAD/HC; "
+                         "'auto' tries combined then per-group.")
 _parser.add_argument("--n_jobs", type=int, default=int(os.environ.get("N_JOBS", "1")))
 _parser.add_argument("--n_jobs_cv", type=int, default=int(os.environ.get("N_JOBS_CV", "1")))
 _args, _ = _parser.parse_known_args()
@@ -103,6 +109,7 @@ PROJECT_ROOT = _args.project_root
 OUTPUT_DIR = _args.output_dir
 N_JOBS = _args.n_jobs
 N_JOBS_CV = _args.n_jobs_cv
+IMPORTANCE_SOURCE = _args.importance_source.lower()
 
 # If running single-threaded at the Python level, allow BLAS to use CPUs.
 if N_JOBS == 1 and N_JOBS_CV == 1:
@@ -160,7 +167,7 @@ def load_intermediate(name: str):
     return obj
 
 def ensure_importance_loaded():
-    """Ensure importance_scores/masks are available, preferring intermediates."""
+    """Ensure importance_scores/masks are available using user-selected source."""
     global importance_scores, importance_masks
     if "importance_scores" in globals() and importance_scores:
         return importance_scores, importance_masks
@@ -168,24 +175,41 @@ def ensure_importance_loaded():
     merged_scores = {}
     merged_masks = {}
 
-    # Try combined Stage 08 intermediate first
-    try:
+    def load_combined():
         prev = load_intermediate("stage08_importance")
         merged_scores.update(prev.get("importance_scores", {}))
         merged_masks.update(prev.get("importance_masks", {}))
-    except FileNotFoundError:
-        pass
 
-    # Then try per-group intermediates
-    for grp in ("SAD", "HC"):
-        try:
+    def load_groups():
+        for grp in ("SAD", "HC"):
             prev = load_intermediate(f"stage08_importance_{grp}")
             merged_scores.update(prev.get("importance_scores", {}))
             merged_masks.update(prev.get("importance_masks", {}))
+
+    try_order = []
+    if IMPORTANCE_SOURCE == "combined":
+        try_order = [load_combined]
+    elif IMPORTANCE_SOURCE == "group":
+        try_order = [load_groups]
+    else:  # auto
+        try_order = [load_combined, load_groups]
+
+    for fn in try_order:
+        try:
+            fn()
         except FileNotFoundError:
             continue
 
     if not merged_scores:
+        if IMPORTANCE_SOURCE == "group":
+            raise FileNotFoundError(
+                "Missing per-group importance intermediates. Expected "
+                "stage08_importance_SAD.joblib and stage08_importance_HC.joblib."
+            )
+        if IMPORTANCE_SOURCE == "combined":
+            raise FileNotFoundError(
+                "Missing combined importance intermediate stage08_importance.joblib."
+            )
         raise FileNotFoundError(
             "Missing importance intermediates. Expected stage08_importance.joblib "
             "or stage08_importance_{SAD,HC}.joblib in /intermediate."

@@ -172,6 +172,18 @@ bash hyak/submit_mvpa_L2_schaefer_driver.sh
 - Stage 10 covers **Analysis 1.3** (Top 5% Features) **and** the **Single-Trial Trajectories** block.
 - All outputs are written to:
   `/gscratch/scrubbed/fanglab/xiaoqian/NARSAD/LSS/results/wholebrain_parcellation_schaefer`
+- Stage 8 can be run per group. Stages 9–17 can load importance in three ways:
+  - `--importance_source combined` (requires `stage08_importance.joblib`)
+  - `--importance_source group` (requires `stage08_importance_SAD.joblib` and `_HC.joblib`)
+  - `--importance_source auto` (default: tries combined, then per-group)
+
+**Examples**
+- Stage 8, SAD only (resume allowed):  
+  `bash hyak/submit_mvpa_L2_schaefer_stage.sh 8 --resume --stage8_group SAD`
+- Stage 8, HC only:  
+  `bash hyak/submit_mvpa_L2_schaefer_stage.sh 8 --resume --stage8_group HC`
+- Stage 9 with per-group importance only:  
+  `bash hyak/submit_mvpa_L2_schaefer_stage.sh 9 --importance_source group --resume`
 
 ### Stage Dependencies (Cells 6–17)
 Cells 1–5 always run. Stages 6–17 are analysis stages with checkpoints/intermediates.
