@@ -3512,10 +3512,18 @@ if STAGE is None or STAGE == 12:
     COND_THREAT     = "CSR"
     
     # =============================================================================
-    # 0. Validate Masks from Cell 9
+    # 0. Validate / Recompute Masks from Cell 9
     # =============================================================================
     if 'mask_sad_top5' not in locals() or 'mask_hc_top5' not in locals():
-        raise ValueError("Top 5% Masks not found! Please run Cell 9 first.")
+        # Recompute from importance scores so this stage can run standalone
+        importance_scores, importance_masks = ensure_importance_loaded()
+        PERCENTILE_THRESH = TOP_PCT
+        def get_top_percentile_mask(scores, percentile):
+            thresh = np.percentile(scores, percentile)
+            mask = (scores >= thresh) & (scores > 0)
+            return mask, thresh
+        mask_sad_top5, _ = get_top_percentile_mask(importance_scores['SAD'], PERCENTILE_THRESH)
+        mask_hc_top5, _ = get_top_percentile_mask(importance_scores['HC'], PERCENTILE_THRESH)
     
     # =============================================================================
     # 1. Calculate Distances (Both Metrics)
@@ -4779,6 +4787,11 @@ if STAGE is None or STAGE == 17:
     results_pvals = {}
     results_fdr = {}
     
+    GROUPS_TO_RUN = [
+        "ALL",
+        "SAD_Placebo", "SAD_Oxytocin", "HC_Placebo", "HC_Oxytocin"
+    ]
+
     for group_key in GROUPS_TO_RUN:
         for phase_key, phase_name in [("ext", "Extinction"), ("rst", "Reinstatement")]:
             X_p, y_p, sub_p = collect_phase_data(phase_key, group_key=group_key)
