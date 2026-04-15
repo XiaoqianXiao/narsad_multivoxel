@@ -4070,7 +4070,7 @@ if STAGE is None or STAGE == 14:
         sns.pointplot(data=df_metrics, x='Drug', y=metric, hue='Group', 
                       palette=pal_group, order=['Placebo', 'Oxytocin'], hue_order=['SAD', 'HC'],
                       dodge=0.2, markers=['o', 's'], linestyles=['-', '--'], 
-                      capsize=0.1, errorbar='se', scale=1.1, ax=ax)
+                      capsize=0.1, errorbar='se', ax=ax)
         
         ax.set_title(f"{metric}")
         ax.set_ylabel(metric)
@@ -4745,15 +4745,36 @@ if STAGE is None or STAGE == 17:
         # 6. Permutation testing + FDR
         # =============================================================================
         print("[Step 6] Permutation testing setup...")
-    
-        def permute_labels_within_subject(y, sub, rng):
-            y_perm = y.copy()
-            for s in np.unique(sub):
-                idx = np.where(sub == s)[0]
-                y_perm[idx] = rng.permutation(y_perm[idx])
-            return y_perm
-    
-    
+
+    def permute_labels_within_subject(y, sub, rng):
+        y_perm = y.copy()
+        for s in np.unique(sub):
+            idx = np.where(sub == s)[0]
+            y_perm[idx] = rng.permutation(y_perm[idx])
+        return y_perm
+
+    def build_stage_vectors(X, y, sub, stage):
+        # Returns list of per-subject condition matrices (3 x n_features)
+        subjects = np.unique(sub)
+        subj_mats = []
+
+        for s in subjects:
+            rows = []
+            for cond in COND_LIST:
+                idx = np.where((sub == s) & (y == cond))[0]
+                if len(idx) < 2:
+                    rows = []
+                    break
+                split = len(idx) // 2
+                use_idx = idx[:split] if stage == "early" else idx[split:]
+                if len(use_idx) == 0:
+                    rows = []
+                    break
+                rows.append(np.mean(X[use_idx], axis=0))
+            if rows:
+                subj_mats.append(np.vstack(rows))  # 3 x n_features
+        return subj_mats
+
     def permutation_null_maps(X, y, sub, stage, n_perm=200):
         rng = np.random.default_rng(42)
         null_maps = []
@@ -4765,28 +4786,27 @@ if STAGE is None or STAGE == 17:
             m = compute_searchlight_map(mats)
             if m is not None:
                 null_maps.append(m)
-            if not null_maps:
-                return None
-            return np.array(null_maps)
-    
-    
-        def pvals_and_fdr(null_maps, obs_map):
-            pvals = np.mean(null_maps >= obs_map, axis=0)
-            pvals_flat = pvals[~np.isnan(pvals)]
-            rej, p_fdr, _, _ = multipletests(pvals_flat, alpha=ALPHA_FDR, method='fdr_bh')
-            p_fdr_full = np.full_like(pvals, np.nan, dtype=float)
-            p_fdr_full[~np.isnan(pvals)] = p_fdr
-            return pvals, p_fdr_full
-    
-        # =============================================================================
-        # 7. Compute early/late maps and deltas (by group)
-        # =============================================================================
-        print("[Step 7] Computing maps for Extinction and Reinstatement (by group)...")
-    
+        if not null_maps:
+            return None
+        return np.array(null_maps)
+
+    def pvals_and_fdr(null_maps, obs_map):
+        pvals = np.mean(null_maps >= obs_map, axis=0)
+        pvals_flat = pvals[~np.isnan(pvals)]
+        rej, p_fdr, _, _ = multipletests(pvals_flat, alpha=ALPHA_FDR, method='fdr_bh')
+        p_fdr_full = np.full_like(pvals, np.nan, dtype=float)
+        p_fdr_full[~np.isnan(pvals)] = p_fdr
+        return pvals, p_fdr_full
+
+    # =============================================================================
+    # 7. Compute early/late maps and deltas (by group)
+    # =============================================================================
+    print("[Step 7] Computing maps for Extinction and Reinstatement (by group)...")
+
     results_maps = {}
     results_pvals = {}
     results_fdr = {}
-    
+
     GROUPS_TO_RUN = [
         "ALL",
         "SAD_Placebo", "SAD_Oxytocin", "HC_Placebo", "HC_Oxytocin"
