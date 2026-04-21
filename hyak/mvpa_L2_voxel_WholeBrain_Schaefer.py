@@ -1,78 +1,65 @@
 # %% [cell 1]
-# Cell 1: Imports & basic config
+# 1. Imports
 
-import os
 import argparse
+import glob
+import itertools
+import os
+import time
+from typing import Dict, List, Sequence, Union
+
+import joblib
+import matplotlib.pyplot as plt
+import nibabel as nib
 import numpy as np
 import pandas as pd
-import glob
-
-from numpy.linalg import norm
-
-from sklearn.model_selection import GridSearchCV, StratifiedGroupKFold, StratifiedKFold, GroupKFold, permutation_test_score, LeaveOneGroupOut, cross_val_score, cross_val_predict
-from sklearn.linear_model import LogisticRegression
-from sklearn.pipeline import Pipeline
-from sklearn.covariance import LedoitWolf
-from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
-from sklearn.calibration import CalibratedClassifierCV, calibration_curve
-from sklearn.metrics import brier_score_loss
-from sklearn.metrics.pairwise import cosine_similarity
-from sklearn.feature_selection import RFE
-from sklearn.utils import resample, shuffle, resample
-from sklearn.base import clone
-from sklearn.preprocessing import RobustScaler, StandardScaler
-
-
-
-import nibabel as nib
-
-
-from joblib import Parallel, delayed, dump
-import joblib
-
-
-
-import statsmodels.formula.api as smf
+import plotly.graph_objects as go
+import seaborn as sns
 import statsmodels.api as sm
+import statsmodels.formula.api as smf
+from joblib import Parallel, delayed, dump
+from nilearn import image, masking, plotting
+from nilearn.maskers import NiftiLabelsMasker
+from numpy.linalg import norm
+from scipy import stats
+from scipy.spatial.distance import cdist, pdist, squareform
+from scipy.stats import entropy, kurtosis, pearsonr, ttest_1samp, ttest_ind
+from sklearn.base import clone
+from sklearn.calibration import CalibratedClassifierCV, calibration_curve
+from sklearn.covariance import LedoitWolf
+from sklearn.feature_selection import RFE
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score, brier_score_loss, classification_report, confusion_matrix
+from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.model_selection import (
+    GridSearchCV,
+    GroupKFold,
+    LeaveOneGroupOut,
+    StratifiedGroupKFold,
+    StratifiedKFold,
+    cross_val_predict,
+    cross_val_score,
+    permutation_test_score,
+)
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import RobustScaler, StandardScaler
+from sklearn.utils import resample, shuffle
 from statsmodels.stats.multitest import multipletests
 
-
-import itertools
-from itertools import combinations
-
-from nilearn import plotting, image, masking
-from nilearn.maskers import NiftiLabelsMasker
-
-
-from scipy import stats
-from scipy.stats import pearsonr, ttest_1samp, ttest_ind, entropy, kurtosis
-from scipy.spatial.distance import pdist, squareform, cdist
-
-from itertools import combinations
-from joblib import Parallel, delayed
-import time
-import statsmodels.formula.api as smf
-
-import matplotlib.pyplot as plt
-import seaborn as sns
-
-from typing import Dict, List, Union, Sequence
-import plotly.graph_objects as go
-# Nice plotting defaults
 sns.set_context("poster")
 
+
+# 2. Configuration
+
 RANDOM_STATE = 42
-N_SPLITS = 5   # GroupKFold folds
-INNER_CV_SPLITS = 5     
-CS_LABELS = ["CS-", "CSS", "CSR"]  # the three CS types of interest
-# Parallelism controls (set via CLI or env on Hyak)
+N_SPLITS = 5
+INNER_CV_SPLITS = 5
+CS_LABELS = ["CS-", "CSS", "CSR"]
 N_JOBS = 1
 N_JOBS_CV = 1
 MAX_ITER = 5000
 thresh_hold_p = 1 - 0.05
 N_PERMUTATION = 5000
-#N_PERMUTATION = 1
-#N_REPEATS = 10
 N_REPEATS = 10
 CROSSNOBIS_REPEATS = 50
 SUBJECT_CV_SPLITS = 5
@@ -87,55 +74,109 @@ C_MIN_EXP = -2
 C_MAX_EXP = 2
 C_POINTS = 20
 
-# Argument parsing (allow run_mvpa.sh to override paths)
-_parser = argparse.ArgumentParser(add_help=False)
-_parser.add_argument("--project_root", default=os.environ.get("PROJECT_ROOT", "/gscratch/fang/NARSAD"))
-_parser.add_argument("--output_dir", default=os.environ.get("OUTPUT_DIR"))
-_parser.add_argument("--stage", type=int, default=None, help="Run a single analysis cell (6-17).")
-_parser.add_argument("--resume", action="store_true", help="Load checkpoints for prior cells when running a single stage.")
-_parser.add_argument("--stage8_group", default=os.environ.get("STAGE8_GROUP", "ALL"),
-                    choices=["SAD", "HC", "ALL"],
-                    help="For stage 8, compute importance for SAD, HC, or ALL.")
-_parser.add_argument("--importance_source", default=os.environ.get("IMPORTANCE_SOURCE", "auto"),
-                    choices=["auto", "combined", "group"],
-                    help="How to load stage08 importance for downstream stages: "
-                         "'combined' uses only stage08_importance.joblib; "
-                         "'group' requires stage08_importance_SAD/HC; "
-                         "'auto' tries combined then per-group.")
-_parser.add_argument("--n_jobs", type=int, default=int(os.environ.get("N_JOBS", "1")))
-_parser.add_argument("--n_jobs_cv", type=int, default=int(os.environ.get("N_JOBS_CV", "1")))
-_args, _ = _parser.parse_known_args()
+
+def parse_runtime_args():
+    """Parse runtime options without interfering with notebook-style execution."""
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument("--project_root", default=os.environ.get("PROJECT_ROOT", "/gscratch/fang/NARSAD"))
+    parser.add_argument("--output_dir", default=os.environ.get("OUTPUT_DIR"))
+    parser.add_argument("--stage", type=int, default=None, help="Run a single analysis cell (6-17).")
+    parser.add_argument(
+        "--resume",
+        action="store_true",
+        help="Load checkpoints for prior cells when running a single stage.",
+    )
+    parser.add_argument(
+        "--stage8_group",
+        default=os.environ.get("STAGE8_GROUP", "ALL"),
+        choices=["SAD", "HC", "ALL"],
+        help="For stage 8, compute importance for SAD, HC, or ALL.",
+    )
+    parser.add_argument(
+        "--importance_source",
+        default=os.environ.get("IMPORTANCE_SOURCE", "auto"),
+        choices=["auto", "combined", "group"],
+        help=(
+            "How to load stage08 importance for downstream stages: "
+            "'combined' uses only stage08_importance.joblib; "
+            "'group' requires stage08_importance_SAD/HC; "
+            "'auto' tries combined then per-group."
+        ),
+    )
+    parser.add_argument("--n_jobs", type=int, default=int(os.environ.get("N_JOBS", "1")))
+    parser.add_argument("--n_jobs_cv", type=int, default=int(os.environ.get("N_JOBS_CV", "1")))
+    return parser.parse_known_args()
+
+
+_args, _ = parse_runtime_args()
 PROJECT_ROOT = _args.project_root
 OUTPUT_DIR = _args.output_dir
+STAGE = _args.stage
+RESUME = _args.resume
+IMPORTANCE_SOURCE = _args.importance_source.lower()
 N_JOBS = _args.n_jobs
 N_JOBS_CV = _args.n_jobs_cv
-IMPORTANCE_SOURCE = _args.importance_source.lower()
 
-# If running single-threaded at the Python level, allow BLAS to use CPUs.
-if N_JOBS == 1 and N_JOBS_CV == 1:
-    _slurm_cpus = os.environ.get("SLURM_CPUS_PER_TASK")
+
+def configure_blas_threads():
+    """Allow BLAS to use the full allocation when Python-level parallelism is disabled."""
+    if N_JOBS != 1 or N_JOBS_CV != 1:
+        return
+    slurm_cpus = os.environ.get("SLURM_CPUS_PER_TASK")
     try:
-        _cpu = int(_slurm_cpus) if _slurm_cpus else (os.cpu_count() or 1)
+        cpu_count = int(slurm_cpus) if slurm_cpus else (os.cpu_count() or 1)
     except ValueError:
-        _cpu = os.cpu_count() or 1
-    for _var in ("OMP_NUM_THREADS", "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS", "NUMEXPR_NUM_THREADS"):
-        os.environ.setdefault(_var, str(_cpu))
+        cpu_count = os.cpu_count() or 1
+    for var in ("OMP_NUM_THREADS", "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS", "NUMEXPR_NUM_THREADS"):
+        os.environ.setdefault(var, str(cpu_count))
 
-# Output root for all analyses
-if OUTPUT_DIR:
-    OUT_DIR_MAIN = OUTPUT_DIR
-else:
-    OUT_DIR_MAIN = os.path.join(PROJECT_ROOT, "MRI/derivatives/fMRI_analysis/LSS", "results", "wholebrain_parcellation")
-os.makedirs(OUT_DIR_MAIN, exist_ok=True)
 
-# Checkpointing
-CHECKPOINT_DIR = os.path.join(OUT_DIR_MAIN, "checkpoints")
-os.makedirs(CHECKPOINT_DIR, exist_ok=True)
-INTERMEDIATE_DIR = os.path.join(OUT_DIR_MAIN, "intermediate")
-os.makedirs(INTERMEDIATE_DIR, exist_ok=True)
+def resolve_output_dirs():
+    """Create and return the main output/checkpoint/intermediate directories."""
+    out_dir = OUTPUT_DIR or os.path.join(
+        PROJECT_ROOT,
+        "MRI/derivatives/fMRI_analysis/LSS",
+        "results",
+        "wholebrain_parcellation",
+    )
+    checkpoint_dir = os.path.join(out_dir, "checkpoints")
+    intermediate_dir = os.path.join(out_dir, "intermediate")
+    os.makedirs(out_dir, exist_ok=True)
+    os.makedirs(checkpoint_dir, exist_ok=True)
+    os.makedirs(intermediate_dir, exist_ok=True)
+    return out_dir, checkpoint_dir, intermediate_dir
+
+
+configure_blas_threads()
+OUT_DIR_MAIN, CHECKPOINT_DIR, INTERMEDIATE_DIR = resolve_output_dirs()
+
+
+# 4. Helper functions
 
 def _ckpt_path(cell_id: int) -> str:
     return os.path.join(CHECKPOINT_DIR, f"cell_{cell_id:02d}.joblib")
+
+
+def _intermediate_path(name: str) -> str:
+    return os.path.join(INTERMEDIATE_DIR, f"{name}.joblib")
+
+
+def _save_result(name: str, obj) -> None:
+    """Persist result objects for each analysis."""
+    path = os.path.join(OUT_DIR_MAIN, f"{name}.joblib")
+    try:
+        dump(obj, path)
+    except Exception as exc:
+        print(f"  ! Failed to save {name}: {exc}")
+
+
+def _save_fig(name: str) -> None:
+    """Save current matplotlib figure."""
+    try:
+        plt.savefig(os.path.join(OUT_DIR_MAIN, f"{name}.png"), dpi=300, bbox_inches="tight")
+    except Exception as exc:
+        print(f"  ! Failed to save figure {name}: {exc}")
+
 
 def save_checkpoint(cell_id: int, data: dict) -> None:
     """Save checkpoint data for a given analysis cell."""
@@ -146,17 +187,28 @@ def save_checkpoint(cell_id: int, data: dict) -> None:
     except Exception as exc:
         print(f"[Checkpoint] Failed to save cell {cell_id}: {exc}")
 
+
+def load_checkpoint(cell_id: int) -> dict:
+    """Load checkpoint data for a given analysis cell."""
+    path = _ckpt_path(cell_id)
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"Missing checkpoint for cell {cell_id}: {path}")
+    data = joblib.load(path)
+    if not isinstance(data, dict):
+        raise ValueError(f"Checkpoint {path} is not a dict.")
+    print(f"[Checkpoint] Loaded cell {cell_id} <- {path}")
+    return data
+
+
 def save_intermediate(name: str, obj) -> None:
     """Save intermediate objects for downstream stages."""
-    path = os.path.join(INTERMEDIATE_DIR, f"{name}.joblib")
+    path = _intermediate_path(name)
     try:
         dump(obj, path)
         print(f"[Intermediate] Saved {name} -> {path}")
     except Exception as exc:
         print(f"[Intermediate] Failed to save {name}: {exc}")
 
-def _intermediate_path(name: str) -> str:
-    return os.path.join(INTERMEDIATE_DIR, f"{name}.joblib")
 
 def load_intermediate(name: str):
     path = _intermediate_path(name)
@@ -165,6 +217,7 @@ def load_intermediate(name: str):
     obj = joblib.load(path)
     print(f"[Intermediate] Loaded {name} <- {path}")
     return obj
+
 
 def ensure_importance_loaded():
     """Ensure importance_scores/masks are available using user-selected source."""
@@ -186,12 +239,11 @@ def ensure_importance_loaded():
             merged_scores.update(prev.get("importance_scores", {}))
             merged_masks.update(prev.get("importance_masks", {}))
 
-    try_order = []
     if IMPORTANCE_SOURCE == "combined":
         try_order = [load_combined]
     elif IMPORTANCE_SOURCE == "group":
         try_order = [load_groups]
-    else:  # auto
+    else:
         try_order = [load_combined, load_groups]
 
     for fn in try_order:
@@ -219,34 +271,8 @@ def ensure_importance_loaded():
     importance_masks = merged_masks
     return importance_scores, importance_masks
 
-def load_checkpoint(cell_id: int) -> dict:
-    """Load checkpoint data for a given analysis cell."""
-    path = _ckpt_path(cell_id)
-    if not os.path.exists(path):
-        raise FileNotFoundError(f"Missing checkpoint for cell {cell_id}: {path}")
-    data = joblib.load(path)
-    if not isinstance(data, dict):
-        raise ValueError(f"Checkpoint {path} is not a dict.")
-    print(f"[Checkpoint] Loaded cell {cell_id} <- {path}")
-    return data
 
-STAGE = _args.stage
-RESUME = _args.resume
-
-def _save_result(name: str, obj) -> None:
-    """Persist result objects for each analysis."""
-    path = os.path.join(OUT_DIR_MAIN, f"{name}.joblib")
-    try:
-        dump(obj, path)
-    except Exception as exc:
-        print(f"  ! Failed to save {name}: {exc}")
-
-def _save_fig(name: str) -> None:
-    """Save current matplotlib figure."""
-    try:
-        plt.savefig(os.path.join(OUT_DIR_MAIN, f"{name}.png"), dpi=300, bbox_inches="tight")
-    except Exception as exc:
-        print(f"  ! Failed to save figure {name}: {exc}")
+# 3. Stage-wise execution
 
 # %% [cell 2]
 # Cell 2: Load phase2 (extinction) and phase3 (reinstatement) data
@@ -5037,5 +5063,4 @@ if STAGE is None or STAGE == 17:
         "roi_df": locals().get("roi_df"),
         "parcel_rsm_results": parcel_rsm_results,
     })
-        # %% [cell 21]
-     
+        # %% [cell
