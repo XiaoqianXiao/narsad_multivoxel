@@ -4431,636 +4431,317 @@ if STAGE is None or STAGE == 16:
     _save_result("results_25", results_25)
     _save_result("results_25", results_25)
     
-# %% [cell 20]
-if STAGE is None or STAGE == 17:
-    # Cell 17: Searchlight RSM (CSR/CSS/CS-) + Early/Late Dynamics (Extinction & Reinstatement)
-    
-    # =============================================================================
-    # Shared helper for searchlight + parcel-level RSM
-    # =============================================================================
-    def collect_phase_data(phase_key, group_key=None):
-        # Always use raw arrays loaded in this cell (includes CS-)
-        if phase_key == "ext":
-            X_all, y_all, sub_all = X_ext, y_ext, sub_ext
-        else:
-            X_all, y_all, sub_all = X_reinst, y_reinst, sub_reinst
-    
-        if group_key is None or group_key == "ALL":
-            return X_all, y_all, sub_all
-    
-        def get_group_key(sub_id):
-            s_str = normalize_subject_id(sub_id)
-            conds = None
-            if 'sub_to_meta_norm' in globals():
-                if s_str in sub_to_meta_norm:
-                    conds = sub_to_meta_norm[s_str]
-                elif s_str in sub_to_meta:
-                    conds = sub_to_meta[s_str]
-            if conds:
-                return f"{conds['Group']}_{conds['Drug']}"
-            return None
-    
-        subjects = np.unique(sub_all)
-        sel_subs = [s for s in subjects if get_group_key(s) == group_key]
-        if not sel_subs:
-            return None, None, None
-        mask = np.isin(sub_all, sel_subs)
-        return X_all[mask], y_all[mask], sub_all[mask]
-    # Objective: Identify regions sensitive to CSR/CSS/CS- via local RSM
-    # and quantify early->late changes in extinction and reinstatement.
-    # Add-ons:
-    #   1) Group-specific maps (SAD/HC, OXT/PLC)
-    #   2) Permutation testing for map significance + FDR correction
-    #   3) Save NIfTI + ROI summary CSV outputs
-    #   4) Group contrast maps (SAD-HC, OXT-PLC)
-    #   5) Progress bars for permutation loops
-    
+def run_stage_17_searchlight_rsm():
+    """Run Stage 17 searchlight/parcel RSM analyses with explicit local scope."""
     print("--- Running Cell 17: Searchlight RSM (CSR/CSS/CS-) ---")
-    ENABLE_SEARCHLIGHT = False
-    if not ENABLE_SEARCHLIGHT:
+
+    cond_list = ["CSR", "CSS", "CS-"]
+    groups_to_run = ["ALL", "SAD_Placebo", "SAD_Oxytocin", "HC_Placebo", "HC_Oxytocin"]
+    out_dir = OUTPUT_DIR or os.path.join(
+        PROJECT_ROOT, "MRI/derivatives/fMRI_analysis/LSS", "results", "searchlight_rsm"
+    )
+    os.makedirs(out_dir, exist_ok=True)
+
+    data_root = os.path.join(
+        PROJECT_ROOT,
+        "MRI/derivatives/fMRI_analysis/LSS",
+        "firstLevel",
+        "all_subjects/fear_network",
+    )
+    phase2 = np.load(os.path.join(data_root, "phase2_X_ext_y_ext_roi_voxels.npz"), allow_pickle=True)
+    phase3 = np.load(os.path.join(data_root, "phase3_X_reinst_y_reinst_roi_voxels.npz"), allow_pickle=True)
+    x_ext = phase2["X_ext"]
+    y_ext_local = phase2["y_ext"]
+    sub_ext_local = phase2["subjects"]
+    x_reinst = phase3["X_reinst"]
+    y_reinst_local = phase3["y_reinst"]
+    sub_reinst_local = phase3["subjects"]
+
+    meta_path = os.path.join(PROJECT_ROOT, "MRI/source_data/behav/drug_order.csv")
+    meta_local = pd.read_csv(meta_path)
+    meta_local["subject_id"] = meta_local["subject_id"].astype(str).str.strip()
+
+    def normalize_subject_id_local(subject_id):
+        s_str = str(subject_id).strip()
+        if s_str.endswith(".0") and s_str.replace(".", "").isdigit():
+            s_str = s_str[:-2]
+        if s_str.startswith("sub-"):
+            s_str = s_str[4:]
+        return s_str
+
+    sub_to_meta_local = meta_local.set_index("subject_id")[["Group", "Drug"]].to_dict("index")
+    sub_to_meta_norm_local = {
+        normalize_subject_id_local(sub_id): values for sub_id, values in sub_to_meta_local.items()
+    }
+
+    def group_key_for_subject(subject_id):
+        return_key = None
+        s_str = normalize_subject_id_local(subject_id)
+        if s_str in sub_to_meta_norm_local:
+            conds = sub_to_meta_norm_local[s_str]
+            return_key = f"{conds['Group']}_{conds['Drug']}"
+        return return_key
+
+    def collect_phase_data_local(phase_key, group_key="ALL"):
+        if phase_key == "ext":
+            x_all, y_all, sub_all = x_ext, y_ext_local, sub_ext_local
+        else:
+            x_all, y_all, sub_all = x_reinst, y_reinst_local, sub_reinst_local
+        if group_key == "ALL":
+            return x_all, y_all, sub_all
+        selected_subjects = [sub for sub in np.unique(sub_all) if group_key_for_subject(sub) == group_key]
+        if not selected_subjects:
+            return None, None, None
+        mask = np.isin(sub_all, selected_subjects)
+        return x_all[mask], y_all[mask], sub_all[mask]
+
+    def build_stage_vectors_local(x_vals, y_vals, sub_vals, stage):
+        subjects = np.unique(sub_vals)
+        subj_mats = []
+        for subject in subjects:
+            rows = []
+            for cond in cond_list:
+                idx = np.where((sub_vals == subject) & (y_vals == cond))[0]
+                if len(idx) < 2:
+                    rows = []
+                    break
+                split = len(idx) // 2
+                use_idx = idx[:split] if stage == "early" else idx[split:]
+                if len(use_idx) == 0:
+                    rows = []
+                    break
+                rows.append(np.mean(x_vals[use_idx], axis=0))
+            if rows:
+                subj_mats.append(np.vstack(rows))
+        return subj_mats
+
+    parcel_rsm_results = {}
+    for phase_key, phase_name in [("ext", "Extinction"), ("rst", "Reinstatement")]:
+        x_phase, y_phase, sub_phase = collect_phase_data_local(phase_key, group_key="ALL")
+        if x_phase is None:
+            print(f"  ! {phase_name} data missing. Skipping parcel RSM.")
+            continue
+        early_mats = build_stage_vectors_local(x_phase, y_phase, sub_phase, "early")
+        late_mats = build_stage_vectors_local(x_phase, y_phase, sub_phase, "late")
+        if not early_mats or not late_mats:
+            print(f"  ! Not enough data for parcel RSM in {phase_name}.")
+            continue
+        rdm_early = np.mean([squareform(pdist(m, metric="correlation")) for m in early_mats], axis=0)
+        rdm_late = np.mean([squareform(pdist(m, metric="correlation")) for m in late_mats], axis=0)
+        parcel_rsm_results[f"{phase_key}_early"] = rdm_early
+        parcel_rsm_results[f"{phase_key}_late"] = rdm_late
+        parcel_rsm_results[f"{phase_key}_delta"] = rdm_late - rdm_early
+
+    voxel_results = {"results_maps": None, "results_pvals": None, "results_fdr": None, "contrast_maps": None, "roi_df": None}
+    enable_searchlight = False
+    if not enable_searchlight:
         print("  ! Searchlight RSM skipped for parcellation space (requires voxel-wise masks).")
     else:
-    
-        import os
-        import numpy as np
-        import nibabel as nib
-        import glob
-        import pandas as pd
-        from scipy.spatial import cKDTree
-        from scipy.stats import pearsonr
-        from statsmodels.stats.multitest import multipletests
-        from nilearn import plotting
-        from tqdm import tqdm
-    
-        # =============================================================================
-        # 0. Configuration
-        # =============================================================================
-        ROI_DIR = "/Users/xiaoqianxiao/tool/parcellation/Gillian_anatomically_constrained"
-        ROI_ORDER = [
-            'left_acc', 'left_amygdala', 'left_hippocampus', 'left_insula', 'left_vmpfc',
-            'right_acc', 'right_amygdala', 'right_hippocampus', 'right_insula', 'right_vmpfc'
+        roi_dir = os.environ.get(
+            "SEARCHLIGHT_ROI_DIR",
+            "/Users/xiaoqianxiao/tool/parcellation/Gillian_anatomically_constrained",
+        )
+        roi_order = [
+            "left_acc", "left_amygdala", "left_hippocampus", "left_insula", "left_vmpfc",
+            "right_acc", "right_amygdala", "right_hippocampus", "right_insula", "right_vmpfc",
         ]
-    
-        COND_LIST = ["CSR", "CSS", "CS-"]
-        SEARCH_RADIUS = 2.5  # in voxels
-        MIN_VOXELS = 20
-        N_PERMUTATION_SEARCHLIGHT = 200
-        ALPHA_FDR = 0.05
-    
-        # Output
-        if OUTPUT_DIR:
-            out_dir = OUTPUT_DIR
-        elif 'project_root' in locals():
-            out_dir = os.path.join(project_root, "MRI/derivatives/fMRI_analysis/LSS", "results", "searchlight_rsm")
-        else:
-            out_dir = "/tmp/searchlight_rsm"
-        os.makedirs(out_dir, exist_ok=True)
-    
-        GROUPS_TO_RUN = [
-            "ALL",
-            "SAD_Placebo", "SAD_Oxytocin", "HC_Placebo", "HC_Oxytocin"
-        ]
-    
-    
-        # =============================================================================
-        # RAW NPZ LOAD (force CS- availability)
-        # =============================================================================
-        LOAD_RAW_NPZ = True
-        if LOAD_RAW_NPZ:
-            project_root = PROJECT_ROOT
-            data_root = os.path.join(project_root, "MRI/derivatives/fMRI_analysis/LSS", "firstLevel", "all_subjects/fear_network")
-            phase2_npz_path = os.path.join(data_root, "phase2_X_ext_y_ext_roi_voxels.npz")
-            phase3_npz_path = os.path.join(data_root, "phase3_X_reinst_y_reinst_roi_voxels.npz")
-    
-            phase2 = np.load(phase2_npz_path, allow_pickle=True)
-            X_ext = phase2["X_ext"]
-            y_ext = phase2["y_ext"]
-            sub_ext = phase2["subjects"]
-    
-            phase3 = np.load(phase3_npz_path, allow_pickle=True)
-            X_reinst = phase3["X_reinst"]
-            y_reinst = phase3["y_reinst"]
-            sub_reinst = phase3["subjects"]
-    
-    
-    
-        # =============================================================================
-        # Subject ID normalization (align meta and subjects)
-        # =============================================================================
-    
-        def normalize_subject_id(s):
-            s_str = str(s).strip()
-            # handle numpy floats like 123.0
-            if s_str.endswith('.0') and s_str.replace('.', '').isdigit():
-                s_str = s_str[:-2]
-            # remove leading 'sub-' if present
-            if s_str.startswith('sub-'):
-                s_str = s_str[4:]
-            return s_str
-    
-        # =============================================================================
-        # META LOAD (force group mapping)
-        # =============================================================================
-        meta_path = os.path.join(project_root, "MRI/source_data/behav/drug_order.csv")
-        meta = pd.read_csv(meta_path)
-        meta['subject_id'] = meta['subject_id'].astype(str).str.strip()
-        sub_to_meta = meta.set_index("subject_id")[["Group", "Drug"]].to_dict('index')
-        # Normalized lookup (strip sub-, handle numeric ids)
-        sub_to_meta_norm = {normalize_subject_id(k): v for k, v in sub_to_meta.items()}
-    
-    
-        # =============================================================================
-    
-        # =============================================================================
-        # 1. Build ROI-based voxel mapping (feature index -> voxel coord)
-        # =============================================================================
-        print("[Step 1] Building feature-to-voxel mapping...")
-    
+        search_radius = 2.5
+        min_voxels = 20
+        n_permutation_searchlight = 200
+        alpha_fdr = 0.05
+
+        print("[Stage 17] Building feature-to-voxel mapping...")
         roi_paths = []
-        for name in ROI_ORDER:
-            matches = glob.glob(os.path.join(ROI_DIR, f"*{name}*.nii*"))
+        for roi_name in roi_order:
+            matches = glob.glob(os.path.join(roi_dir, f"*{roi_name}*.nii*"))
             if not matches:
-                raise FileNotFoundError(f"ROI mask not found for: {name}")
+                raise FileNotFoundError(f"ROI mask not found for: {roi_name}")
             roi_paths.append(matches[0])
-    
+
         ref_img = nib.load(roi_paths[0])
         ref_shape = ref_img.shape
         coords = []
-        feature_idx = 0
         roi_feature_idx = {}
-    
-        for name, p in zip(ROI_ORDER, roi_paths):
-            mask_img = nib.load(p)
-            mask_data = mask_img.get_fdata() > 0
+        feature_idx = 0
+        for roi_name, roi_path in zip(roi_order, roi_paths):
+            mask_data = nib.load(roi_path).get_fdata() > 0
             inds = np.column_stack(np.where(mask_data))
             roi_inds = []
             for xyz in inds:
                 coords.append(xyz)
                 roi_inds.append(feature_idx)
                 feature_idx += 1
-            roi_feature_idx[name] = np.array(roi_inds, dtype=int)
-    
+            roi_feature_idx[roi_name] = np.array(roi_inds, dtype=int)
         coords = np.array(coords)
-        print(f"  > Total voxels in ROI union: {coords.shape[0]}")
-    
-        # =============================================================================
-        # 2. Collect phase data across groups
-        # =============================================================================
-        print("[Step 2] Collecting phase data...")
-    
-        def collect_phase_data(phase_key, group_key=None):
-            # Always use raw arrays loaded in this cell (includes CS-)
-            if phase_key == "ext":
-                X_all, y_all, sub_all = X_ext, y_ext, sub_ext
-            else:
-                X_all, y_all, sub_all = X_reinst, y_reinst, sub_reinst
-    
-            xs, ys, subs = [], [], []
-            if group_key is None or group_key == "ALL":
-                # no filtering, return all subjects
-                return X_all, y_all, sub_all
-    
-            group_iter = [group_key]
-    
-            def get_group_key(sub_id):
-                s_str = normalize_subject_id(sub_id)
-                conds = None
-                if 'sub_to_meta_norm' in globals():
-                    if s_str in sub_to_meta_norm: conds = sub_to_meta_norm[s_str]
-                    elif s_str in sub_to_meta: conds = sub_to_meta[s_str]
-                if conds:
-                    return f"{conds['Group']}_{conds['Drug']}"
-                return None
-    
-            subjects = np.unique(sub_all)
-            for grp in group_iter:
-                sel_subs = [s for s in subjects if get_group_key(s) == grp]
-                if not sel_subs:
-                    continue
-                mask = np.isin(sub_all, sel_subs)
-                xs.append(X_all[mask])
-                ys.append(y_all[mask])
-                subs.append(sub_all[mask])
-    
-            if not xs:
-                return None, None, None
-            return np.vstack(xs), np.concatenate(ys), np.concatenate(subs)
-    
-    
-        # =============================================================================
-        # 2.5 Diagnostics: Trial counts and subject coverage
-        # =============================================================================
-        print("[Step 2.5] Diagnostics: trial counts per condition...")
-    
-        def diagnose_phase(phase_key):
-            for group_key in GROUPS_TO_RUN:
-                X_p, y_p, sub_p = collect_phase_data(phase_key, group_key=group_key)
-                if X_p is None:
-                    print(f"  ! {phase_key} missing for {group_key}")
-                    continue
-                print(f"  [{group_key} | {phase_key}] total trials: {len(y_p)}")
-                for cond in COND_LIST:
-                    count = int(np.sum(y_p == cond))
-                    print(f"    - {cond}: {count}")
-                # per-subject counts
-                subs = np.unique(sub_p)
-                ok_2 = {c: 0 for c in COND_LIST}
-                ok_4 = {c: 0 for c in COND_LIST}
-                for s in subs:
-                    mask = sub_p == s
-                    for c in COND_LIST:
-                        n = int(np.sum(y_p[mask] == c))
-                        if n >= 2:
-                            ok_2[c] += 1
-                        if n >= 4:
-                            ok_4[c] += 1
-                print("    subjects with >=2 trials per condition:")
-                print("      " + ", ".join([f"{c}:{ok_2[c]}" for c in COND_LIST]))
-                print("    subjects with >=4 trials per condition (needed for early/late split):")
-                print("      " + ", ".join([f"{c}:{ok_4[c]}" for c in COND_LIST]))
-    
-        # Run diagnostics for both phases
-        for phase_key in ["ext", "rst"]:
-            diagnose_phase(phase_key)
-    
-    
-        print("[Step 2.6] Mapping diagnostics...")
-        try:
-            sample_subs = list(dict.fromkeys([normalize_subject_id(s) for s in sub_ext]))[:5]
-            sample_meta = list(sub_to_meta_norm.keys())[:5]
-            print(f"  sample subjects: {sample_subs}")
-            print(f"  sample meta keys: {sample_meta}")
-            for g in ["SAD_Placebo", "SAD_Oxytocin", "HC_Placebo", "HC_Oxytocin"]:
-                subs = np.unique(sub_ext)
-                matched = [s for s in subs if get_group_key(s) == g]
-                print(f"  matched {g}: {len(matched)}")
-        except Exception as e:
-            print(f"  ! mapping diagnostics failed: {e}")
-    
-        # =============================================================================
-        # 3. Build early/late condition vectors per subject
-        # =============================================================================
-        print("[Step 3] Building condition vectors (early/late)...")
-    
-        def build_stage_vectors(X, y, sub, stage):
-            # Returns list of per-subject condition matrices (3 x n_features)
-            subjects = np.unique(sub)
-            subj_mats = []
-    
-            for s in subjects:
-                rows = []
-                for cond in COND_LIST:
-                    idx = np.where((sub == s) & (y == cond))[0]
-                    if len(idx) < 2:
-                        rows = []
-                        break
-                    split = len(idx) // 2
-                    if stage == "early":
-                        use_idx = idx[:split]
-                    else:
-                        use_idx = idx[split:]
-                    if len(use_idx) == 0:
-                        rows = []
-                        break
-                    rows.append(np.mean(X[use_idx], axis=0))
-                if rows:
-                    subj_mats.append(np.vstack(rows))  # 3 x n_features
-            return subj_mats
-    
-        # =============================================================================
-        # 4. Precompute searchlight neighborhoods
-        # =============================================================================
-        print("[Step 4] Precomputing searchlight neighborhoods...")
-    
-        tree = cKDTree(coords)
-        neighbors = tree.query_ball_point(coords, r=SEARCH_RADIUS)
-    
-        # =============================================================================
-        # 5. Searchlight RSM computation
-        # =============================================================================
-        print("[Step 5] Running searchlight RSM...")
-    
+        neighbors = cKDTree(coords).query_ball_point(coords, r=search_radius)
+
         def rsm_score_for_sphere(cond_mat, feat_idx):
-            # Compute mean off-diagonal dissimilarity for a 3xF condition matrix
-            if len(feat_idx) < MIN_VOXELS:
+            if len(feat_idx) < min_voxels:
                 return np.nan
-            A = cond_mat[:, feat_idx]
-            r01 = pearsonr(A[0], A[1])[0]
-            r02 = pearsonr(A[0], A[2])[0]
-            r12 = pearsonr(A[1], A[2])[0]
-            return np.mean([1 - r01, 1 - r02, 1 - r12])
-    
-    
+            arr = cond_mat[:, feat_idx]
+            return np.mean([
+                1 - pearsonr(arr[0], arr[1])[0],
+                1 - pearsonr(arr[0], arr[2])[0],
+                1 - pearsonr(arr[1], arr[2])[0],
+            ])
+
         def compute_searchlight_map(subj_mats):
             if not subj_mats:
                 return None
-            n_centers = coords.shape[0]
-            vals = np.full(n_centers, np.nan)
-            for c in range(n_centers):
-                feat_idx = neighbors[c]
+            vals = np.full(coords.shape[0], np.nan)
+            for center in range(coords.shape[0]):
+                feat_idx = neighbors[center]
                 subj_scores = []
-                for m in subj_mats:
-                    s = rsm_score_for_sphere(m, feat_idx)
-                    if not np.isnan(s):
-                        subj_scores.append(s)
+                for subj_mat in subj_mats:
+                    score = rsm_score_for_sphere(subj_mat, feat_idx)
+                    if not np.isnan(score):
+                        subj_scores.append(score)
                 if subj_scores:
-                    vals[c] = float(np.mean(subj_scores))
+                    vals[center] = float(np.mean(subj_scores))
             return vals
-    
-        # =============================================================================
-        # 6. Permutation testing + FDR
-        # =============================================================================
-        print("[Step 6] Permutation testing setup...")
 
-    def permute_labels_within_subject(y, sub, rng):
-        y_perm = y.copy()
-        for s in np.unique(sub):
-            idx = np.where(sub == s)[0]
-            y_perm[idx] = rng.permutation(y_perm[idx])
-        return y_perm
+        def permute_labels_within_subject(y_vals, sub_vals, rng):
+            y_perm = y_vals.copy()
+            for subject in np.unique(sub_vals):
+                idx = np.where(sub_vals == subject)[0]
+                y_perm[idx] = rng.permutation(y_perm[idx])
+            return y_perm
 
-    def build_stage_vectors(X, y, sub, stage):
-        # Returns list of per-subject condition matrices (3 x n_features)
-        subjects = np.unique(sub)
-        subj_mats = []
+        def permutation_null_maps(x_vals, y_vals, sub_vals, stage, n_perm):
+            rng = np.random.default_rng(42)
+            null_maps = []
+            for perm_idx in range(n_perm):
+                if perm_idx == 0 or (perm_idx + 1) % 50 == 0:
+                    print(f"    {stage} perm {perm_idx + 1}/{n_perm}")
+                y_perm = permute_labels_within_subject(y_vals, sub_vals, rng)
+                mats = build_stage_vectors_local(x_vals, y_perm, sub_vals, stage)
+                curr_map = compute_searchlight_map(mats)
+                if curr_map is not None:
+                    null_maps.append(curr_map)
+            if not null_maps:
+                return None
+            return np.array(null_maps)
 
-        for s in subjects:
-            rows = []
-            for cond in COND_LIST:
-                idx = np.where((sub == s) & (y == cond))[0]
-                if len(idx) < 2:
-                    rows = []
-                    break
-                split = len(idx) // 2
-                use_idx = idx[:split] if stage == "early" else idx[split:]
-                if len(use_idx) == 0:
-                    rows = []
-                    break
-                rows.append(np.mean(X[use_idx], axis=0))
-            if rows:
-                subj_mats.append(np.vstack(rows))  # 3 x n_features
-        return subj_mats
+        def pvals_and_fdr(null_maps, obs_map):
+            pvals = np.mean(null_maps >= obs_map, axis=0)
+            flat = pvals[~np.isnan(pvals)]
+            _, p_fdr, _, _ = multipletests(flat, alpha=alpha_fdr, method="fdr_bh")
+            p_fdr_full = np.full_like(pvals, np.nan, dtype=float)
+            p_fdr_full[~np.isnan(pvals)] = p_fdr
+            return pvals, p_fdr_full
 
-    def permutation_null_maps(X, y, sub, stage, n_perm=200):
-        rng = np.random.default_rng(42)
-        null_maps = []
-        for i in tqdm(range(n_perm), desc=f"Permuting ({stage})", leave=False):
-            if i == 0 or (i + 1) % 50 == 0:
-                print(f"    {stage} perm {i + 1}/{n_perm}")
-            y_perm = permute_labels_within_subject(y, sub, rng)
-            mats = build_stage_vectors(X, y_perm, sub, stage)
-            m = compute_searchlight_map(mats)
-            if m is not None:
-                null_maps.append(m)
-        if not null_maps:
-            return None
-        return np.array(null_maps)
-
-    def pvals_and_fdr(null_maps, obs_map):
-        pvals = np.mean(null_maps >= obs_map, axis=0)
-        pvals_flat = pvals[~np.isnan(pvals)]
-        rej, p_fdr, _, _ = multipletests(pvals_flat, alpha=ALPHA_FDR, method='fdr_bh')
-        p_fdr_full = np.full_like(pvals, np.nan, dtype=float)
-        p_fdr_full[~np.isnan(pvals)] = p_fdr
-        return pvals, p_fdr_full
-
-    # =============================================================================
-    # 7. Compute early/late maps and deltas (by group)
-    # =============================================================================
-    print("[Step 7] Computing maps for Extinction and Reinstatement (by group)...")
-
-    results_maps = {}
-    results_pvals = {}
-    results_fdr = {}
-
-    GROUPS_TO_RUN = [
-        "ALL",
-        "SAD_Placebo", "SAD_Oxytocin", "HC_Placebo", "HC_Oxytocin"
-    ]
-
-    for group_key in GROUPS_TO_RUN:
-        for phase_key, phase_name in [("ext", "Extinction"), ("rst", "Reinstatement")]:
-            X_p, y_p, sub_p = collect_phase_data(phase_key, group_key=group_key)
-            if X_p is None:
-                print(f"  ! {phase_name} data missing for {group_key}. Skipping.")
-                continue
-    
-            early_mats = build_stage_vectors(X_p, y_p, sub_p, "early")
-            late_mats = build_stage_vectors(X_p, y_p, sub_p, "late")
-    
-            map_early = compute_searchlight_map(early_mats)
-            map_late = compute_searchlight_map(late_mats)
-    
-            if map_early is None or map_late is None:
-                print(f"  ! Not enough data for {phase_name}, {group_key}.")
-                continue
-    
-            delta = map_late - map_early
-    
-            results_maps[(group_key, phase_key, "early")] = map_early
-            results_maps[(group_key, phase_key, "late")] = map_late
-            results_maps[(group_key, phase_key, "delta")] = delta
-    
-            # Permutation p-values + FDR for early and late
-            null_early = permutation_null_maps(X_p, y_p, sub_p, "early", n_perm=N_PERMUTATION_SEARCHLIGHT)
-            null_late = permutation_null_maps(X_p, y_p, sub_p, "late", n_perm=N_PERMUTATION_SEARCHLIGHT)
-    
-            if null_early is not None:
-                p_early, fdr_early = pvals_and_fdr(null_early, map_early)
-                results_pvals[(group_key, phase_key, "early")] = p_early
-                results_fdr[(group_key, phase_key, "early")] = fdr_early
-            if null_late is not None:
-                p_late, fdr_late = pvals_and_fdr(null_late, map_late)
-                results_pvals[(group_key, phase_key, "late")] = p_late
-                results_fdr[(group_key, phase_key, "late")] = fdr_late
-    
-    # Save results after population
-    if results_maps:
-        _save_result("results_maps", results_maps)
-    else:
-        print("  ! No results_maps generated; skipping save.")
-    if results_pvals:
-        _save_result("results_pvals", results_pvals)
-    else:
-        print("  ! No results_pvals generated; skipping save.")
-    if results_fdr:
-        _save_result("results_fdr", results_fdr)
-    else:
-        print("  ! No results_fdr generated; skipping save.")
-    
-    # =============================================================================
-    # 8. Group contrasts
-    # =============================================================================
-        print("[Step 8] Computing group contrasts...")
-    
-        contrast_maps = {}
-    
-        def get_map(group, phase, stage):
-            return results_maps.get((group, phase, stage))
-    
-        for phase_key in ["ext", "rst"]:
-            for stage in ["early", "late", "delta"]:
-                m_sad = get_map("SAD_Placebo", phase_key, stage)
-                m_hc = get_map("HC_Placebo", phase_key, stage)
-                m_oxt = get_map("SAD_Oxytocin", phase_key, stage)
-                m_plc = get_map("SAD_Placebo", phase_key, stage)
-                if m_sad is not None and m_hc is not None:
-                    contrast_maps[("SADminusHC", phase_key, stage)] = m_sad - m_hc
-                if m_oxt is not None and m_plc is not None:
-                    contrast_maps[("OXTminusPLC", phase_key, stage)] = m_oxt - m_plc
-    
-        # =============================================================================
-        # 9. Write NIfTI, plot, and save ROI summaries
-        # =============================================================================
-        print("[Step 9] Saving NIfTI and ROI summaries...")
-    
-        def to_nifti(vals, ref_img):
-            data = np.zeros(ref_shape)
-            data[:] = np.nan
-            for idx, v in enumerate(vals):
-                x, y, z = coords[idx]
-                data[x, y, z] = v
+        def to_nifti(vals):
+            data = np.full(ref_shape, np.nan, dtype=float)
+            for idx, val in enumerate(vals):
+                x_val, y_val, z_val = coords[idx]
+                data[x_val, y_val, z_val] = val
             return nib.Nifti1Image(data, ref_img.affine)
-    
+
+        print("[Stage 17] Computing voxelwise maps...")
+        results_maps = {}
+        results_pvals = {}
+        results_fdr = {}
+        for group_key in groups_to_run:
+            for phase_key, phase_name in [("ext", "Extinction"), ("rst", "Reinstatement")]:
+                x_phase, y_phase, sub_phase = collect_phase_data_local(phase_key, group_key=group_key)
+                if x_phase is None:
+                    print(f"  ! {phase_name} data missing for {group_key}. Skipping.")
+                    continue
+                early_mats = build_stage_vectors_local(x_phase, y_phase, sub_phase, "early")
+                late_mats = build_stage_vectors_local(x_phase, y_phase, sub_phase, "late")
+                map_early = compute_searchlight_map(early_mats)
+                map_late = compute_searchlight_map(late_mats)
+                if map_early is None or map_late is None:
+                    print(f"  ! Not enough data for {phase_name}, {group_key}.")
+                    continue
+                results_maps[(group_key, phase_key, "early")] = map_early
+                results_maps[(group_key, phase_key, "late")] = map_late
+                results_maps[(group_key, phase_key, "delta")] = map_late - map_early
+
+                null_early = permutation_null_maps(x_phase, y_phase, sub_phase, "early", n_permutation_searchlight)
+                null_late = permutation_null_maps(x_phase, y_phase, sub_phase, "late", n_permutation_searchlight)
+                if null_early is not None:
+                    results_pvals[(group_key, phase_key, "early")], results_fdr[(group_key, phase_key, "early")] = (
+                        pvals_and_fdr(null_early, map_early)
+                    )
+                if null_late is not None:
+                    results_pvals[(group_key, phase_key, "late")], results_fdr[(group_key, phase_key, "late")] = (
+                        pvals_and_fdr(null_late, map_late)
+                    )
+
+        contrast_maps = {}
+        for phase_key in ["ext", "rst"]:
+            for stage_name in ["early", "late", "delta"]:
+                sad_map = results_maps.get(("SAD_Placebo", phase_key, stage_name))
+                hc_map = results_maps.get(("HC_Placebo", phase_key, stage_name))
+                oxt_map = results_maps.get(("SAD_Oxytocin", phase_key, stage_name))
+                plc_map = results_maps.get(("SAD_Placebo", phase_key, stage_name))
+                if sad_map is not None and hc_map is not None:
+                    contrast_maps[("SADminusHC", phase_key, stage_name)] = sad_map - hc_map
+                if oxt_map is not None and plc_map is not None:
+                    contrast_maps[("OXTminusPLC", phase_key, stage_name)] = oxt_map - plc_map
+
         roi_rows = []
-    
-        # Save main maps
         for key, vals in results_maps.items():
-            group_key, phase_key, stage = key
-            img = to_nifti(vals, ref_img)
-            fname = f"rsm_{group_key}_{phase_key}_{stage}.nii.gz"
+            group_key, phase_key, stage_name = key
+            img = to_nifti(vals)
+            fname = f"rsm_{group_key}_{phase_key}_{stage_name}.nii.gz"
             nib.save(img, os.path.join(out_dir, fname))
-    
-            title = f"RSM {group_key} {phase_key.upper()} - {stage}"
-            display = plotting.plot_stat_map(img, title=title, display_mode='ortho', threshold=np.nanpercentile(vals, 90))
-            try:
-                display.savefig(os.path.join(out_dir, f"{fname.replace('.nii.gz','')}.png"))
-            except Exception as exc:
-                print(f"  ! Failed to save plot for {fname}: {exc}")
-    
-            # ROI summary
             for roi_name, idxs in roi_feature_idx.items():
-                roi_rows.append({
-                    "group": group_key,
-                    "phase": phase_key,
-                    "stage": stage,
-                    "roi": roi_name,
-                    "mean_rsm": float(np.nanmean(vals[idxs]))
-                })
-    
-        # Save p-value and FDR maps
-        for key, pvals in results_pvals.items():
-            group_key, phase_key, stage = key
-            img = to_nifti(pvals, ref_img)
-            fname = f"rsm_pvals_{group_key}_{phase_key}_{stage}.nii.gz"
-            nib.save(img, os.path.join(out_dir, fname))
-    
-        for key, fdr in results_fdr.items():
-            group_key, phase_key, stage = key
-            img = to_nifti(fdr, ref_img)
-            fname = f"rsm_fdr_{group_key}_{phase_key}_{stage}.nii.gz"
-            nib.save(img, os.path.join(out_dir, fname))
-    
-        # Save contrast maps
+                roi_rows.append(
+                    {
+                        "group": group_key,
+                        "phase": phase_key,
+                        "stage": stage_name,
+                        "roi": roi_name,
+                        "mean_rsm": float(np.nanmean(vals[idxs])),
+                    }
+                )
+        for key, vals in results_pvals.items():
+            nib.save(to_nifti(vals), os.path.join(out_dir, f"rsm_pvals_{key[0]}_{key[1]}_{key[2]}.nii.gz"))
+        for key, vals in results_fdr.items():
+            nib.save(to_nifti(vals), os.path.join(out_dir, f"rsm_fdr_{key[0]}_{key[1]}_{key[2]}.nii.gz"))
         for key, vals in contrast_maps.items():
-            contrast_name, phase_key, stage = key
-            img = to_nifti(vals, ref_img)
-            fname = f"rsm_{contrast_name}_{phase_key}_{stage}.nii.gz"
-            nib.save(img, os.path.join(out_dir, fname))
-            title = f"RSM {contrast_name} {phase_key.upper()} - {stage}"
-            display = plotting.plot_stat_map(img, title=title, display_mode='ortho', threshold=np.nanpercentile(vals, 90))
-            try:
-                display.savefig(os.path.join(out_dir, f"{fname.replace('.nii.gz','')}.png"))
-            except Exception as exc:
-                print(f"  ! Failed to save plot for {fname}: {exc}")
-    
-        # Save ROI summary CSV
-        roi_df = pd.DataFrame(roi_rows)
-        roi_csv = os.path.join(out_dir, "rsm_roi_summary.csv")
-        roi_df.to_csv(roi_csv, index=False)
-    
-        print(f"Cell 17 complete: outputs saved to {out_dir}")
-    
-    # =============================================================================
-    # Shared helper for parcel-level RSM (needs to be top-level)
-    # =============================================================================
-    # =============================================================================
-    # Parcel-level RSM (Whole-Brain Parcellation)
-    # =============================================================================
-    print("--- Running Parcel-level RSM (Whole-Brain Parcellation) ---")
-    
-    # Ensure condition list is defined for parcel-level RSM
-    COND_LIST = ["CSR", "CSS", "CS-"]
-    
-    def build_parcel_stage_vectors(X, y, sub, stage):
-        """Return per-subject 3 x P condition matrices using parcel features."""
-        subjects = np.unique(sub)
-        subj_mats = []
-    
-        for s in subjects:
-            rows = []
-            for cond in COND_LIST:
-                idx = np.where((sub == s) & (y == cond))[0]
-                if len(idx) < 2:
-                    rows = []
-                    break
-                split = len(idx) // 2
-                use_idx = idx[:split] if stage == "early" else idx[split:]
-                if len(use_idx) == 0:
-                    rows = []
-                    break
-                rows.append(np.mean(X[use_idx], axis=0))
-            if rows:
-                subj_mats.append(np.vstack(rows))
-        return subj_mats
-    
-    def rdm_from_condition_matrix(cond_mat):
-        # cond_mat: 3 x P
-        return squareform(pdist(cond_mat, metric="correlation"))
-    
-    def mean_rdm(subj_mats):
-        if not subj_mats:
-            return None
-        rdms = [rdm_from_condition_matrix(m) for m in subj_mats]
-        return np.mean(rdms, axis=0)
-    
-    parcel_rsm_results = {}
-    for phase_key, phase_name in [("ext", "Extinction"), ("rst", "Reinstatement")]:
-        X_p, y_p, sub_p = collect_phase_data(phase_key, group_key="ALL")
-        if X_p is None:
-            print(f"  ! {phase_name} data missing. Skipping parcel RSM.")
-            continue
-    
-        early_mats = build_parcel_stage_vectors(X_p, y_p, sub_p, "early")
-        late_mats = build_parcel_stage_vectors(X_p, y_p, sub_p, "late")
-    
-        rdm_early = mean_rdm(early_mats)
-        rdm_late = mean_rdm(late_mats)
-        if rdm_early is None or rdm_late is None:
-            print(f"  ! Not enough data for parcel RSM in {phase_name}.")
-            continue
-    
-        rdm_delta = rdm_late - rdm_early
-        parcel_rsm_results[f"{phase_key}_early"] = rdm_early
-        parcel_rsm_results[f"{phase_key}_late"] = rdm_late
-        parcel_rsm_results[f"{phase_key}_delta"] = rdm_delta
-    
+            nib.save(to_nifti(vals), os.path.join(out_dir, f"rsm_{key[0]}_{key[1]}_{key[2]}.nii.gz"))
+
+        voxel_results = {
+            "results_maps": results_maps,
+            "results_pvals": results_pvals,
+            "results_fdr": results_fdr,
+            "contrast_maps": contrast_maps,
+            "roi_df": pd.DataFrame(roi_rows),
+        }
+        voxel_results["roi_df"].to_csv(os.path.join(out_dir, "rsm_roi_summary.csv"), index=False)
+        _save_result("results_maps", results_maps)
+        _save_result("results_pvals", results_pvals)
+        _save_result("results_fdr", results_fdr)
+
     _save_result("parcel_rsm_results", parcel_rsm_results)
     print("Parcel-level RSM complete.")
-    save_checkpoint(17, {
-        "results_maps": locals().get("results_maps"),
-        "results_pvals": locals().get("results_pvals"),
-        "results_fdr": locals().get("results_fdr"),
-        "contrast_maps": locals().get("contrast_maps"),
-        "roi_df": locals().get("roi_df"),
-        "parcel_rsm_results": parcel_rsm_results,
-    })
-    save_intermediate("stage17_rsm", {
-        "results_maps": locals().get("results_maps"),
-        "results_pvals": locals().get("results_pvals"),
-        "results_fdr": locals().get("results_fdr"),
-        "contrast_maps": locals().get("contrast_maps"),
-        "roi_df": locals().get("roi_df"),
-        "parcel_rsm_results": parcel_rsm_results,
-    })
-        # %% [cell
+    save_checkpoint(
+        17,
+        {
+            "results_maps": voxel_results["results_maps"],
+            "results_pvals": voxel_results["results_pvals"],
+            "results_fdr": voxel_results["results_fdr"],
+            "contrast_maps": voxel_results["contrast_maps"],
+            "roi_df": voxel_results["roi_df"],
+            "parcel_rsm_results": parcel_rsm_results,
+        },
+    )
+    save_intermediate(
+        "stage17_rsm",
+        {
+            "results_maps": voxel_results["results_maps"],
+            "results_pvals": voxel_results["results_pvals"],
+            "results_fdr": voxel_results["results_fdr"],
+            "contrast_maps": voxel_results["contrast_maps"],
+            "roi_df": voxel_results["roi_df"],
+            "parcel_rsm_results": parcel_rsm_results,
+        },
+    )
+
+
+# %% [cell 20]
+if STAGE is None or STAGE == 17:
+    run_stage_17_searchlight_rsm()
