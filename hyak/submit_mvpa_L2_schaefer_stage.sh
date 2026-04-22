@@ -20,7 +20,7 @@ N_JOBS=16
 N_JOBS_CV=1
 
 if [[ $# -lt 1 ]]; then
-  echo "Usage: $0 <stage_id 6-17> [--resume]"
+  echo "Usage: $0 <stage_id 1-9|17> [--resume]"
   exit 1
 fi
 STAGE="$1"

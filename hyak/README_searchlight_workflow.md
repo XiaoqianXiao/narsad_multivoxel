@@ -150,61 +150,94 @@ ${OUT_BASE}/<mode>/crosshalf_permutation
 
 ## MVPA L2 Whole-Brain (Schaefer+Tian) Stage/Resume Workflow
 
-This pipeline supports per-cell stages (Cells 6–17) with checkpointing. Cells 1–5 always run.
+This pipeline now uses **logical stages 1–9** for the main whole-brain analyses, plus **stage 17** for the parcel/searchlight RSM block. Cells 1–5 still always run.
 
-### Checkpoints
-Saved to:
-`/gscratch/scrubbed/fanglab/xiaoqian/NARSAD/LSS/results/wholebrain_parcellation_schaefer/checkpoints`
+### Output Roots
+- Final outputs:
+  `/gscratch/scrubbed/fanglab/xiaoqian/NARSAD/LSS/results/wholebrain_parcellation_schaefer`
+- Checkpoints:
+  `/gscratch/scrubbed/fanglab/xiaoqian/NARSAD/LSS/results/wholebrain_parcellation_schaefer/checkpoints`
+- Intermediates:
+  `/gscratch/scrubbed/fanglab/xiaoqian/NARSAD/LSS/results/wholebrain_parcellation_schaefer/intermediate`
 
-Each stage writes `cell_XX.joblib` and later stages can load them using `--resume`.
+### Logical Stage Mapping
+- `1`: Neural Dissociation
+  old cells `6 + 7 + 8`
+- `2`: Static Representational Topology
+  old cell `9`
+- `3`: Dynamic Representational Drift
+  old cell `10` plus the single-trial trajectory block
+- `4`: Decision Boundary Characteristics
+  old cell `11`
+- `5`: Safety Restoration
+  old cell `12`
+- `6`: Drift Efficiency
+  old cell `13`
+- `7`: Probabilistic Opening
+  old cell `14`
+- `8`: Spatial Re-Alignment
+  old cell `15`
+- `9`: Reverse Cross-Decoding
+  old cell `16`
+- `17`: Parcel/Searchlight RSM
 
-### Run a Single Stage
+### Exact Resume Behavior
+Each logical stage now saves a full stage bundle in `intermediate/`:
+- `stage01_NeuralDissociation.joblib`
+- `stage02_StaticRepresentationalTopology.joblib`
+- `stage03_DynamicRepresentationalDrift.joblib`
+- `stage04_DecisionBoundaryCharacteristics.joblib`
+- `stage05_SafetyRestoration.joblib`
+- `stage06_DriftEfficiency.joblib`
+- `stage07_ProbabilisticOpening.joblib`
+- `stage08_SpatialReAlignment.joblib`
+- `stage09_ReverseCrossDecoding.joblib`
+
+If you rerun the same logical stage with `--resume`, the script will load the existing stage bundle and skip recomputation. That is the mechanism that avoids rerunning permutation tests or other expensive calculations for the exact same analysis.
+
+### Run a Single Logical Stage
 ```bash
-bash hyak/submit_mvpa_L2_schaefer_stage.sh 10 --resume
+bash hyak/submit_mvpa_L2_schaefer_stage.sh 3 --resume
 ```
 
-### Run All Stages (6–17)
+### Run All Logical Stages
 ```bash
 bash hyak/submit_mvpa_L2_schaefer_driver.sh
 ```
 
-### Notes
-- Stage 10 covers **Analysis 1.3** (Top 5% Features) **and** the **Single-Trial Trajectories** block.
-- All outputs are written to:
-  `/gscratch/scrubbed/fanglab/xiaoqian/NARSAD/LSS/results/wholebrain_parcellation_schaefer`
-- Stage 8 can be run per group. Stages 9–17 can load importance in three ways:
-  - `--importance_source combined` (requires `stage08_importance.joblib`)
-  - `--importance_source group` (requires `stage08_importance_SAD.joblib` and `_HC.joblib`)
-  - `--importance_source auto` (default: tries combined, then per-group)
+### Importance Loading
+Stage 1 includes the old importance block. Downstream stages can load importance in three ways:
+- `--importance_source combined`
+  requires `stage08_importance.joblib`
+- `--importance_source group`
+  requires `stage08_importance_SAD.joblib` and `stage08_importance_HC.joblib`
+- `--importance_source auto`
+  default; tries combined, then per-group
 
 **Examples**
-- Stage 8, SAD only (resume allowed):  
-  `bash hyak/submit_mvpa_L2_schaefer_stage.sh 8 --resume --stage8_group SAD`
-- Stage 8, HC only:  
-  `bash hyak/submit_mvpa_L2_schaefer_stage.sh 8 --resume --stage8_group HC`
-- Stage 9 with per-group importance only:  
-  `bash hyak/submit_mvpa_L2_schaefer_stage.sh 9 --importance_source group --resume`
+- Logical stage 1, SAD-only importance refresh:
+  `bash hyak/submit_mvpa_L2_schaefer_stage.sh 1 --resume --stage8_group SAD`
+- Logical stage 1, HC-only importance refresh:
+  `bash hyak/submit_mvpa_L2_schaefer_stage.sh 1 --resume --stage8_group HC`
+- Logical stage 2 using per-group importance only:
+  `bash hyak/submit_mvpa_L2_schaefer_stage.sh 2 --importance_source group --resume`
 
-### Stage Dependencies (Cells 6–17)
-Cells 1–5 always run. Stages 6–17 are analysis stages with checkpoints/intermediates.
-
-```
-Stage 6
+### Stage Dependencies
+```text
+Stage 1
+├─ Stage 2
+├─ Stage 3
+├─ Stage 4
+├─ Stage 5
+├─ Stage 6
 ├─ Stage 7
-└─ Stage 8
-   ├─ Stage 9
-   ├─ Stage 10
-   ├─ Stage 11
-   ├─ Stage 12
-   ├─ Stage 13
-   ├─ Stage 14
-   ├─ Stage 15
-   ├─ Stage 16
-   └─ Stage 17
+├─ Stage 8
+└─ Stage 9
+
+Stage 17
 ```
 
 Interpretation:
-- **Stage 6** is the root analysis step.
-- **Stage 7** depends on Stage 6.
-- **Stage 8** depends on Stage 6.
-- **Stages 9–17** depend on Stage 8 (they need `importance_scores`/`importance_masks`).
+- `Stage 1` is the root analysis stage for the main Schaefer+Tian whole-brain workflow.
+- `Stages 2–9` depend on `Stage 1`.
+- `Stage 17` is separate from the 1–9 chain.
