@@ -43,14 +43,14 @@ PROJECT = "NARSAD"
 # Derived paths
 DERIV_DIR = os.path.join(ROOT_DIR, PROJECT, "MRI", "derivatives")
 FMRIPREP_DIR = os.path.join(DERIV_DIR, "fmriprep")
-FIRSTLEVEL_DIR = os.path.join(DERIV_DIR, "fMRI_analysis", "LSS", "firstLevel", "all_subjects")
+FIRSTLEVEL_DIR = os.path.join(DERIV_DIR, "fMRI_analysis", "LSS", "firstLevel", "all_subjects", "subjects")
 BEHAV_DIR = os.path.join(ROOT_DIR, PROJECT, "MRI", "source_data", "behav")
 
 # Specific ROI Directory requested
 ROI_DIR = os.path.join(ROOT_DIR, PROJECT, "ROI", "MemoryFearNetwork")
 
 # Output Directory
-OUTPUT_DIR = os.path.join(FIRSTLEVEL_DIR, "group_level")
+OUTPUT_DIR = os.path.join(DERIV_DIR, "fMRI_analysis", "LSS", "firstLevel", "all_subjects", "group_level")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 PHASE2_OUTPUT_FILE = os.path.join(OUTPUT_DIR, "phase2_X_ext_y_ext_roi_voxels_MemoryFearNetwork.npz")
