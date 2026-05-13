@@ -1759,7 +1759,7 @@ import os
 print("--- Cell 3: Data Loading & ROI Filtering ---")
 
 project_root = PROJECT_ROOT
-data_root = os.path.join(project_root, "MRI/derivatives/fMRI_analysis/LSS", "results/MemoryFearNetwork")
+data_root = os.path.join(project_root, "MRI/derivatives/fMRI_analysis/LSS", "firstLevel/all_subjects/group_level")
 scripts_dir = os.path.dirname(os.path.abspath(__file__))
 # OUT_DIR_MAIN, CHECKPOINT_DIR, and INTERMEDIATE_DIR are resolved by the Hyak runtime block.
 os.makedirs(CHECKPOINT_DIR, exist_ok=True)
