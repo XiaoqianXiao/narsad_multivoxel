@@ -15,7 +15,7 @@ CONTAINER_SIF="${CONTAINER_SIF:-/gscratch/fang/images/jupyter.sif}"
 APP_PATH="${APP_PATH:-/gscratch/scrubbed/fanglab/xiaoqian/repo/narsad_multivoxel/hyak}"
 OUT_BASE="${OUT_BASE:-/gscratch/scrubbed/fanglab/xiaoqian/NARSAD/LSS/results}"
 OUT_DIR="${OUT_DIR:-/output_dir/MemoryFearNetwork}"
-ROI_DIR="${MEMORY_FEAR_ROI_DIR:-${PROJECT_ROOT}/ROIs/MemoryFearNetwork}"
+ROI_DIR="${MEMORY_FEAR_ROI_DIR:-${PROJECT_ROOT}/ROI/MemoryFearNetwork}"
 
 LOG_DIR="${LOG_DIR:-${PROJECT_ROOT}/logs/mvpa_l2_memoryfearnetwork}"
 PARTITION="${PARTITION:-cpu-g2}"
