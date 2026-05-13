@@ -103,7 +103,7 @@ def parse_runtime_args():
         "--roi_dir",
         default=os.environ.get(
             "MEMORY_FEAR_ROI_DIR",
-            os.path.join(os.environ.get("PROJECT_ROOT", "/gscratch/fang/NARSAD"), "tool/parcellation/ROIs/MemoryFearNetwork"),
+            os.path.join(os.environ.get("PROJECT_ROOT", "/gscratch/fang/NARSAD"), "ROI/MemoryFearNetwork"),
         ),
     )
     parser.add_argument("--n_jobs", type=int, default=int(os.environ.get("N_JOBS", "1")))
