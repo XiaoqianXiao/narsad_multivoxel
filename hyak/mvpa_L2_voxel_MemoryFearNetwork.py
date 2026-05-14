@@ -2572,18 +2572,28 @@ if cell_active(11):
         else:
             stage11_compute_chunk(group_name)
 
-    if STAGE11_MERGE and STAGE11_GROUP == "ALL":
-        save_checkpoint(9, {
+    if importance_mask_permutated:
+        combined_stage11_payload = {
             "importance_mask_permutated": importance_mask_permutated,
             "importance_scores_permutated": importance_scores_permutated,
             "p_values_permutated": p_values_permutated,
-        })
-        save_intermediate("stage09_permutation_masks", {
-            "importance_mask_permutated": importance_mask_permutated,
-            "importance_scores_permutated": importance_scores_permutated,
-            "p_values_permutated": p_values_permutated,
-        })
+            "null_permutations": globals().get("null_permutations", {}),
+            "actual_repeats": {
+                group_name: int(STAGE11_ACTUAL_REPEATS)
+                for group_name in importance_mask_permutated.keys()
+            },
+        }
+        joblib.dump(combined_stage11_payload, _script_ckpt_path(11))
+        joblib.dump(combined_stage11_payload, _script_intermediate_path("stage09_permutation_masks"))
+        save_checkpoint(9, combined_stage11_payload)
+        save_intermediate("stage09_permutation_masks", combined_stage11_payload)
         save_cell_results(11, ['ALPHA_LEVEL', 'N_NULL_PERMS', 'STAGE11_GROUP', 'data_subsets', 'importance_mask_permutated', 'importance_scores_permutated', 'meta', 'p_values_permutated', 'results_11', 'results_12', 'results_13', 'results_13_2', 'results_14_self', 'results_21', 'results_21_pv', 'results_22', 'results_23', 'results_24', 'results_25', 'stage11_groups', 'strict_cross_phase_results', 'sub_to_meta'])
+    elif not STAGE11_MERGE and STAGE11_CHUNK_COUNT > 1:
+        print(
+            "--- Stage 11 chunk complete. No final masks were produced in this run; "
+            "merge chunks with --stage11_merge before downstream analyses. ---"
+        )
+        raise SystemExit(0)
 
     print("--- Stage 11 Complete ---")
 
@@ -2606,10 +2616,19 @@ if cell_active(12):
     # Global Constants
     RDM_CONDITIONS = ["CS-", "CSS", "CSR"] 
 
-    cache_cell10 = os.path.join(CHECKPOINT_DIR, f"cell_10.joblib")
-    if os.path.exists(cache_cell10):
-        print(f"  [LOAD] Found existing RDM results. Skipping Crossnobis calculation...")
-        results_12 = joblib.load(cache_cell10)['results_12']
+    cache_cell10 = os.path.join(CHECKPOINT_DIR, "analysis_12_topology.joblib")
+    legacy_cache_cell10 = os.path.join(CHECKPOINT_DIR, "cell_10.joblib")
+    cache_cell10_load = None
+    for candidate in (cache_cell10, legacy_cache_cell10):
+        if not os.path.exists(candidate):
+            continue
+        candidate_payload = joblib.load(candidate)
+        if isinstance(candidate_payload, dict) and "results_12" in candidate_payload:
+            cache_cell10_load = candidate_payload
+            print(f"  [LOAD] Found existing RDM results in {candidate}. Skipping Crossnobis calculation...")
+            break
+    if cache_cell10_load is not None:
+        results_12 = cache_cell10_load['results_12']
         # Extract calculated RDMs for plotting/stats blocks
         rdms_sad_raw = results_12["rdms_sad_raw"]
         rdms_hc_raw = results_12["rdms_hc_raw"]
@@ -2800,7 +2819,22 @@ if cell_active(12):
                 "p_b_hc": p_b_hc_0_raw_pv,
             },
         }
-        save_checkpoint(10, {"results_12": results_12})
+        cache_payload_12 = {
+            "results_12": results_12,
+            "rdms_sad_raw": rdms_sad_raw,
+            "rdms_hc_raw": rdms_hc_raw,
+            "rdms_sad_z": rdms_sad_z,
+            "rdms_hc_z": rdms_hc_z,
+            "rdms_sad_raw_pv": rdms_sad_raw_pv,
+            "rdms_hc_raw_pv": rdms_hc_raw_pv,
+            "rdms_sad_z_pv": rdms_sad_z_pv,
+            "rdms_hc_z_pv": rdms_hc_z_pv,
+            "mask_sad_top5": mask_sad_top5,
+            "mask_hc_top5": mask_hc_top5,
+        }
+        joblib.dump(cache_payload_12, cache_cell10)
+        save_checkpoint(12, cache_payload_12)
+        save_intermediate("stage12_topology_stats", cache_payload_12)
         save_intermediate("stage10_topology_stats", results_12)
 
 
@@ -2925,12 +2959,21 @@ if cell_active(13):
     # 0. CACHE GATE & DATA SETUP
     # =============================================================================
     # Using your requested naming convention from Cell 11
-    cache_cell11 = os.path.join(CHECKPOINT_DIR, "cell_11.joblib")
+    cache_cell11 = os.path.join(CHECKPOINT_DIR, "analysis_13_drift.joblib")
+    legacy_cache_cell11 = os.path.join(CHECKPOINT_DIR, "cell_11.joblib")
+    cache_cell11_load = None
+    for candidate in (cache_cell11, legacy_cache_cell11):
+        if not os.path.exists(candidate):
+            continue
+        candidate_payload = joblib.load(candidate)
+        if isinstance(candidate_payload, dict) and "df_plot" in candidate_payload:
+            cache_cell11_load = candidate_payload
+            print(f"  [LOAD] Found existing Drift results in {candidate}. Skipping calculation...")
+            break
 
-    if os.path.exists(cache_cell11):
-        print(f"  [LOAD] Found existing Drift results in {cache_cell11}. Skipping calculation...")
-        results_13 = joblib.load(cache_cell11)
-        df_plot = results_13["df_plot"]
+    if cache_cell11_load is not None:
+        results_13 = cache_cell11_load.get("results_13", cache_cell11_load)
+        df_plot = cache_cell11_load.get("df_plot", results_13["df_plot"])
     else:
         print(f"\n[Step 0] Significance Mask Setup...")
         # [Internal Note: Ensure you run the Stage 9 Significance Block before this cell]
@@ -2980,6 +3023,8 @@ if cell_active(13):
         # Store for next time
         results_13 = {'df_plot': df_plot}
         joblib.dump(results_13, cache_cell11)
+        save_checkpoint(13, {"results_13": results_13, "df_plot": df_plot})
+        save_intermediate("stage13_drift", {"results_13": results_13, "df_plot": df_plot})
 
     # =============================================================================
     # 3. STATISTICS & VISUALIZATION (Updated Layout: 1 Row, 3 Columns)
@@ -3118,7 +3163,8 @@ if cell_active(14):
             'data_threat': df_threat
         }
         joblib.dump(results_13_2, cache_cell12_part2)
-        save_checkpoint(12, {"results_13_2": results_13_2})
+        save_checkpoint(14, {"results_13_2": results_13_2})
+        save_intermediate("stage14_trajectories", {"results_13_2": results_13_2})
 
     # =============================================================================
     # 4. VISUALIZATION (Always Runs)
@@ -3230,6 +3276,8 @@ if cell_active(15):
 
         results_14_self = {'df_sad': df_sad_stats, 'df_hc': df_hc_stats}
         joblib.dump(results_14_self, cache_cell13)
+        save_checkpoint(15, {"results_14_self": results_14_self})
+        save_intermediate("stage15_decision_stats", {"results_14_self": results_14_self})
 
     # =============================================================================
     # 4. STATISTICS & VISUALIZATION

@@ -30,6 +30,7 @@ from sklearn.base import clone
 from sklearn.calibration import CalibratedClassifierCV, calibration_curve
 from sklearn.covariance import LedoitWolf
 from sklearn.feature_selection import RFE
+from sklearn.inspection import permutation_importance
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, brier_score_loss, classification_report, confusion_matrix
 from sklearn.metrics.pairwise import cosine_similarity
@@ -66,6 +67,8 @@ SUBJECT_CV_SPLITS = 5
 SUBJECT_INNER_SPLITS = 3
 CALIB_BINS = 5
 TOP_PCT = 95
+MIN_FDR_FEATURES_FOR_PRIMARY = 100
+SENSITIVITY_TOP_K = 100
 LOW_PCT = 5
 TWO_TAIL_LOW = 2.5
 TWO_TAIL_HIGH = 97.5
@@ -83,7 +86,14 @@ STAGE_INTERMEDIATE_MAP = {
     6: ["stage06_DriftEfficiency"],
     7: ["stage07_ProbabilisticOpening"],
     8: ["stage08_SpatialReAlignment"],
-    9: ["stage09_ReverseCrossDecoding"]
+    9: ["stage09_ReverseCrossDecoding"],
+    10: ["stage10_ClinicalScores", "stage23_clinical_scores"],
+    11: ["stage11_NeuralClinicalIndices", "stage24_neural_clinical_indices"],
+    12: ["stage12_MasterClinicalNeural", "stage26_master_clinical_neural"],
+    13: ["stage13_NeuralClinicalPearson", "stage27_neural_clinical_pearson"],
+    14: ["stage14_NeuralClinicalPartial", "stage28_neural_clinical_partial"],
+    15: ["stage15_NeuralClinicalZScore", "stage29_neural_clinical_zscore"],
+    16: ["stage16_NeuralClinicalOLS", "stage30_neural_clinical_ols"],
 }
 
 sns.set_context("poster")
@@ -97,7 +107,7 @@ def parse_runtime_args():
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument("--project_root", default=os.environ.get("PROJECT_ROOT", "/gscratch/fang/NARSAD"))
     parser.add_argument("--output_dir", default=os.environ.get("OUTPUT_DIR"))
-    parser.add_argument("--stage", type=int, default=None, help="Run a single logical stage (1-9 or 17).")
+    parser.add_argument("--stage", type=int, default=None, help="Run a single logical stage (1-16).")
     parser.add_argument(
         "--resume",
         action="store_true",
@@ -107,21 +117,51 @@ def parse_runtime_args():
         "--stage1_group",
         default=os.environ.get("STAGE1_GROUP", "ALL"),
         choices=["SAD", "HC", "ALL"],
-        help="For stage 8, compute importance for SAD, HC, or ALL.",
+        help="For stage 1, compute importance for SAD, HC, or ALL.",
     )
     parser.add_argument(
         "--importance_source",
         default=os.environ.get("IMPORTANCE_SOURCE", "auto"),
         choices=["auto", "combined", "group"],
         help=(
-            "How to load stage08 importance for downstream stages: "
-            "'combined' uses only stage08_importance.joblib; "
-            "'group' requires stage08_importance_SAD/HC; "
+            "How to load stage 1 importance for downstream stages: "
+            "'combined' uses only a combined importance joblib; "
+            "'group' requires per-group SAD/HC importance files; "
             "'auto' tries combined then per-group."
         ),
     )
     parser.add_argument("--n_jobs", type=int, default=int(os.environ.get("N_JOBS", "1")))
     parser.add_argument("--n_jobs_cv", type=int, default=int(os.environ.get("N_JOBS_CV", "1")))
+    parser.add_argument("--n_permutation", type=int, default=int(os.environ.get("N_PERMUTATION", "5000")))
+    parser.add_argument("--n_null_perms", type=int, default=int(os.environ.get("N_NULL_PERMS", "5000")))
+    parser.add_argument(
+        "--stage1_actual_repeats",
+        type=int,
+        default=int(os.environ.get("STAGE1_ACTUAL_REPEATS", os.environ.get("N_NULL_PERMS", "5000"))),
+        help="Total actual permutation-importance repeats for stage 1.",
+    )
+    parser.add_argument(
+        "--stage1_chunk_idx",
+        type=int,
+        default=(
+            None
+            if os.environ.get("STAGE1_CHUNK_IDX", os.environ.get("SLURM_ARRAY_TASK_ID")) is None
+            else int(os.environ.get("STAGE1_CHUNK_IDX", os.environ.get("SLURM_ARRAY_TASK_ID")))
+        ),
+        help="Zero-based stage 1 permutation-importance chunk index.",
+    )
+    parser.add_argument(
+        "--stage1_chunk_count",
+        type=int,
+        default=int(os.environ.get("STAGE1_CHUNK_COUNT", "1")),
+        help="Total number of stage 1 permutation-importance chunks.",
+    )
+    parser.add_argument(
+        "--stage1_merge",
+        action="store_true",
+        default=os.environ.get("STAGE1_MERGE", "0") == "1",
+        help="Merge stage 1 permutation-importance chunks instead of computing a chunk.",
+    )
     return parser.parse_known_args()
 
 
@@ -133,6 +173,12 @@ RESUME = _args.resume
 IMPORTANCE_SOURCE = _args.importance_source.lower()
 N_JOBS = _args.n_jobs
 N_JOBS_CV = _args.n_jobs_cv
+N_PERMUTATION = _args.n_permutation
+N_NULL_PERMS = _args.n_null_perms
+STAGE1_ACTUAL_REPEATS = _args.stage1_actual_repeats
+STAGE1_CHUNK_IDX = _args.stage1_chunk_idx
+STAGE1_CHUNK_COUNT = _args.stage1_chunk_count
+STAGE1_MERGE = _args.stage1_merge
 
 
 def configure_blas_threads():
@@ -239,24 +285,59 @@ def load_intermediate(name: str):
 
 
 def ensure_importance_loaded():
-    """Ensure importance_scores/masks are available using user-selected source."""
-    global importance_scores, importance_masks
-    if "importance_scores" in globals() and importance_scores:
+    """Ensure importance scores/masks are available using user-selected source."""
+    global importance_scores, importance_masks, importance_mask_permutated, importance_scores_permutated
+    global importance_masks_top100_positive
+    if (
+        "importance_scores" in globals()
+        and importance_scores
+        and "importance_masks" in globals()
+        and importance_masks
+    ):
         return importance_scores, importance_masks
 
     merged_scores = {}
     merged_masks = {}
+    merged_p_values = {}
+    merged_top100_masks = {}
 
     def load_combined():
-        prev = load_intermediate("stage08_importance")
-        merged_scores.update(prev.get("importance_scores", {}))
-        merged_masks.update(prev.get("importance_masks", {}))
+        for name in (
+            "stage01_importance_permutated",
+            "stage08_importance",
+            "stage09_permutation_masks",
+        ):
+            try:
+                prev = load_intermediate(name)
+            except FileNotFoundError:
+                continue
+            merged_scores.update(prev.get("importance_scores_permutated", prev.get("importance_scores", {})))
+            merged_masks.update(prev.get("importance_mask_permutated", prev.get("importance_masks_permutated", prev.get("importance_masks", {}))))
+            merged_p_values.update(prev.get("p_values_permutated", {}))
+            merged_top100_masks.update(prev.get("importance_masks_top100_positive", prev.get("importance_mask_top100_positive", {})))
+            return
+        raise FileNotFoundError("No combined importance intermediate found.")
 
     def load_groups():
         for grp in ("SAD", "HC"):
-            prev = load_intermediate(f"stage08_importance_{grp}")
-            merged_scores.update(prev.get("importance_scores", {}))
-            merged_masks.update(prev.get("importance_masks", {}))
+            loaded = False
+            for name in (
+                f"stage01_importance_permutated_{grp}",
+                f"stage08_importance_{grp}",
+                f"stage09_permutation_masks_{grp}",
+            ):
+                try:
+                    prev = load_intermediate(name)
+                except FileNotFoundError:
+                    continue
+                merged_scores.update(prev.get("importance_scores_permutated", prev.get("importance_scores", {})))
+                merged_masks.update(prev.get("importance_mask_permutated", prev.get("importance_masks_permutated", prev.get("importance_masks", {}))))
+                merged_p_values.update(prev.get("p_values_permutated", {}))
+                merged_top100_masks.update(prev.get("importance_masks_top100_positive", prev.get("importance_mask_top100_positive", {})))
+                loaded = True
+                break
+            if not loaded:
+                raise FileNotFoundError(f"Missing per-group importance intermediate for {grp}.")
 
     if IMPORTANCE_SOURCE == "combined":
         try_order = [load_combined]
@@ -288,7 +369,70 @@ def ensure_importance_loaded():
 
     importance_scores = merged_scores
     importance_masks = merged_masks
+    importance_scores_permutated = merged_scores
+    importance_mask_permutated = merged_masks
+    importance_masks_top100_positive = merged_top100_masks
+    if merged_p_values:
+        globals()["p_values_permutated"] = merged_p_values
     return importance_scores, importance_masks
+
+
+def make_top_positive_importance_mask(scores, top_k=SENSITIVITY_TOP_K):
+    """Return a pre-specified top-k mask among features with positive importance."""
+    scores = np.asarray(scores)
+    mask = np.zeros(scores.shape, dtype=bool)
+    positive_idx = np.where(scores > 0)[0]
+    if positive_idx.size == 0:
+        return mask
+    ranked_positive = positive_idx[np.argsort(scores[positive_idx])[::-1]]
+    selected = ranked_positive[:min(int(top_k), ranked_positive.size)]
+    mask[selected] = True
+    return mask
+
+
+def get_analysis_feature_masks(label):
+    """Use FDR masks when sufficiently populated, otherwise top-100 positive sensitivity masks."""
+    global importance_masks_top100_positive
+    if 'importance_masks' not in globals() or not importance_masks:
+        ensure_importance_loaded()
+    if 'importance_masks_top100_positive' not in globals() or not importance_masks_top100_positive:
+        importance_masks_top100_positive = {
+            grp: make_top_positive_importance_mask(scores)
+            for grp, scores in importance_scores.items()
+        }
+
+    selected_masks = {}
+    feature_space = {}
+    for grp in ("SAD", "HC"):
+        fdr_mask = np.asarray(importance_masks[grp], dtype=bool)
+        fdr_n = int(np.sum(fdr_mask))
+        top100_mask = np.asarray(importance_masks_top100_positive.get(grp), dtype=bool)
+        top100_n = int(np.sum(top100_mask)) if top100_mask.size else 0
+
+        if fdr_n < MIN_FDR_FEATURES_FOR_PRIMARY and top100_n > 0:
+            selected_masks[grp] = top100_mask
+            feature_space[grp] = {
+                "source": "top100_positive_permutation_importance_sensitivity",
+                "n_features": top100_n,
+                "primary_fdr_n_features": fdr_n,
+                "threshold": f"FDR feature count < {MIN_FDR_FEATURES_FOR_PRIMARY}",
+            }
+            print(
+                f"  ! {label} {grp}: whole-brain FDR selected {fdr_n} features "
+                f"(< {MIN_FDR_FEATURES_FOR_PRIMARY}); using pre-specified top-{SENSITIVITY_TOP_K} "
+                f"positive permutation-importance sensitivity mask ({top100_n} features)."
+            )
+        else:
+            selected_masks[grp] = fdr_mask
+            feature_space[grp] = {
+                "source": "whole_brain_fdr_permutation_importance",
+                "n_features": fdr_n,
+                "primary_fdr_n_features": fdr_n,
+                "threshold": "q < 0.05 and positive importance",
+            }
+            print(f"  > {label} {grp}: using whole-brain FDR mask ({fdr_n} features).")
+
+    return selected_masks, feature_space
 
 
 def stage_active(stage_id: int) -> bool:
@@ -372,35 +516,70 @@ def get_sig_star(p):
     return "*" if p < 0.05 else "ns"
 
 
-def calculate_plasticity_vectors(X_learn, y_learn, sub_learn, X_targ, y_targ, sub_targ, cond_learn, cond_target_label):
+def clinical_group_column(df):
+    """Return the most reliable group column after clinical/neural/meta merges."""
+    for col in ("Analysis_Group", "Group", "Group_x", "Group_y"):
+        if col in df.columns:
+            return col
+    return None
+
+
+def partial_corr_residualized(df, x_col, y_col, covariates):
+    """Partial correlation via residualization; avoids requiring pingouin on the cluster."""
+    cols = [x_col, y_col] + [c for c in covariates if c in df.columns]
+    valid = df[cols].dropna().apply(pd.to_numeric, errors="coerce").dropna()
+    if len(valid) <= len(covariates) + 2:
+        return np.nan, np.nan, len(valid)
+    if not covariates:
+        r_val, p_val = pearsonr(valid[x_col], valid[y_col])
+        return r_val, p_val, len(valid)
+
+    covars = [c for c in covariates if c in valid.columns]
+    if not covars:
+        r_val, p_val = pearsonr(valid[x_col], valid[y_col])
+        return r_val, p_val, len(valid)
+
+    design = sm.add_constant(valid[covars], has_constant="add")
+    x_resid = sm.OLS(valid[x_col], design).fit().resid
+    y_resid = sm.OLS(valid[y_col], design).fit().resid
+    r_val, p_val = pearsonr(x_resid, y_resid)
+    return r_val, p_val, len(valid)
+
+
+NEURAL_CLINICAL_METRICS = [
+    "Neural_Dist_Threat_Safety",
+    "Neural_Dist_Safety_Backgr",
+    "Neural_Rigidity_Slope",
+    "Neural_Safety_Mean",
+    "Neural_Uncertainty_Entropy",
+    "Neural_Sharpness_Kurtosis",
+]
+CLINICAL_INDICES = ["lsas_total", "lsas_fear", "lsas_avoid", "dass_anxiety", "dass_stress", "ecr_total"]
+CLINICAL_COVARIATES = ["demo_age"]
+
+
+def calculate_plasticity_vectors(X_learn, y_learn, sub_learn, X_targ, y_targ, sub_targ, mask, cond_l, cond_t):
+    """Calculate masked representational alignment between learning and target states."""
     unique_subs = np.intersect1d(np.unique(sub_learn), np.unique(sub_targ))
     res = {'sub': [], 'projection': [], 'cosine': [], 'init_dist': []}
     for sub in unique_subs:
-        xl = X_learn[sub_learn == sub]
-        yl = y_learn[sub_learn == sub]
-        xt = X_targ[sub_targ == sub]
-        yt = y_targ[sub_targ == sub]
-        mask_tgt_cond = yt == cond_target_label
-        if np.sum(mask_tgt_cond) == 0:
+        mask_l = (sub_learn == sub) & (y_learn == cond_l)
+        mask_t = (sub_targ == sub) & (y_targ == cond_t)
+        if np.sum(mask_l) == 0 or np.sum(mask_t) == 0:
             continue
-        P_target = np.mean(xt[mask_tgt_cond], axis=0)
-        idx_lrn = np.where(yl == cond_learn)[0]
-        if len(idx_lrn) < 2:
+
+        vec_l = np.mean(X_learn[mask_l][:, mask], axis=0)
+        vec_t = np.mean(X_targ[mask_t][:, mask], axis=0)
+        norm_l = norm(vec_l)
+        norm_t = norm(vec_t)
+        if norm_l == 0 or norm_t == 0:
             continue
-        cutoff = len(idx_lrn) // 2
-        P_start = np.mean(xl[idx_lrn[:cutoff]], axis=0)
-        P_end = np.mean(xl[idx_lrn[cutoff:]], axis=0)
-        V_axis = P_target - P_start
-        V_drift = P_end - P_start
-        norm_axis = norm(V_axis)
-        norm_drift = norm(V_drift)
-        if norm_axis == 0 or norm_drift == 0:
-            continue
-        dot_prod = np.dot(V_drift, V_axis)
+
+        dot_prod = np.dot(vec_l, vec_t)
         res['sub'].append(sub)
-        res['projection'].append(dot_prod / norm_axis)
-        res['cosine'].append(dot_prod / (norm_drift * norm_axis))
-        res['init_dist'].append(norm_axis)
+        res['projection'].append(dot_prod / norm_t)
+        res['cosine'].append(dot_prod / (norm_l * norm_t))
+        res['init_dist'].append(norm(vec_l - vec_t))
     return pd.DataFrame(res)
 
 
@@ -948,55 +1127,33 @@ def tag_df(df, grp, cond):
     return d
 
 
-def calc_trajectory(
-    X_learn, y_learn, sub_learn,    # The trials we want to project (the "Movie")
-    X_targ, y_targ, sub_targ,       # The dataset containing the Goal State
-    mask, 
-    cond_learn,                     # Condition to track (e.g., CSS)
-    cond_target_label               # Label of Goal State (e.g., CS- or CSR)
-):
-    # Center Data separately to remove session effects
-    
+def calc_trajectory(X_learn, y_learn, sub_learn, X_targ, y_targ, sub_targ, mask, cond_l, cond_t):
+    """Project individual trials onto the axis from early learning to target centroid."""
     unique_subs = np.intersect1d(np.unique(sub_learn), np.unique(sub_targ))
     res = {'sub': [], 'trial': [], 'score': []}
     
     for sub in unique_subs:
-        # 1. Get Subject Data
-        xl = X_L[sub_learn == sub]; yl = y_learn[sub_learn == sub]
-        xt = X_T[sub_targ == sub]; yt = y_targ[sub_targ == sub]
+        mask_sub_l = (sub_learn == sub) & (y_learn == cond_l)
+        mask_sub_t = (sub_targ == sub) & (y_targ == cond_t)
+        if np.sum(mask_sub_l) < 2 or np.sum(mask_sub_t) == 0:
+            continue
         
-        # 2. Define Start Point (Early Learning)
-        # We define "Start" as the centroid of the FIRST HALF of the learning trials
-        mask_l = (yl == cond_learn)
-        trials_l = xl[mask_l]
-        if len(trials_l) < 2: continue
+        xl = X_learn[mask_sub_l][:, mask]
+        xt = X_targ[mask_sub_t][:, mask]
         
-        cutoff = max(1, len(trials_l) // 2)
-        P_start = np.mean(trials_l[:cutoff], axis=0)
-        
-        # 3. Define Target Point
-        mask_t = (yt == cond_target_label)
-        if np.sum(mask_t) == 0: continue
-        P_target = np.mean(xt[mask_t], axis=0)
-        
-        # 4. Define Axis
-        V_axis = P_target - P_start
-        sq_norm = np.dot(V_axis, V_axis)
-        if sq_norm == 0: continue
-        
-        # 5. Project Each Trial
-        # Logic: Score = ((Trial - Start) . Axis) / ||Axis||^2
-        # This normalizes the progress: 0.0 = Start, 1.0 = Target
-        
-        # We center the trials relative to the Start Point of this specific axis
-        trials_centered = trials_l - P_start
-        
-        scores = np.dot(trials_centered, V_axis) / sq_norm
-        
-        for i, s in enumerate(scores):
+        half_idx = len(xl) // 2
+        vec_start = np.mean(xl[:half_idx], axis=0)
+        vec_target = np.mean(xt, axis=0)
+        axis_vec = vec_target - vec_start
+        axis_norm = norm(axis_vec)
+        if axis_norm == 0:
+            continue
+
+        for i, trial_vec in enumerate(xl):
+            score = np.dot(trial_vec - vec_start, axis_vec) / (axis_norm**2)
             res['sub'].append(sub)
             res['trial'].append(i + 1)
-            res['score'].append(s)
+            res['score'].append(score)
             
     return pd.DataFrame(res)
 
@@ -1564,13 +1721,21 @@ if stage_active(1):
         print("  ! WARNING: 'parcel_names_ext' not found. Using generic feature indices for plotting.")
         parcel_names_ext = [f"Feat_{i}" for i in range(X_sad.shape[1])]
     
-    # Settings
+    # Settings: mirror MemoryFearNetwork's empirical permutation-importance
+    # procedure, but use whole-brain BH-FDR for Schaefer feature selection.
     target_pair = ['CSR', 'CSS']
-    n_repeats = 100 # Number of permutation iterations for importance
-    PERCENTILE_THRESH = 95  # Top 5% most important voxels
+    ALPHA_LEVEL = 0.05
+    PERCENTILE_THRESH = None
     importance_masks = {}
     importance_scores = {}
+    importance_masks_top100_positive = {}
+    feature_space_reports = {}
+    p_values_permutated = {}
+    q_values_permutated = {}
     stage1_group = _args.stage1_group.upper()
+    stage1_groups = ['SAD', 'HC'] if stage1_group == "ALL" else [stage1_group]
+    stage1_chunk_dir = os.path.join(CHECKPOINT_DIR, "stage01_importance_chunks")
+    os.makedirs(stage1_chunk_dir, exist_ok=True)
 
     # If resuming, merge any existing stage 1 intermediates (SAD/HC)
     if RESUME:
@@ -1583,57 +1748,207 @@ if stage_active(1):
         except FileNotFoundError:
             pass
 
-    # =============================================================================
-    # 1. Compute Importance for SAD
-    # =============================================================================
-    if stage1_group in ("SAD", "ALL"):
-        print("1. Computing Importance for SAD Placebo...")
+    def stage1_bounds(total, chunk_idx, chunk_count):
+        total = int(total)
+        chunk_count = max(1, int(chunk_count))
+        chunk_idx = 0 if chunk_idx is None else int(chunk_idx)
+        if chunk_idx < 0 or chunk_idx >= chunk_count:
+            raise ValueError(f"Invalid chunk index {chunk_idx}; expected 0..{chunk_count - 1}")
+        base = total // chunk_count
+        rem = total % chunk_count
+        start = chunk_idx * base + min(chunk_idx, rem)
+        end = start + base + (1 if chunk_idx < rem else 0)
+        return start, end
 
-        # Slice Data (CSR vs CSS only)
-        mask_sad = np.isin(y_sad, target_pair)
-        X_sad_p = X_sad[mask_sad]
-        y_sad_p = y_sad[mask_sad]
-        sub_sad_p = sub_sad[mask_sad]
+    def stage1_prepare_group(group_name):
+        if group_name == "SAD":
+            mask_cls = np.isin(y_sad, target_pair)
+            return X_sad[mask_cls], y_sad[mask_cls], res_sad['model']
+        mask_cls = np.isin(y_hc, target_pair)
+        return X_hc[mask_cls], y_hc[mask_cls], res_hc['model']
 
-        # Compute Importance (CV-based)
-        imp_sad_mean = compute_perm_importance_cv(
-            res_sad['model'], X_sad_p, y_sad_p, sub_sad_p,
-            n_repeats=n_repeats, n_splits=SUBJECT_CV_SPLITS
+    def stage1_chunk_path(group_name, chunk_idx):
+        return os.path.join(stage1_chunk_dir, f"stage01_{group_name}_chunk_{int(chunk_idx):04d}.joblib")
+
+    def stage1_save_group(group_name, actual_imp, p_values, null_n):
+        _, q_values, _, _ = multipletests(p_values, alpha=ALPHA_LEVEL, method='fdr_bh')
+        sig_mask = (q_values < ALPHA_LEVEL) & (actual_imp > 0)
+        top100_mask = make_top_positive_importance_mask(actual_imp, SENSITIVITY_TOP_K)
+        fdr_n = int(np.sum(sig_mask))
+        top100_n = int(np.sum(top100_mask))
+        fallback_recommended = fdr_n < MIN_FDR_FEATURES_FOR_PRIMARY
+        payload = {
+            "importance_mask_permutated": {group_name: sig_mask},
+            "importance_masks_permutated": {group_name: sig_mask},
+            "importance_masks_top100_positive": {group_name: top100_mask},
+            "importance_scores_permutated": {group_name: actual_imp},
+            "p_values_permutated": {group_name: p_values},
+            "q_values_permutated": {group_name: q_values},
+            "null_permutations": {group_name: int(null_n)},
+            "actual_repeats": {group_name: int(STAGE1_ACTUAL_REPEATS)},
+            "fdr_feature_counts": {group_name: fdr_n},
+            "top100_positive_feature_counts": {group_name: top100_n},
+            "fallback_sensitivity_recommended": {group_name: fallback_recommended},
+            "fallback_sensitivity_rule": (
+                f"Use top-{SENSITIVITY_TOP_K} positive permutation-importance mask "
+                f"when whole-brain FDR selects fewer than {MIN_FDR_FEATURES_FOR_PRIMARY} features."
+            ),
+            "fdr_method": "fdr_bh_whole_brain",
+        }
+        group_ckpt = os.path.join(CHECKPOINT_DIR, f"stage01_importance_{group_name}.joblib")
+        group_intermediate = _intermediate_path(f"stage01_importance_permutated_{group_name}")
+        joblib.dump(payload, group_ckpt)
+        joblib.dump(payload, group_intermediate)
+        importance_masks[group_name] = sig_mask
+        importance_masks_top100_positive[group_name] = top100_mask
+        importance_scores[group_name] = actual_imp
+        p_values_permutated[group_name] = p_values
+        q_values_permutated[group_name] = q_values
+        feature_space_reports[group_name] = {
+            "fdr_n_features": fdr_n,
+            "top100_positive_n_features": top100_n,
+            "fallback_sensitivity_recommended": fallback_recommended,
+        }
+        print(
+            f"   > {group_name}: {fdr_n} whole-brain FDR-significant "
+            f"features (q < {ALPHA_LEVEL}, positive importance)."
+        )
+        if fallback_recommended:
+            print(
+                f"   ! {group_name}: FDR selected fewer than {MIN_FDR_FEATURES_FOR_PRIMARY} features; "
+                f"pre-specified top-{SENSITIVITY_TOP_K} positive-importance sensitivity mask has "
+                f"{top100_n} features."
+            )
+
+    def stage1_compute_chunk(group_name):
+        chunk_idx = 0 if STAGE1_CHUNK_IDX is None else int(STAGE1_CHUNK_IDX)
+        chunk_count = max(1, int(STAGE1_CHUNK_COUNT))
+        actual_start, actual_end = stage1_bounds(STAGE1_ACTUAL_REPEATS, chunk_idx, chunk_count)
+        null_start, null_end = stage1_bounds(N_NULL_PERMS, chunk_idx, chunk_count)
+        actual_repeats = actual_end - actual_start
+        null_repeats = null_end - null_start
+        if actual_repeats <= 0 and null_repeats <= 0:
+            print(f"  [SKIP] {group_name} chunk {chunk_idx + 1}/{chunk_count} has no work.")
+            return
+
+        X_target, y_target, model_template = stage1_prepare_group(group_name)
+        print(
+            f"--- Stage 1 importance chunk {chunk_idx + 1}/{chunk_count} for {group_name}: "
+            f"actual repeats {actual_start}:{actual_end}, null perms {null_start}:{null_end} ---"
         )
 
-        # Define Mask: Top 5% most important voxels
-        thr_sad = np.percentile(imp_sad_mean, PERCENTILE_THRESH)
-        mask_sad_sig = imp_sad_mean >= thr_sad
-        importance_masks['SAD'] = mask_sad_sig
-        importance_scores['SAD'] = imp_sad_mean
+        actual_sum = np.zeros(X_target.shape[1], dtype=np.float64)
+        if actual_repeats > 0:
+            actual_res = permutation_importance(
+                model_template,
+                X_target,
+                y_target,
+                n_repeats=actual_repeats,
+                scoring=forced_choice_scorer,
+                n_jobs=N_JOBS,
+                random_state=RANDOM_STATE + actual_start,
+            )
+            actual_sum = np.asarray(actual_res.importances_mean, dtype=np.float64) * actual_repeats
 
-        print(f"   > SAD: Found {np.sum(mask_sad_sig)} predictive voxels (Top 5%, thr={thr_sad:.6f}).")
+        null_dist = np.zeros((null_repeats, X_target.shape[1]), dtype=np.float32)
+        for row, perm_idx in enumerate(range(null_start, null_end)):
+            rng = np.random.default_rng(RANDOM_STATE + perm_idx)
+            y_shuffled = rng.permutation(y_target)
+            null_model = clone(model_template).fit(X_target, y_shuffled)
+            null_res = permutation_importance(
+                null_model,
+                X_target,
+                y_shuffled,
+                n_repeats=1,
+                scoring=forced_choice_scorer,
+                n_jobs=N_JOBS,
+                random_state=RANDOM_STATE + 100000 + perm_idx,
+            )
+            null_dist[row, :] = np.asarray(null_res.importances_mean, dtype=np.float32)
+            if (row + 1) % 10 == 0 or (row + 1) == null_repeats:
+                print(f"   > {group_name} chunk {chunk_idx + 1}/{chunk_count}: {row + 1}/{null_repeats} null permutations complete.")
 
-    # =============================================================================
-    # 2. Compute Importance for HC
-    # =============================================================================
-    if stage1_group in ("HC", "ALL"):
-        print("2. Computing Importance for HC Placebo...")
+        chunk_payload = {
+            "group": group_name,
+            "chunk_idx": chunk_idx,
+            "chunk_count": chunk_count,
+            "actual_start": actual_start,
+            "actual_end": actual_end,
+            "actual_repeats": actual_repeats,
+            "actual_importance_sum": actual_sum,
+            "null_start": null_start,
+            "null_end": null_end,
+            "null_dist": null_dist,
+        }
+        out_path = stage1_chunk_path(group_name, chunk_idx)
+        joblib.dump(chunk_payload, out_path, compress=3)
+        print(f"  [SAVE] Stage 1 importance chunk saved -> {out_path}")
 
-        # Slice Data
-        mask_hc = np.isin(y_hc, target_pair)
-        X_hc_p = X_hc[mask_hc]
-        y_hc_p = y_hc[mask_hc]
-        sub_hc_p = sub_hc[mask_hc]
+        if chunk_count == 1:
+            actual_imp = actual_sum / max(1, actual_repeats)
+            p_values = (np.sum(null_dist >= actual_imp, axis=0) / max(1, null_repeats)).astype(np.float64)
+            stage1_save_group(group_name, actual_imp, p_values, null_repeats)
 
-        # Compute Importance (CV-based)
-        imp_hc_mean = compute_perm_importance_cv(
-            res_hc['model'], X_hc_p, y_hc_p, sub_hc_p,
-            n_repeats=n_repeats, n_splits=SUBJECT_CV_SPLITS
+    def stage1_merge_group(group_name):
+        paths = sorted(glob.glob(os.path.join(stage1_chunk_dir, f"stage01_{group_name}_chunk_*.joblib")))
+        if not paths:
+            raise FileNotFoundError(f"No stage 1 importance chunk files found for {group_name} in {stage1_chunk_dir}")
+        print(f"--- Stage 1 importance merge for {group_name}: {len(paths)} chunk files ---")
+        actual_sum = None
+        actual_n = 0
+        null_n = 0
+        count_ge = None
+        chunks_seen = set()
+
+        for path in paths:
+            payload = joblib.load(path)
+            chunks_seen.add(int(payload["chunk_idx"]))
+            chunk_actual = np.asarray(payload["actual_importance_sum"], dtype=np.float64)
+            actual_sum = chunk_actual if actual_sum is None else actual_sum + chunk_actual
+            actual_n += int(payload["actual_repeats"])
+
+        if actual_sum is None or actual_n == 0:
+            raise ValueError(f"No actual importance repeats found for {group_name}.")
+        actual_imp = actual_sum / actual_n
+
+        for path in paths:
+            payload = joblib.load(path)
+            null_dist = np.asarray(payload["null_dist"])
+            if null_dist.size == 0:
+                continue
+            ge = np.sum(null_dist >= actual_imp, axis=0, dtype=np.int64)
+            count_ge = ge if count_ge is None else count_ge + ge
+            null_n += null_dist.shape[0]
+
+        if count_ge is None or null_n == 0:
+            raise ValueError(f"No null permutation rows found for {group_name}.")
+        expected_chunks = max(int(joblib.load(paths[0]).get("chunk_count", len(paths))), len(paths))
+        if len(chunks_seen) < expected_chunks:
+            raise FileNotFoundError(
+                f"Only found {len(chunks_seen)}/{expected_chunks} stage 1 chunks for {group_name}. "
+                "Wait for all array tasks to finish before merging."
+            )
+        p_values = count_ge / null_n
+        stage1_save_group(group_name, actual_imp, p_values, null_n)
+
+    print(
+        f"--- Stage 1 empirical permutation-importance masks "
+        f"(group={stage1_group}, null={N_NULL_PERMS}, actual_repeats={STAGE1_ACTUAL_REPEATS}, "
+        f"chunks={STAGE1_CHUNK_COUNT}, merge={STAGE1_MERGE}, correction=whole-brain FDR) ---"
+    )
+
+    for group_name in stage1_groups:
+        if STAGE1_MERGE:
+            stage1_merge_group(group_name)
+        else:
+            stage1_compute_chunk(group_name)
+
+    if not importance_scores:
+        print(
+            "--- Stage 1 importance chunk complete. No final masks were produced in this run; "
+            "merge chunks with --stage1_merge before downstream analyses. ---"
         )
-
-        # Define Mask: Top 5% most important voxels
-        thr_hc = np.percentile(imp_hc_mean, PERCENTILE_THRESH)
-        mask_hc_sig = imp_hc_mean >= thr_hc
-        importance_masks['HC'] = mask_hc_sig
-        importance_scores['HC'] = imp_hc_mean
-
-        print(f"   > HC:  Found {np.sum(mask_hc_sig)} predictive voxels (Top 5%, thr={thr_hc:.6f}).")
+        raise SystemExit(0)
     
     # =============================================================================
     # 3. Visualization (River Plot)
@@ -1661,23 +1976,67 @@ if stage_active(1):
     except Exception as e:
         print(f"  ! Visualization skipped due to error: {e}")
     
-    print("Permutated Importance masks generated and stored in 'permutated_importance_masks'.")
+    importance_mask_permutated = importance_masks
+    importance_scores_permutated = importance_scores
+    print("Permutated Importance masks generated and stored in 'importance_mask_permutated'.")
     _save_result("results_1_importance_mask_permutated", importance_masks)
+    _save_result("results_1_importance_mask_top100_positive", importance_masks_top100_positive)
     _save_result("results_1_importance_scores_permutated", importance_scores)
+    _save_result("results_1_importance_p_values_permutated", p_values_permutated)
+    _save_result("results_1_importance_q_values_permutated", q_values_permutated)
     for grp in importance_scores.keys():
         _save_result(f"results_1_importance_masks_permutated_{grp}", {grp: importance_masks.get(grp)})
+        _save_result(f"results_1_importance_masks_top100_positive_{grp}", {grp: importance_masks_top100_positive.get(grp)})
         _save_result(f"results_1_importance_scores_permutated_{grp}", {grp: importance_scores.get(grp)})
     save_checkpoint(1, {
+        "importance_mask_permutated": importance_masks,
         "importance_masks_permutated": importance_masks,
+        "importance_masks_top100_positive": importance_masks_top100_positive,
         "importance_scores_permutated": importance_scores,
+        "p_values_permutated": p_values_permutated,
+        "q_values_permutated": q_values_permutated,
+        "feature_space_reports": feature_space_reports,
+        "fdr_method": "fdr_bh_whole_brain",
+        "fallback_sensitivity_rule": (
+            f"Use top-{SENSITIVITY_TOP_K} positive permutation-importance mask when whole-brain FDR "
+            f"selects fewer than {MIN_FDR_FEATURES_FOR_PRIMARY} features."
+        ),
         "PERCENTILE_THRESH_permutated": PERCENTILE_THRESH,
         "thr_sad_permutated": locals().get("thr_sad"),
         "thr_hc_permutated": locals().get("thr_hc"),
         "parcel_names_ext_permutated": parcel_names_ext,
     })
     save_intermediate("stage01_importance_permutated", {
+        "importance_mask_permutated": importance_masks,
         "importance_masks_permutated": importance_masks,
+        "importance_masks_top100_positive": importance_masks_top100_positive,
         "importance_scores_permutated": importance_scores,
+        "p_values_permutated": p_values_permutated,
+        "q_values_permutated": q_values_permutated,
+        "feature_space_reports": feature_space_reports,
+        "fdr_method": "fdr_bh_whole_brain",
+        "fallback_sensitivity_rule": (
+            f"Use top-{SENSITIVITY_TOP_K} positive permutation-importance mask when whole-brain FDR "
+            f"selects fewer than {MIN_FDR_FEATURES_FOR_PRIMARY} features."
+        ),
+        "PERCENTILE_THRESH_permutated": PERCENTILE_THRESH,
+        "thr_sad_permutated": locals().get("thr_sad"),
+        "thr_hc_permutated": locals().get("thr_hc"),
+        "parcel_names_ext_permutated": parcel_names_ext,
+    })
+    save_intermediate("stage09_permutation_masks", {
+        "importance_mask_permutated": importance_masks,
+        "importance_masks_permutated": importance_masks,
+        "importance_masks_top100_positive": importance_masks_top100_positive,
+        "importance_scores_permutated": importance_scores,
+        "p_values_permutated": p_values_permutated,
+        "q_values_permutated": q_values_permutated,
+        "feature_space_reports": feature_space_reports,
+        "fdr_method": "fdr_bh_whole_brain",
+        "fallback_sensitivity_rule": (
+            f"Use top-{SENSITIVITY_TOP_K} positive permutation-importance mask when whole-brain FDR "
+            f"selects fewer than {MIN_FDR_FEATURES_FOR_PRIMARY} features."
+        ),
         "PERCENTILE_THRESH_permutated": PERCENTILE_THRESH,
         "thr_sad_permutated": locals().get("thr_sad"),
         "thr_hc_permutated": locals().get("thr_hc"),
@@ -1685,8 +2044,36 @@ if stage_active(1):
     })
     for grp in importance_scores.keys():
         save_intermediate(f"stage01_importance_permutated_{grp}", {
+            "importance_mask_permutated": {grp: importance_masks.get(grp)},
             "importance_masks_permutated": {grp: importance_masks.get(grp)},
+            "importance_masks_top100_positive": {grp: importance_masks_top100_positive.get(grp)},
             "importance_scores_permutated": {grp: importance_scores.get(grp)},
+            "p_values_permutated": {grp: p_values_permutated.get(grp)},
+            "q_values_permutated": {grp: q_values_permutated.get(grp)},
+            "feature_space_reports": {grp: feature_space_reports.get(grp)},
+            "fdr_method": "fdr_bh_whole_brain",
+            "fallback_sensitivity_rule": (
+                f"Use top-{SENSITIVITY_TOP_K} positive permutation-importance mask when whole-brain FDR "
+                f"selects fewer than {MIN_FDR_FEATURES_FOR_PRIMARY} features."
+            ),
+            "PERCENTILE_THRESH_permutated": PERCENTILE_THRESH,
+            "thr_sad_permutated": locals().get("thr_sad"),
+            "thr_hc_permutated": locals().get("thr_hc"),
+            "parcel_names_ext_permutated": parcel_names_ext,
+        })
+        save_intermediate(f"stage09_permutation_masks_{grp}", {
+            "importance_mask_permutated": {grp: importance_masks.get(grp)},
+            "importance_masks_permutated": {grp: importance_masks.get(grp)},
+            "importance_masks_top100_positive": {grp: importance_masks_top100_positive.get(grp)},
+            "importance_scores_permutated": {grp: importance_scores.get(grp)},
+            "p_values_permutated": {grp: p_values_permutated.get(grp)},
+            "q_values_permutated": {grp: q_values_permutated.get(grp)},
+            "feature_space_reports": {grp: feature_space_reports.get(grp)},
+            "fdr_method": "fdr_bh_whole_brain",
+            "fallback_sensitivity_rule": (
+                f"Use top-{SENSITIVITY_TOP_K} positive permutation-importance mask when whole-brain FDR "
+                f"selects fewer than {MIN_FDR_FEATURES_FOR_PRIMARY} features."
+            ),
             "PERCENTILE_THRESH_permutated": PERCENTILE_THRESH,
             "thr_sad_permutated": locals().get("thr_sad"),
             "thr_hc_permutated": locals().get("thr_hc"),
@@ -1726,6 +2113,12 @@ if stage_active(1):
             "spatial_results": locals().get("spatial_results"),
             "importance_masks": importance_masks,
             "importance_scores": importance_scores,
+            "importance_mask_permutated": importance_mask_permutated,
+            "importance_masks_top100_positive": importance_masks_top100_positive,
+            "importance_scores_permutated": importance_scores_permutated,
+            "p_values_permutated": p_values_permutated,
+            "q_values_permutated": q_values_permutated,
+            "feature_space_reports": feature_space_reports,
             "PERCENTILE_THRESH": PERCENTILE_THRESH,
             "thr_sad": locals().get("thr_sad"),
             "thr_hc": locals().get("thr_hc"),
@@ -1735,37 +2128,29 @@ if stage_active(1):
     
 
 if stage_active(2):
-    # Cell 9: Analysis 1.2 - Static Representational Topology (Top 5% | Centroid)
+    # Cell 9: Analysis 1.2 - Static Representational Topology (FDR or top-100 sensitivity | Centroid)
     # Objective: Characterize the stable organization of the social learning space.
-    # Constraint: Top 5% most predictive features per group.
+    # Constraint: whole-brain FDR permutation-importance masks, with top-100 positive sensitivity fallback.
     # Method: Cross-validated Mahalanobis (crossnobis) distance with shrinkage covariance, averaged over split-half repeats.
     # Tests: Group Comparison (SAD vs HC) AND One-Sample Test (Dist > 0).
     
-    print("--- Running Analysis 1.2: Static Representational Topology (Top 5% | Centroid) ---")
+    print("--- Running Analysis 1.2: Static Representational Topology (FDR/top-100 sensitivity | Centroid) ---")
     
     from scipy.stats import ttest_1samp
     
     # Global Constants
     RDM_CONDITIONS = ["CS-", "CSS", "CSR"] 
-    PERCENTILE_THRESH = TOP_PCT  # Top 5%
+    PERCENTILE_THRESH = None
     
     # =============================================================================
-    # 0. Feature Selection (Top 5%)
-    # Rationale: focus on the strongest predictive voxels to stabilize crossnobis geometry.
+    # 0. Feature Selection (Empirical whole-brain FDR masks)
+    # Rationale: use the same permutation-derived feature set as downstream analyses.
     # =============================================================================
-    print(f"\n[Step 0] Selecting Top {100-PERCENTILE_THRESH}% Neural Features...")
+    print("\n[Step 0] Selecting empirical whole-brain FDR neural features...")
     
-    if 'importance_scores' not in locals() or not importance_scores:
-        importance_scores, importance_masks = ensure_importance_loaded()
-    
-    scores_sad = importance_scores['SAD']
-    mask_sad_top5, thresh_sad = get_top_percentile_mask(scores_sad, PERCENTILE_THRESH)
-    
-    scores_hc = importance_scores['HC']
-    mask_hc_top5, thresh_hc = get_top_percentile_mask(scores_hc, PERCENTILE_THRESH)
-    
-    print(f"  > SAD Top 5% Network: {np.sum(mask_sad_top5)} voxels (Threshold: {thresh_sad:.5f})")
-    print(f"  > HC Top 5% Network:  {np.sum(mask_hc_top5)} voxels (Threshold: {thresh_hc:.5f})")
+    analysis_masks, feature_space_12 = get_analysis_feature_masks("Analysis 1.2")
+    mask_sad_top5 = analysis_masks['SAD']
+    mask_hc_top5 = analysis_masks['HC']
     
     # =============================================================================
     # 1. Data Preparation (Recovering CS-)
@@ -1800,7 +2185,7 @@ if stage_active(2):
     mask_sad_grp = (grp_raw == "SAD")
     mask_hc_grp = (grp_raw == "HC")
     
-    # Slice Features (Apply the Top 5% Masks)
+    # Slice Features (apply selected FDR or top-100 sensitivity masks)
     X_sad_12 = X_raw[mask_sad_grp][:, mask_sad_top5]
     y_sad_12 = y_raw[mask_sad_grp]
     sub_sad_12 = sub_raw[mask_sad_grp]
@@ -1809,7 +2194,7 @@ if stage_active(2):
     y_hc_12 = y_raw[mask_hc_grp]
     sub_hc_12 = sub_raw[mask_hc_grp]
     
-    print(f"  > SAD Matrix (Top 5%): {X_sad_12.shape} | HC Matrix (Top 5%): {X_hc_12.shape}")
+    print(f"  > SAD Matrix: {X_sad_12.shape} | HC Matrix: {X_hc_12.shape}")
     
     # =============================================================================
     # 2. Centroid RDM Calculation
@@ -1862,12 +2247,12 @@ if stage_active(2):
     ax1 = fig.add_subplot(gs[0, 0])
     sns.heatmap(np.mean(rdms_sad, axis=0), annot=True, fmt=".2f", cmap="viridis", vmin=0, vmax=1.2, 
                 xticklabels=RDM_CONDITIONS, yticklabels=RDM_CONDITIONS, ax=ax1, cbar=False)
-    ax1.set_title(f"SAD Topology (Top 5%)\n(n={len(subs_sad_rdm)})")
+    ax1.set_title(f"SAD Topology\n(n={len(subs_sad_rdm)})")
     
     ax2 = fig.add_subplot(gs[0, 1])
     sns.heatmap(np.mean(rdms_hc, axis=0), annot=True, fmt=".2f", cmap="viridis", vmin=0, vmax=1.2,
                 xticklabels=RDM_CONDITIONS, yticklabels=RDM_CONDITIONS, ax=ax2)
-    ax2.set_title(f"HC Topology (Top 5%)\n(n={len(subs_hc_rdm)})")
+    ax2.set_title(f"HC Topology\n(n={len(subs_hc_rdm)})")
     
     # Violins
     ax3 = fig.add_subplot(gs[0, 2])
@@ -1902,10 +2287,26 @@ if stage_active(2):
     plt.show()
     
     # Store Results
+    n_feat_sad = max(int(np.sum(mask_sad_top5)), 1)
+    n_feat_hc = max(int(np.sum(mask_hc_top5)), 1)
+    rdms_sad_pv = rdms_sad / n_feat_sad
+    rdms_hc_pv = rdms_hc / n_feat_hc
+    vec_a_sad_pv, vec_b_sad_pv = extract_topology_metrics(rdms_sad_pv, idx_cs_minus, idx_css, idx_csr)
+    vec_a_hc_pv, vec_b_hc_pv = extract_topology_metrics(rdms_hc_pv, idx_cs_minus, idx_css, idx_csr)
+    t_a_pv, p_a_pv, m_a_sad_pv, m_a_hc_pv = perm_ttest_ind(vec_a_sad_pv, vec_a_hc_pv, n_perm=N_PERMUTATION)
+    t_b_pv, p_b_pv, m_b_sad_pv, m_b_hc_pv = perm_ttest_ind(vec_b_sad_pv, vec_b_hc_pv, n_perm=N_PERMUTATION)
+
     results_12 = {
-        "rdms_sad": rdms_sad, "rdms_hc": rdms_hc, 
+        "rdms_sad": rdms_sad, "rdms_hc": rdms_hc,
+        "rdms_sad_pv": rdms_sad_pv, "rdms_hc_pv": rdms_hc_pv,
+        "rdms_sad_raw_pv": rdms_sad_pv, "rdms_hc_raw_pv": rdms_hc_pv,
+        "subs_sad_rdm": subs_sad_rdm, "subs_hc_rdm": subs_hc_rdm,
         "metric_a_stats": (t_a, p_a), "metric_b_stats": (t_b, p_b),
-        "features_sad": np.sum(mask_sad_top5), "features_hc": np.sum(mask_hc_top5),
+        "metric_a_stats_pv": (t_a_pv, p_a_pv), "metric_b_stats_pv": (t_b_pv, p_b_pv),
+        "metric_a_means_pv": {"SAD": m_a_sad_pv, "HC": m_a_hc_pv},
+        "metric_b_means_pv": {"SAD": m_b_sad_pv, "HC": m_b_hc_pv},
+        "features_sad": n_feat_sad, "features_hc": n_feat_hc,
+        "feature_space": feature_space_12,
         "one_sample_stats": {"p_a_sad": p_a_sad_0, "p_a_hc": p_a_hc_0, "p_b_sad": p_b_sad_0, "p_b_hc": p_b_hc_0}
     }
     _save_result("results_12", results_12)
@@ -1914,6 +2315,8 @@ if stage_active(2):
         "results_12": results_12
     })
     save_intermediate("stage09_results_12", results_12)
+    save_intermediate("stage12_topology_stats", {"results_12": results_12})
+    save_intermediate("stage10_topology_stats", results_12)
     save_stage_bundle(
         2,
         "stage02_StaticRepresentationalTopology",
@@ -1921,8 +2324,15 @@ if stage_active(2):
             "results_12": results_12,
             "rdms_sad": locals().get("rdms_sad"),
             "rdms_hc": locals().get("rdms_hc"),
+            "rdms_sad_pv": locals().get("rdms_sad_pv"),
+            "rdms_hc_pv": locals().get("rdms_hc_pv"),
+            "subs_sad_rdm": locals().get("subs_sad_rdm"),
+            "subs_hc_rdm": locals().get("subs_hc_rdm"),
+            "sub_sad_12": locals().get("sub_sad_12"),
+            "sub_hc_12": locals().get("sub_hc_12"),
             "mask_sad_top5": locals().get("mask_sad_top5"),
             "mask_hc_top5": locals().get("mask_hc_top5"),
+            "feature_space": locals().get("feature_space_12"),
             "p_a": locals().get("p_a"),
             "p_b": locals().get("p_b"),
         },
@@ -1930,14 +2340,14 @@ if stage_active(2):
     
 # %% [cell 12]
 if stage_active(3):
-    # Cell 10: Analysis 1.3 - Dynamic Representational Drift (Top 5% Features)
+    # Cell 10: Analysis 1.3 - Dynamic Representational Drift (FDR or top-100 sensitivity features)
     # Objective: Quantify plasticity magnitude (Projection) and fidelity (Cosine).
     # Target Definitions:
     #   - Safety:  Extinction CSS -> Extinction CS-
     #   - Threat:  Extinction CSR -> Reinstatement CSR
-    # Feature Selection: Top 5% Importance (Permutation Scores)
+    # Feature Selection: whole-brain FDR permutation importance, with top-100 positive sensitivity fallback.
     
-    print("--- Running Analysis 1.3: Dynamic Representational Drift (Top 5% Features) ---")
+    print("--- Running Analysis 1.3: Dynamic Representational Drift (FDR/top-100 sensitivity features) ---")
     
     import pandas as pd
     import statsmodels.api as sm
@@ -1951,19 +2361,13 @@ if stage_active(3):
     
     # =============================================================================
     # 0. Feature Selection & Data Loading
-    # Rationale: drift vectors are noise-sensitive; use top 5% predictive features for stability.
+    # Rationale: use the same empirical whole-brain FDR masks as MemoryFearNetwork's downstream workflow.
     # =============================================================================
     print(f"\n[Step 0] Setup & Data Loading...")
     
-    if 'importance_scores' not in locals():
-        importance_scores, importance_masks = ensure_importance_loaded()
-    
-    # 1. Select Top 5% Features
-    mask_sad, t_sad = get_top_percentile_mask(importance_scores['SAD'], PERCENTILE_THRESH)
-    mask_hc, t_hc = get_top_percentile_mask(importance_scores['HC'], PERCENTILE_THRESH)
-    
-    print(f"  > SAD Top 5% Network: {np.sum(mask_sad)} voxels (Thresh={t_sad:.4f})")
-    print(f"  > HC Top 5% Network:  {np.sum(mask_hc)} voxels (Thresh={t_hc:.4f})")
+    analysis_masks, feature_space_13 = get_analysis_feature_masks("Analysis 1.3")
+    mask_sad = analysis_masks['SAD']
+    mask_hc = analysis_masks['HC']
     
     # 2. Load Data Helpers (Nested Dictionary Access)
     # Load Extinction (Start/Learning Phase)
@@ -2081,11 +2485,11 @@ if stage_active(3):
         
         axes[1,1].axis('off') # Empty slot
         plt.tight_layout()
-    _save_fig("analysis_12")
-    _save_fig("results_12")
+    _save_fig("analysis_13_drift")
+    _save_fig("results_13_drift")
     plt.show()
     
-    results_13 = {'safe_sad': df_safe_sad, 'threat_sad': df_threat_sad}
+    results_13 = {'safe_sad': df_safe_sad, 'threat_sad': df_threat_sad, 'feature_space': feature_space_13}
     results_13_main = results_13
     _save_result("results_13", results_13)
     _save_result("results_13", results_13)
@@ -2095,24 +2499,27 @@ if stage_active(3):
         "df_safe_hc": locals().get("df_safe_hc"),
         "df_threat_sad": locals().get("df_threat_sad"),
         "df_threat_hc": locals().get("df_threat_hc"),
+        "feature_space": locals().get("feature_space_13"),
     })
-    save_intermediate("stage10_results_13", {
+    save_intermediate("stage13_drift", {
         "results_13": results_13,
+        "df_plot": locals().get("df_plot"),
         "df_safe_sad": locals().get("df_safe_sad"),
         "df_safe_hc": locals().get("df_safe_hc"),
         "df_threat_sad": locals().get("df_threat_sad"),
         "df_threat_hc": locals().get("df_threat_hc"),
+        "feature_space": locals().get("feature_space_13"),
     })
     
 # %% [cell 13]
 if stage_active(3):
     # Cell 10: Analysis 1.3 - Dynamic Representational Drift (Single-Trial Trajectories)
-    # Objective: Visualize plasticity trial-by-trial using Top 5% Features.
+    # Objective: Visualize plasticity trial-by-trial using FDR or top-100 sensitivity features.
     # Method: Project every trial onto the Ideal Axis (Start -> Target).
     #   - Score 0 = Resembles Early Extinction (Start)
     #   - Score 1 = Resembles Target (CS- or Reinstated CSR)
     
-    print("--- Running Analysis 1.3: Single-Trial Trajectories (Top 5%) ---")
+    print("--- Running Analysis 1.3: Single-Trial Trajectories (FDR/top-100 sensitivity) ---")
     
     import pandas as pd
     import seaborn as sns
@@ -2127,16 +2534,13 @@ if stage_active(3):
     BLOCK_SIZE = 1  # Group trials for smoother plotting (1 = Raw Single Trial)
     
     # =============================================================================
-    # 0. Feature Selection (Top 5% Positive)
+    # 0. Feature Selection (Empirical whole-brain FDR masks)
     # =============================================================================
-    print(f"\n[Step 0] Selecting Top {100-PERCENTILE_THRESH}% Features...")
+    print("\n[Step 0] Selecting empirical whole-brain FDR features...")
     
-    # Use Top 5% voxel masks from Analysis 1.1 (Cell 9)
-    if 'importance_masks' not in locals():
-        raise ValueError("Top 5% masks not found. Run Analysis 1.1 / Cell 9 first.")
-    mask_sad = importance_masks['SAD']
-    mask_hc = importance_masks['HC']
-    print(f"  > Using Top 5% voxels: SAD={int(np.sum(mask_sad))}, HC={int(np.sum(mask_hc))}")
+    analysis_masks, feature_space_13b = get_analysis_feature_masks("Analysis 1.3 part 2")
+    mask_sad = analysis_masks['SAD']
+    mask_hc = analysis_masks['HC']
     
     
     # --- FIXED FUNCTION ---
@@ -2157,56 +2561,6 @@ if stage_active(3):
     else:
         # Fallback to group data if global is missing
         X_glob, y_glob, sub_glob = X_ext_sad, y_ext_sad, sub_ext_sad
-    
-    # =============================================================================
-    # 2. Trajectory Calculation Helper
-    # =============================================================================
-        # Center Data separately to remove session effects
-        X_learn = X_learn[:, mask]
-        X_targ = X_targ[:, mask]
-        
-        unique_subs = np.intersect1d(np.unique(sub_learn), np.unique(sub_targ))
-        res = {'sub': [], 'trial': [], 'score': []}
-        
-        for sub in unique_subs:
-            # 1. Get Subject Data
-            xl = X_learn[sub_learn == sub]; yl = y_learn[sub_learn == sub]
-            xt = X_targ[sub_targ == sub]; yt = y_targ[sub_targ == sub]
-            
-            # 2. Define Start Point (Early Learning)
-            # We define "Start" as the centroid of the FIRST HALF of the learning trials
-            mask_l = (yl == cond_learn)
-            trials_l = xl[mask_l]
-            if len(trials_l) < 2: continue
-            
-            cutoff = max(1, len(trials_l) // 2)
-            P_start = np.mean(trials_l[:cutoff], axis=0)
-            
-            # 3. Define Target Point
-            mask_t = (yt == cond_target_label)
-            if np.sum(mask_t) == 0: continue
-            P_target = np.mean(xt[mask_t], axis=0)
-            
-            # 4. Define Axis
-            V_axis = P_target - P_start
-            sq_norm = np.dot(V_axis, V_axis)
-            if sq_norm == 0: continue
-            
-            # 5. Project Each Trial
-            # Logic: Score = ((Trial - Start) . Axis) / ||Axis||^2
-            # This normalizes the progress: 0.0 = Start, 1.0 = Target
-            
-            # We center the trials relative to the Start Point of this specific axis
-            trials_centered = trials_l - P_start
-            
-            scores = np.dot(trials_centered, V_axis) / sq_norm
-            
-            for i, s in enumerate(scores):
-                res['sub'].append(sub)
-                res['trial'].append(i + 1)
-                res['score'].append(s)
-                
-        return pd.DataFrame(res)
     
     # =============================================================================
     # 3. Execute Analysis
@@ -2266,28 +2620,33 @@ if stage_active(3):
             axes[1].legend(loc='upper left')
         
         plt.tight_layout()
-    _save_fig("analysis_13")
-    _save_fig("results_13")
+    _save_fig("analysis_13_trajectories")
+    _save_fig("results_13_trajectories")
     plt.show()
     
     results_13 = {
         'stats_safe': stats_safe, 
         'stats_threat': stats_threat,
         'data_safe': df_safe,
-        'data_threat': df_threat
+        'data_threat': df_threat,
+        'feature_space': feature_space_13b,
     }
+    results_13_2 = results_13
     _save_result("results_13b", results_13)
     _save_result("results_13b", results_13)
+    _save_result("results_13_2", results_13_2)
     save_checkpoint(11, {
-        "results_13b": results_13
+        "results_13b": results_13,
+        "results_13_2": results_13_2,
     })
-    save_intermediate("stage11_results_13b", {"results_13b": results_13})
+    save_intermediate("stage14_trajectories", {"results_13_2": results_13_2})
     save_stage_bundle(
         3,
         "stage03_DynamicRepresentationalDrift",
         {
             "results_13": globals().get("results_13_main"),
             "results_13b": results_13,
+            "results_13_2": results_13_2,
             "df_safe_sad": locals().get("df_safe_sad"),
             "df_safe_hc": locals().get("df_safe_hc"),
             "df_threat_sad": locals().get("df_threat_sad"),
@@ -2296,6 +2655,7 @@ if stage_active(3):
             "stats_threat": locals().get("stats_threat"),
             "df_safe": locals().get("df_safe"),
             "df_threat": locals().get("df_threat"),
+            "feature_space": locals().get("feature_space_13b"),
         },
     )
     
@@ -2316,11 +2676,9 @@ if stage_active(4):
     # 0. Setup Feature Masks (Native) & Best Params
     # Rationale: entropy/kurtosis should reflect the full positive-importance decision space.
     # =============================================================================
-    if 'importance_scores' not in locals():
-        importance_scores, importance_masks = ensure_importance_loaded()
-    
-    mask_sad_native = get_significant_mask(importance_scores['SAD'])
-    mask_hc_native = get_significant_mask(importance_scores['HC'])
+    analysis_masks, feature_space_14 = get_analysis_feature_masks("Analysis 1.4")
+    mask_sad_native = analysis_masks['SAD']
+    mask_hc_native = analysis_masks['HC']
     
     if 'subject_best_params' not in locals():
         print("  > 'subject_best_params' not found. Using default C=1.0.")
@@ -2409,22 +2767,24 @@ if stage_active(4):
         ax3.legend()
     
     plt.tight_layout()
-    _save_fig("analysis_13")
-    _save_fig("results_13")
+    _save_fig("analysis_14_decision_stats")
+    _save_fig("results_14_self")
     plt.show()
     
-    results_14_self = {'df_sad': df_sad_stats, 'df_hc': df_hc_stats}
+    results_14_self = {'df_sad': df_sad_stats, 'df_hc': df_hc_stats, 'feature_space': feature_space_14}
     _save_result("results_14_self", results_14_self)
     _save_result("results_14_self", results_14_self)
     save_checkpoint(12, {
         "results_14_self": results_14_self,
         "df_sad_stats": locals().get("df_sad_stats"),
         "df_hc_stats": locals().get("df_hc_stats"),
+        "feature_space": locals().get("feature_space_14"),
     })
-    save_intermediate("stage12_results_14_self", {
+    save_intermediate("stage15_decision_stats", {
         "results_14_self": results_14_self,
         "df_sad_stats": locals().get("df_sad_stats"),
         "df_hc_stats": locals().get("df_hc_stats"),
+        "feature_space": locals().get("feature_space_14"),
     })
     save_stage_bundle(
         4,
@@ -2435,6 +2795,7 @@ if stage_active(4):
             "df_hc_stats": locals().get("df_hc_stats"),
             "p_ent": locals().get("p_ent"),
             "p_kurt": locals().get("p_kurt"),
+            "feature_space": locals().get("feature_space_14"),
         },
     )
     
@@ -2460,11 +2821,10 @@ if stage_active(5):
     # 0. Validate / Recompute Masks from Cell 9
     # =============================================================================
     if 'mask_sad_top5' not in locals() or 'mask_hc_top5' not in locals():
-        # Recompute from importance scores so this stage can run standalone
+        # Reload empirical FDR masks so this stage can run standalone
         importance_scores, importance_masks = ensure_importance_loaded()
-        PERCENTILE_THRESH = TOP_PCT
-        mask_sad_top5, _ = get_top_percentile_mask(importance_scores['SAD'], PERCENTILE_THRESH)
-        mask_hc_top5, _ = get_top_percentile_mask(importance_scores['HC'], PERCENTILE_THRESH)
+        mask_sad_top5 = importance_masks['SAD']
+        mask_hc_top5 = importance_masks['HC']
     
     # =============================================================================
     # 1. Calculate Distances (Both Metrics)
@@ -2638,8 +2998,10 @@ if stage_active(6):
             "Run Stage 8 with --stage1_group SAD and --stage1_group HC (or ALL), then resume."
         )
     
-    mask_sad_core, _ = get_top_percentile_mask(importance_scores['SAD'], PERCENTILE_THRESH)
-    mask_hc_core, _ = get_top_percentile_mask(importance_scores['HC'], PERCENTILE_THRESH)
+    if 'importance_masks' not in locals() or not importance_masks:
+        importance_scores, importance_masks = ensure_importance_loaded()
+    mask_sad_core = importance_masks['SAD']
+    mask_hc_core = importance_masks['HC']
     print(f"  > Core Masks: SAD={np.sum(mask_sad_core)}, HC={np.sum(mask_hc_core)}")
     
     # Load Reinstatement Data
@@ -2788,12 +3150,12 @@ if stage_active(7):
     # =============================================================================
     # 0. Setup: Masks & Data
     # =============================================================================
-    if 'importance_scores' not in locals():
+    if 'importance_masks' not in locals():
         importance_scores, importance_masks = ensure_importance_loaded()
     
     # Define Native Networks
-    mask_sad_native = get_significant_mask(importance_scores['SAD'])
-    mask_hc_native = get_significant_mask(importance_scores['HC'])
+    mask_sad_native = importance_masks['SAD']
+    mask_hc_native = importance_masks['HC']
     print(f"  > SAD Native Network: {np.sum(mask_sad_native)} voxels")
     print(f"  > HC Native Network:  {np.sum(mask_hc_native)} voxels")
     
@@ -3229,318 +3591,324 @@ if stage_active(9):
             "p_drug": p_drug,
         },
     )
-    
-def run_stage_17_searchlight_rsm():
-    """Run Stage 17 searchlight/parcel RSM analyses with explicit local scope."""
-    print("--- Running Cell 17: Searchlight RSM (CSR/CSS/CS-) ---")
-
-    cond_list = ["CSR", "CSS", "CS-"]
-    groups_to_run = ["ALL", "SAD_Placebo", "SAD_Oxytocin", "HC_Placebo", "HC_Oxytocin"]
-    out_dir = OUTPUT_DIR or os.path.join(
-        PROJECT_ROOT, "MRI/derivatives/fMRI_analysis/LSS", "results", "searchlight_rsm"
-    )
-    os.makedirs(out_dir, exist_ok=True)
-
-    data_root = os.path.join(
-        PROJECT_ROOT,
-        "MRI/derivatives/fMRI_analysis/LSS",
-        "firstLevel",
-        "all_subjects/fear_network",
-    )
-    phase2 = np.load(os.path.join(data_root, "phase2_X_ext_y_ext_roi_voxels.npz"), allow_pickle=True)
-    phase3 = np.load(os.path.join(data_root, "phase3_X_reinst_y_reinst_roi_voxels.npz"), allow_pickle=True)
-    x_ext = phase2["X_ext"]
-    y_ext_local = phase2["y_ext"]
-    sub_ext_local = phase2["subjects"]
-    x_reinst = phase3["X_reinst"]
-    y_reinst_local = phase3["y_reinst"]
-    sub_reinst_local = phase3["subjects"]
-
-    meta_path = os.path.join(PROJECT_ROOT, "MRI/source_data/behav/drug_order.csv")
-    meta_local = pd.read_csv(meta_path)
-    meta_local["subject_id"] = meta_local["subject_id"].astype(str).str.strip()
-
-    def normalize_subject_id_local(subject_id):
-        s_str = str(subject_id).strip()
-        if s_str.endswith(".0") and s_str.replace(".", "").isdigit():
-            s_str = s_str[:-2]
-        if s_str.startswith("sub-"):
-            s_str = s_str[4:]
-        return s_str
-
-    sub_to_meta_local = meta_local.set_index("subject_id")[["Group", "Drug"]].to_dict("index")
-    sub_to_meta_norm_local = {
-        normalize_subject_id_local(sub_id): values for sub_id, values in sub_to_meta_local.items()
-    }
-
-    def group_key_for_subject(subject_id):
-        return_key = None
-        s_str = normalize_subject_id_local(subject_id)
-        if s_str in sub_to_meta_norm_local:
-            conds = sub_to_meta_norm_local[s_str]
-            return_key = f"{conds['Group']}_{conds['Drug']}"
-        return return_key
-
-    def collect_phase_data_local(phase_key, group_key="ALL"):
-        if phase_key == "ext":
-            x_all, y_all, sub_all = x_ext, y_ext_local, sub_ext_local
-        else:
-            x_all, y_all, sub_all = x_reinst, y_reinst_local, sub_reinst_local
-        if group_key == "ALL":
-            return x_all, y_all, sub_all
-        selected_subjects = [sub for sub in np.unique(sub_all) if group_key_for_subject(sub) == group_key]
-        if not selected_subjects:
-            return None, None, None
-        mask = np.isin(sub_all, selected_subjects)
-        return x_all[mask], y_all[mask], sub_all[mask]
-
-    def build_stage_vectors_local(x_vals, y_vals, sub_vals, stage):
-        subjects = np.unique(sub_vals)
-        subj_mats = []
-        for subject in subjects:
-            rows = []
-            for cond in cond_list:
-                idx = np.where((sub_vals == subject) & (y_vals == cond))[0]
-                if len(idx) < 2:
-                    rows = []
-                    break
-                split = len(idx) // 2
-                use_idx = idx[:split] if stage == "early" else idx[split:]
-                if len(use_idx) == 0:
-                    rows = []
-                    break
-                rows.append(np.mean(x_vals[use_idx], axis=0))
-            if rows:
-                subj_mats.append(np.vstack(rows))
-        return subj_mats
-
-    parcel_rsm_results = {}
-    for phase_key, phase_name in [("ext", "Extinction"), ("rst", "Reinstatement")]:
-        x_phase, y_phase, sub_phase = collect_phase_data_local(phase_key, group_key="ALL")
-        if x_phase is None:
-            print(f"  ! {phase_name} data missing. Skipping parcel RSM.")
-            continue
-        early_mats = build_stage_vectors_local(x_phase, y_phase, sub_phase, "early")
-        late_mats = build_stage_vectors_local(x_phase, y_phase, sub_phase, "late")
-        if not early_mats or not late_mats:
-            print(f"  ! Not enough data for parcel RSM in {phase_name}.")
-            continue
-        rdm_early = np.mean([squareform(pdist(m, metric="correlation")) for m in early_mats], axis=0)
-        rdm_late = np.mean([squareform(pdist(m, metric="correlation")) for m in late_mats], axis=0)
-        parcel_rsm_results[f"{phase_key}_early"] = rdm_early
-        parcel_rsm_results[f"{phase_key}_late"] = rdm_late
-        parcel_rsm_results[f"{phase_key}_delta"] = rdm_late - rdm_early
-
-    voxel_results = {"results_maps": None, "results_pvals": None, "results_fdr": None, "contrast_maps": None, "roi_df": None}
-    enable_searchlight = False
-    if not enable_searchlight:
-        print("  ! Searchlight RSM skipped for parcellation space (requires voxel-wise masks).")
-    else:
-        roi_dir = os.environ.get(
-            "SEARCHLIGHT_ROI_DIR",
-            "/Users/xiaoqianxiao/tool/parcellation/Gillian_anatomically_constrained",
-        )
-        roi_order = [
-            "left_acc", "left_amygdala", "left_hippocampus", "left_insula", "left_vmpfc",
-            "right_acc", "right_amygdala", "right_hippocampus", "right_insula", "right_vmpfc",
-        ]
-        search_radius = 2.5
-        min_voxels = 20
-        n_permutation_searchlight = 200
-        alpha_fdr = 0.05
-
-        print("[Stage 17] Building feature-to-voxel mapping...")
-        roi_paths = []
-        for roi_name in roi_order:
-            matches = glob.glob(os.path.join(roi_dir, f"*{roi_name}*.nii*"))
-            if not matches:
-                raise FileNotFoundError(f"ROI mask not found for: {roi_name}")
-            roi_paths.append(matches[0])
-
-        ref_img = nib.load(roi_paths[0])
-        ref_shape = ref_img.shape
-        coords = []
-        roi_feature_idx = {}
-        feature_idx = 0
-        for roi_name, roi_path in zip(roi_order, roi_paths):
-            mask_data = nib.load(roi_path).get_fdata() > 0
-            inds = np.column_stack(np.where(mask_data))
-            roi_inds = []
-            for xyz in inds:
-                coords.append(xyz)
-                roi_inds.append(feature_idx)
-                feature_idx += 1
-            roi_feature_idx[roi_name] = np.array(roi_inds, dtype=int)
-        coords = np.array(coords)
-        neighbors = cKDTree(coords).query_ball_point(coords, r=search_radius)
-
-        def rsm_score_for_sphere(cond_mat, feat_idx):
-            if len(feat_idx) < min_voxels:
-                return np.nan
-            arr = cond_mat[:, feat_idx]
-            return np.mean([
-                1 - pearsonr(arr[0], arr[1])[0],
-                1 - pearsonr(arr[0], arr[2])[0],
-                1 - pearsonr(arr[1], arr[2])[0],
-            ])
-
-        def compute_searchlight_map(subj_mats):
-            if not subj_mats:
-                return None
-            vals = np.full(coords.shape[0], np.nan)
-            for center in range(coords.shape[0]):
-                feat_idx = neighbors[center]
-                subj_scores = []
-                for subj_mat in subj_mats:
-                    score = rsm_score_for_sphere(subj_mat, feat_idx)
-                    if not np.isnan(score):
-                        subj_scores.append(score)
-                if subj_scores:
-                    vals[center] = float(np.mean(subj_scores))
-            return vals
-
-        def permute_labels_within_subject(y_vals, sub_vals, rng):
-            y_perm = y_vals.copy()
-            for subject in np.unique(sub_vals):
-                idx = np.where(sub_vals == subject)[0]
-                y_perm[idx] = rng.permutation(y_perm[idx])
-            return y_perm
-
-        def permutation_null_maps(x_vals, y_vals, sub_vals, stage, n_perm):
-            rng = np.random.default_rng(42)
-            null_maps = []
-            for perm_idx in range(n_perm):
-                if perm_idx == 0 or (perm_idx + 1) % 50 == 0:
-                    print(f"    {stage} perm {perm_idx + 1}/{n_perm}")
-                y_perm = permute_labels_within_subject(y_vals, sub_vals, rng)
-                mats = build_stage_vectors_local(x_vals, y_perm, sub_vals, stage)
-                curr_map = compute_searchlight_map(mats)
-                if curr_map is not None:
-                    null_maps.append(curr_map)
-            if not null_maps:
-                return None
-            return np.array(null_maps)
-
-        def pvals_and_fdr(null_maps, obs_map):
-            pvals = np.mean(null_maps >= obs_map, axis=0)
-            flat = pvals[~np.isnan(pvals)]
-            _, p_fdr, _, _ = multipletests(flat, alpha=alpha_fdr, method="fdr_bh")
-            p_fdr_full = np.full_like(pvals, np.nan, dtype=float)
-            p_fdr_full[~np.isnan(pvals)] = p_fdr
-            return pvals, p_fdr_full
-
-        def to_nifti(vals):
-            data = np.full(ref_shape, np.nan, dtype=float)
-            for idx, val in enumerate(vals):
-                x_val, y_val, z_val = coords[idx]
-                data[x_val, y_val, z_val] = val
-            return nib.Nifti1Image(data, ref_img.affine)
-
-        print("[Stage 17] Computing voxelwise maps...")
-        results_maps = {}
-        results_pvals = {}
-        results_fdr = {}
-        for group_key in groups_to_run:
-            for phase_key, phase_name in [("ext", "Extinction"), ("rst", "Reinstatement")]:
-                x_phase, y_phase, sub_phase = collect_phase_data_local(phase_key, group_key=group_key)
-                if x_phase is None:
-                    print(f"  ! {phase_name} data missing for {group_key}. Skipping.")
-                    continue
-                early_mats = build_stage_vectors_local(x_phase, y_phase, sub_phase, "early")
-                late_mats = build_stage_vectors_local(x_phase, y_phase, sub_phase, "late")
-                map_early = compute_searchlight_map(early_mats)
-                map_late = compute_searchlight_map(late_mats)
-                if map_early is None or map_late is None:
-                    print(f"  ! Not enough data for {phase_name}, {group_key}.")
-                    continue
-                results_maps[(group_key, phase_key, "early")] = map_early
-                results_maps[(group_key, phase_key, "late")] = map_late
-                results_maps[(group_key, phase_key, "delta")] = map_late - map_early
-
-                null_early = permutation_null_maps(x_phase, y_phase, sub_phase, "early", n_permutation_searchlight)
-                null_late = permutation_null_maps(x_phase, y_phase, sub_phase, "late", n_permutation_searchlight)
-                if null_early is not None:
-                    results_pvals[(group_key, phase_key, "early")], results_fdr[(group_key, phase_key, "early")] = (
-                        pvals_and_fdr(null_early, map_early)
-                    )
-                if null_late is not None:
-                    results_pvals[(group_key, phase_key, "late")], results_fdr[(group_key, phase_key, "late")] = (
-                        pvals_and_fdr(null_late, map_late)
-                    )
-
-        contrast_maps = {}
-        for phase_key in ["ext", "rst"]:
-            for stage_name in ["early", "late", "delta"]:
-                sad_map = results_maps.get(("SAD_Placebo", phase_key, stage_name))
-                hc_map = results_maps.get(("HC_Placebo", phase_key, stage_name))
-                oxt_map = results_maps.get(("SAD_Oxytocin", phase_key, stage_name))
-                plc_map = results_maps.get(("SAD_Placebo", phase_key, stage_name))
-                if sad_map is not None and hc_map is not None:
-                    contrast_maps[("SADminusHC", phase_key, stage_name)] = sad_map - hc_map
-                if oxt_map is not None and plc_map is not None:
-                    contrast_maps[("OXTminusPLC", phase_key, stage_name)] = oxt_map - plc_map
-
-        roi_rows = []
-        for key, vals in results_maps.items():
-            group_key, phase_key, stage_name = key
-            img = to_nifti(vals)
-            fname = f"rsm_{group_key}_{phase_key}_{stage_name}.nii.gz"
-            nib.save(img, os.path.join(out_dir, fname))
-            for roi_name, idxs in roi_feature_idx.items():
-                roi_rows.append(
-                    {
-                        "group": group_key,
-                        "phase": phase_key,
-                        "stage": stage_name,
-                        "roi": roi_name,
-                        "mean_rsm": float(np.nanmean(vals[idxs])),
-                    }
-                )
-        for key, vals in results_pvals.items():
-            nib.save(to_nifti(vals), os.path.join(out_dir, f"rsm_pvals_{key[0]}_{key[1]}_{key[2]}.nii.gz"))
-        for key, vals in results_fdr.items():
-            nib.save(to_nifti(vals), os.path.join(out_dir, f"rsm_fdr_{key[0]}_{key[1]}_{key[2]}.nii.gz"))
-        for key, vals in contrast_maps.items():
-            nib.save(to_nifti(vals), os.path.join(out_dir, f"rsm_{key[0]}_{key[1]}_{key[2]}.nii.gz"))
-
-        voxel_results = {
-            "results_maps": results_maps,
-            "results_pvals": results_pvals,
-            "results_fdr": results_fdr,
-            "contrast_maps": contrast_maps,
-            "roi_df": pd.DataFrame(roi_rows),
-        }
-        voxel_results["roi_df"].to_csv(os.path.join(out_dir, "rsm_roi_summary.csv"), index=False)
-        _save_result("results_maps", results_maps)
-        _save_result("results_pvals", results_pvals)
-        _save_result("results_fdr", results_fdr)
-
-    _save_result("parcel_rsm_results", parcel_rsm_results)
-    print("Parcel-level RSM complete.")
-    save_checkpoint(
-        17,
-        {
-            "results_maps": voxel_results["results_maps"],
-            "results_pvals": voxel_results["results_pvals"],
-            "results_fdr": voxel_results["results_fdr"],
-            "contrast_maps": voxel_results["contrast_maps"],
-            "roi_df": voxel_results["roi_df"],
-            "parcel_rsm_results": parcel_rsm_results,
-        },
-    )
-    save_intermediate(
-        "stage17_rsm",
-        {
-            "results_maps": voxel_results["results_maps"],
-            "results_pvals": voxel_results["results_pvals"],
-            "results_fdr": voxel_results["results_fdr"],
-            "contrast_maps": voxel_results["contrast_maps"],
-            "roi_df": voxel_results["roi_df"],
-            "parcel_rsm_results": parcel_rsm_results,
-        },
-    )
-
 
 # %% [cell 20]
-if stage_active(17):
-    run_stage_17_searchlight_rsm()
+if stage_active(10):
+    print("--- Running Stage 10: Clinical Score Loading ---")
+
+    clinical_dir = os.path.join(PROJECT_ROOT, "MRI/source_data/behav")
+    LSAS_path = os.path.join(clinical_dir, "SocialSafetyLearning-LSASSubtotals_DATA_2026-04-25_2306.csv")
+    ECR_path = os.path.join(clinical_dir, "SocialSafetyLearning-ECR_DATA_2026-04-25_2306.csv")
+    DASS_path = os.path.join(clinical_dir, "SocialSafetyLearning-DASS_DATA_2026-04-25_2306.csv")
+
+    df_lsas_raw = pd.read_csv(LSAS_path)
+    df_lsas = pd.DataFrame({
+        "sub_ID": df_lsas_raw["login_participantid"].astype(str),
+        "lsas_fear": df_lsas_raw["lsas_fear_total"],
+        "lsas_avoid": df_lsas_raw["lsas_avoid_total"],
+        "lsas_total": df_lsas_raw["lsas_total"],
+    })
+
+    df_ecr_raw = pd.read_csv(ECR_path)
+    df_ecr = pd.DataFrame({
+        "sub_ID": df_ecr_raw["login_participantid"].astype(str),
+        "ecr_total": df_ecr_raw["ecr_total"],
+    })
+
+    df_dass_raw = pd.read_csv(DASS_path)
+    depression_items = [
+        "dass_q3_positive", "dass_q5_initiative", "dass_q10_forward",
+        "dass_q13_blue", "das_q16_enthusiastic", "dass_q17_worth", "dass_q21_life",
+    ]
+    anxiety_items = [
+        "dass_q2_drymouth", "dass_q4_breathing", "dass_q7_trembling",
+        "dass_q9_panic", "dass_q15_panic", "dass_q19_heart", "dass_q20_scared",
+    ]
+    stress_items = [
+        "dass_q1_winddown", "dass_q6_overreact", "dass_q8_nervousenergy",
+        "dass_q11_agitated", "dass_q12_relax", "dass_q14_intolerant", "dass_q18_touch",
+    ]
+
+    df_dass = pd.DataFrame()
+    df_dass["sub_ID"] = df_dass_raw["login_participantid"].astype(str)
+    df_dass["dass_depression"] = df_dass_raw[depression_items].sum(axis=1) * 2
+    df_dass["dass_anxiety"] = df_dass_raw[anxiety_items].sum(axis=1) * 2
+    df_dass["dass_stress"] = df_dass_raw[stress_items].sum(axis=1) * 2
+
+    df_scored_clinical = df_dass.merge(df_lsas, on="sub_ID", how="inner").merge(df_ecr, on="sub_ID", how="inner")
+    print(f"Clinical scores generated for {len(df_scored_clinical)} subjects.")
+
+    stage10_payload = {
+        "df_scored_clinical": df_scored_clinical,
+        "clinical_paths": {"LSAS": LSAS_path, "ECR": ECR_path, "DASS": DASS_path},
+    }
+    _save_result("df_scored_clinical", df_scored_clinical)
+    save_stage_bundle(10, "stage10_ClinicalScores", stage10_payload)
+    save_intermediate("stage23_clinical_scores", stage10_payload)
+
+# %% [cell 21]
+if stage_active(11):
+    print("--- Running Stage 11: Neural Clinical Index Generation ---")
+
+    if "results_12" not in globals():
+        raise ValueError("results_12 missing. Run/resume Stage 2 before Stage 11.")
+    if "results_14_self" not in globals():
+        raise ValueError("results_14_self missing. Run/resume Stage 4 before Stage 11.")
+
+    idx_cs_minus, idx_css, idx_csr = 0, 1, 2
+    sad_feature_count = max(float(results_12.get("features_sad", 1)), 1.0)
+    hc_feature_count = max(float(results_12.get("features_hc", 1)), 1.0)
+    rdms_sad_pv = results_12.get("rdms_sad_pv", results_12["rdms_sad"] / sad_feature_count)
+    rdms_hc_pv = results_12.get("rdms_hc_pv", results_12["rdms_hc"] / hc_feature_count)
+    vA_sad_pv, vB_sad_pv = extract_topology_metrics(rdms_sad_pv, idx_cs_minus, idx_css, idx_csr)
+    vA_hc_pv, vB_hc_pv = extract_topology_metrics(rdms_hc_pv, idx_cs_minus, idx_css, idx_csr)
+
+    s_id_sad = np.asarray(results_12.get("subs_sad_rdm", globals().get("subs_sad_rdm", []))).astype(str)
+    s_id_hc = np.asarray(results_12.get("subs_hc_rdm", globals().get("subs_hc_rdm", []))).astype(str)
+    if len(s_id_sad) != len(vA_sad_pv) or len(s_id_hc) != len(vA_hc_pv):
+        raise ValueError("Topology subject IDs do not match RDM metric lengths. Re-run Stage 2 with the updated script.")
+
+    df_neural_topology = pd.DataFrame({
+        "sub_ID": np.concatenate([s_id_sad, s_id_hc]).astype(str),
+        "Neural_Dist_Threat_Safety": np.concatenate([vA_sad_pv, vA_hc_pv]),
+        "Neural_Dist_Safety_Backgr": np.concatenate([vB_sad_pv, vB_hc_pv]),
+        "Group": ["SAD"] * len(s_id_sad) + ["HC"] * len(s_id_hc),
+    })
+
+    trajectory_payload = globals().get("results_13b") or globals().get("results_13_2") or globals().get("results_13")
+    if not isinstance(trajectory_payload, dict) or "data_safe" not in trajectory_payload:
+        raise ValueError("Single-trial trajectory data missing. Run/resume Stage 3 before Stage 11.")
+
+    def calculate_subject_slopes(df):
+        slopes = []
+        if df is None or df.empty:
+            return pd.DataFrame(columns=["sub_ID", "Neural_Rigidity_Slope", "Neural_Safety_Mean"])
+        for sub in df["sub"].unique():
+            sub_data = df[df["sub"] == sub].sort_values("trial")
+            if len(sub_data) < 3:
+                continue
+            slope, _ = np.polyfit(sub_data["trial"], sub_data["score"], 1)
+            slopes.append({
+                "sub_ID": str(sub),
+                "Neural_Rigidity_Slope": slope,
+                "Neural_Safety_Mean": sub_data["score"].mean(),
+            })
+        return pd.DataFrame(slopes)
+
+    df_neural_trajectories = calculate_subject_slopes(trajectory_payload["data_safe"])
+
+    df_sad_stats = results_14_self["df_sad"]
+    df_hc_stats = results_14_self["df_hc"]
+    df_sad_idx = df_sad_stats[["sub", "entropy", "kurtosis"]].copy()
+    df_sad_idx["Group"] = "SAD"
+    df_hc_idx = df_hc_stats[["sub", "entropy", "kurtosis"]].copy()
+    df_hc_idx["Group"] = "HC"
+    df_neural_uncertainty = pd.concat([df_sad_idx, df_hc_idx], ignore_index=True).rename(columns={
+        "sub": "sub_ID",
+        "entropy": "Neural_Uncertainty_Entropy",
+        "kurtosis": "Neural_Sharpness_Kurtosis",
+    })
+    df_neural_uncertainty["sub_ID"] = df_neural_uncertainty["sub_ID"].astype(str)
+
+    print(f"Topology indices: {len(df_neural_topology)} subjects.")
+    print(f"Trajectory indices: {len(df_neural_trajectories)} subjects.")
+    print(f"Uncertainty indices: {len(df_neural_uncertainty)} subjects.")
+
+    stage11_payload = {
+        "df_neural_topology": df_neural_topology,
+        "df_neural_trajectories": df_neural_trajectories,
+        "df_neural_uncertainty": df_neural_uncertainty,
+        "topology_feature_counts": {"SAD": sad_feature_count, "HC": hc_feature_count},
+    }
+    _save_result("df_neural_topology", df_neural_topology)
+    _save_result("df_neural_trajectories", df_neural_trajectories)
+    _save_result("df_neural_uncertainty", df_neural_uncertainty)
+    save_stage_bundle(11, "stage11_NeuralClinicalIndices", stage11_payload)
+    save_intermediate("stage24_neural_clinical_indices", stage11_payload)
+
+# %% [cell 22]
+if stage_active(12):
+    print("--- Running Stage 12: Clinical-Neural Master Merge ---")
+
+    required = ["df_scored_clinical", "df_neural_topology", "df_neural_trajectories", "df_neural_uncertainty"]
+    missing = [name for name in required if name not in globals()]
+    if missing:
+        raise ValueError(f"Missing inputs for Stage 12: {missing}. Run/resume Stages 10-11 first.")
+
+    df_final_indecision = (
+        df_scored_clinical
+        .merge(df_neural_topology, on="sub_ID", how="inner")
+        .merge(df_neural_trajectories, on="sub_ID", how="inner")
+        .merge(df_neural_uncertainty, on="sub_ID", how="inner")
+    )
+    group_col_pre_meta = clinical_group_column(df_final_indecision)
+    if group_col_pre_meta is not None:
+        df_final_indecision["Analysis_Group"] = df_final_indecision[group_col_pre_meta]
+
+    meta_merge = meta.copy()
+    meta_merge["sub_ID"] = meta_merge["subject_id"].astype(str)
+    df_master_analysis = df_final_indecision.merge(meta_merge, on="sub_ID", how="inner", suffixes=("", "_meta"))
+    if "Analysis_Group" not in df_master_analysis.columns:
+        group_col = clinical_group_column(df_master_analysis)
+        if group_col is not None:
+            df_master_analysis["Analysis_Group"] = df_master_analysis[group_col]
+
+    print(f"Merged clinical-neural sample: {len(df_master_analysis)} subjects.")
+    stage12_payload = {
+        "df_final_indecision": df_final_indecision,
+        "df_master_analysis": df_master_analysis,
+    }
+    _save_result("df_final_indecision", df_final_indecision)
+    _save_result("df_master_analysis", df_master_analysis)
+    save_stage_bundle(12, "stage12_MasterClinicalNeural", stage12_payload)
+    save_intermediate("stage26_master_clinical_neural", stage12_payload)
+
+# %% [cell 23]
+if stage_active(13):
+    print("--- Running Stage 13: Group-Wise Neural-Clinical Pearson Correlations ---")
+
+    if "df_master_analysis" not in globals():
+        raise ValueError("df_master_analysis missing. Run/resume Stage 12 before Stage 13.")
+
+    group_col = clinical_group_column(df_master_analysis)
+    groups = sorted(df_master_analysis[group_col].dropna().unique()) if group_col else [None]
+    group_results = []
+    print(f"{'Group':<6} | {'Neural Metric':<28} | {'Clinical':<12} | {'r':<6} | {'p':<8} | {'Sig'}")
+    print("-" * 80)
+
+    for grp in groups:
+        df_grp = df_master_analysis if grp is None else df_master_analysis[df_master_analysis[group_col] == grp]
+        for n_m in NEURAL_CLINICAL_METRICS:
+            for c_i in CLINICAL_INDICES:
+                if n_m not in df_grp.columns or c_i not in df_grp.columns:
+                    continue
+                valid = df_grp[[n_m, c_i]].dropna().apply(pd.to_numeric, errors="coerce").dropna()
+                if len(valid) > 5:
+                    r_val, p_val = pearsonr(valid[n_m], valid[c_i])
+                    sig = get_sig_star(p_val)
+                    print(f"{str(grp):<6} | {n_m:<28} | {c_i:<12} | {r_val:<6.2f} | {p_val:<8.4f} | {sig}")
+                    group_results.append({
+                        "Group": grp, "Neural": n_m, "Clinical": c_i,
+                        "r": r_val, "p": p_val, "sig": sig, "n": len(valid),
+                    })
+
+    df_res_grp = pd.DataFrame(group_results)
+    _save_result("df_neural_clinical_pearson", df_res_grp)
+    save_stage_bundle(13, "stage13_NeuralClinicalPearson", {"df_res_grp": df_res_grp})
+    save_intermediate("stage27_neural_clinical_pearson", {"df_res_grp": df_res_grp})
+
+# %% [cell 24]
+if stage_active(14):
+    print("--- Running Stage 14: Partial Neural-Clinical Correlations ---")
+
+    if "df_master_analysis" not in globals():
+        raise ValueError("df_master_analysis missing. Run/resume Stage 12 before Stage 14.")
+
+    group_col = clinical_group_column(df_master_analysis)
+    groups = sorted(df_master_analysis[group_col].dropna().unique()) if group_col else [None]
+    group_results = []
+    print(f"{'Group':<6} | {'Neural Metric':<28} | {'Clinical':<12} | {'r_adj':<6} | {'p':<8} | {'Sig'}")
+    print("-" * 85)
+
+    for grp in groups:
+        df_grp = df_master_analysis if grp is None else df_master_analysis[df_master_analysis[group_col] == grp]
+        for n_m in NEURAL_CLINICAL_METRICS:
+            for c_i in CLINICAL_INDICES:
+                if n_m not in df_grp.columns or c_i not in df_grp.columns:
+                    continue
+                r_adj, p_val, n_valid = partial_corr_residualized(df_grp, n_m, c_i, CLINICAL_COVARIATES)
+                if np.isfinite(r_adj) and np.isfinite(p_val):
+                    sig = get_sig_star(p_val)
+                    print(f"{str(grp):<6} | {n_m:<28} | {c_i:<12} | {r_adj:<6.2f} | {p_val:<8.4f} | {sig}")
+                    group_results.append({
+                        "Group": grp, "Neural": n_m, "Clinical": c_i,
+                        "r": r_adj, "p": p_val, "sig": sig, "n": n_valid,
+                        "covariates": ",".join([c for c in CLINICAL_COVARIATES if c in df_grp.columns]),
+                    })
+
+    df_res_partial = pd.DataFrame(group_results)
+    _save_result("df_neural_clinical_partial", df_res_partial)
+    save_stage_bundle(14, "stage14_NeuralClinicalPartial", {"df_res_partial": df_res_partial})
+    save_intermediate("stage28_neural_clinical_partial", {"df_res_partial": df_res_partial})
+
+# %% [cell 25]
+if stage_active(15):
+    print("--- Running Stage 15: Outlier Removal and Z-Scoring ---")
+
+    if "df_master_analysis" not in globals():
+        raise ValueError("df_master_analysis missing. Run/resume Stage 12 before Stage 15.")
+
+    df_master_analysis_z = df_master_analysis.copy()
+    all_cols = NEURAL_CLINICAL_METRICS + CLINICAL_INDICES + CLINICAL_COVARIATES
+    z_limit = 3.0
+    outlier_summary = []
+
+    for col in all_cols:
+        if col not in df_master_analysis_z.columns:
+            print(f"Warning: {col} not found in dataframe.")
+            continue
+        numeric_col = pd.to_numeric(df_master_analysis_z[col], errors="coerce")
+        initial_z = stats.zscore(numeric_col, nan_policy="omit")
+        outlier_mask = np.abs(initial_z) > z_limit
+        num_removed = int(np.nansum(outlier_mask))
+        df_master_analysis_z.loc[outlier_mask, col] = np.nan
+        df_master_analysis_z[f"{col}_z"] = stats.zscore(pd.to_numeric(df_master_analysis_z[col], errors="coerce"), nan_policy="omit")
+        outlier_summary.append({"column": col, "outliers_removed": num_removed})
+        if num_removed > 0:
+            print(f"Column {col:<28}: Removed {num_removed} outliers (> {z_limit} SD)")
+
+    df_master_analysis = df_master_analysis_z
+    df_outlier_summary = pd.DataFrame(outlier_summary)
+    _save_result("df_master_analysis_z", df_master_analysis_z)
+    _save_result("df_outlier_summary", df_outlier_summary)
+    save_stage_bundle(
+        15,
+        "stage15_NeuralClinicalZScore",
+        {"df_master_analysis": df_master_analysis, "df_master_analysis_z": df_master_analysis_z, "df_outlier_summary": df_outlier_summary},
+    )
+    save_intermediate(
+        "stage29_neural_clinical_zscore",
+        {"df_master_analysis": df_master_analysis, "df_master_analysis_z": df_master_analysis_z, "df_outlier_summary": df_outlier_summary},
+    )
+
+# %% [cell 26]
+if stage_active(16):
+    print("--- Running Stage 16: Z-Scored OLS Neural-Clinical Associations ---")
+
+    if "df_master_analysis" not in globals():
+        raise ValueError("df_master_analysis missing. Run/resume Stage 12 or Stage 15 before Stage 16.")
+
+    group_col = clinical_group_column(df_master_analysis)
+    groups = sorted(df_master_analysis[group_col].dropna().unique()) if group_col else [None]
+    neural_z = [f"{c}_z" for c in NEURAL_CLINICAL_METRICS]
+    clinical_z = [f"{c}_z" for c in CLINICAL_INDICES]
+    ols_rows = []
+
+    for n_m in neural_z:
+        print(f"\n{'=' * 80}\nNEURAL PREDICTOR: {n_m.upper()}\n{'=' * 80}")
+        for c_i in clinical_z:
+            print(f"\n--- Clinical Outcome: {c_i.upper()} ---")
+            for grp in groups:
+                df_grp = df_master_analysis if grp is None else df_master_analysis[df_master_analysis[group_col] == grp]
+                if n_m not in df_grp.columns or c_i not in df_grp.columns:
+                    continue
+                analysis_df = df_grp[[n_m, c_i]].dropna().apply(pd.to_numeric, errors="coerce").dropna()
+                if len(analysis_df) > 5:
+                    X = sm.add_constant(analysis_df[n_m], has_constant="add")
+                    y = analysis_df[c_i]
+                    model = sm.OLS(y, X).fit()
+                    p_val = model.pvalues[n_m]
+                    beta = model.params[n_m]
+                    print(f"[{str(grp):<3}] N={len(analysis_df):<3} | Beta={beta:>6.3f} | t={model.tvalues[n_m]:>6.2f} | p={p_val:>6.4f}")
+                    ols_rows.append({
+                        "Group": grp, "Neural_z": n_m, "Clinical_z": c_i,
+                        "beta": beta, "t": model.tvalues[n_m], "p": p_val,
+                        "n": len(analysis_df), "r_squared": model.rsquared,
+                    })
+                else:
+                    print(f"[{str(grp):<3}] Insufficient data (N < 5)")
+
+    df_ols_results = pd.DataFrame(ols_rows)
+    _save_result("df_neural_clinical_ols", df_ols_results)
+    save_stage_bundle(16, "stage16_NeuralClinicalOLS", {"df_ols_results": df_ols_results})
+    save_intermediate("stage30_neural_clinical_ols", {"df_ols_results": df_ols_results})
