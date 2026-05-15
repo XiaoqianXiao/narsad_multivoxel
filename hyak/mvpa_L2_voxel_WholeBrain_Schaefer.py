@@ -548,14 +548,122 @@ def partial_corr_residualized(df, x_col, y_col, covariates):
 
 NEURAL_CLINICAL_METRICS = [
     "Neural_Dist_Threat_Safety",
-    "Neural_Dist_Safety_Backgr",
-    "Neural_Rigidity_Slope",
+    "Neural_Dist_Safety_Background",
+    "Neural_Safety_Trajectory_Slope",
     "Neural_Safety_Mean",
+    "Neural_SCR_Safety_Coupling",
     "Neural_Uncertainty_Entropy",
     "Neural_Sharpness_Kurtosis",
+    "Neural_Decision_Margin_CSS",
+    "Neural_ThreatLike_Safety",
+    "Neural_Boundary_Separation",
 ]
 CLINICAL_INDICES = ["lsas_total", "lsas_fear", "lsas_avoid", "dass_anxiety", "dass_stress", "ecr_total"]
 CLINICAL_COVARIATES = ["demo_age"]
+SCR_CONDITION_MAP = {"CS-": "CS-", "CS+S": "CSS", "CS+R": "CSR", "CSS": "CSS", "CSR": "CSR"}
+SCR_BEHAVIORAL_INDICES = [
+    "SCR_Safety_Mean",
+    "SCR_Threat_Mean",
+    "SCR_Background_Mean",
+    "SCR_SafetyMinusBackground",
+    "SCR_ThreatMinusSafety",
+    "SCR_Safety_Trajectory_Slope",
+    "SCR_Threat_Trajectory_Slope",
+]
+CLINICAL_INDICES = CLINICAL_INDICES + SCR_BEHAVIORAL_INDICES
+
+
+def resolve_trial_scr_path(project_root):
+    candidates = [
+        os.environ.get("TRIAL_SCR_PATH"),
+        os.environ.get("SCR_TRIAL_PATH"),
+        "/gscratch/fang/NARSAD/EDR/peak_stats_table-phase2.3.csv",
+        os.path.join(project_root, "EDR", "peak_stats_table-phase2.3.csv"),
+        "/Users/xiaoqianxiao/projects/NARSAD/EDR/peak_stats_table-phase2.3.csv",
+    ]
+    for candidate in candidates:
+        if candidate and os.path.exists(candidate):
+            return candidate
+    return None
+
+
+def load_trialwise_scr(project_root):
+    scr_path = resolve_trial_scr_path(project_root)
+    if scr_path is None:
+        print("[SCR] Trial-wise SCR file not found; SCR behavioral indices will be skipped.")
+        return pd.DataFrame(), None
+    df_scr = pd.read_csv(scr_path)
+    required = {"sid", "stTy", "stNum", "phaBase2Peak"}
+    missing = required.difference(df_scr.columns)
+    if missing:
+        raise ValueError(f"SCR file {scr_path} is missing required columns: {sorted(missing)}")
+    if "bad" in df_scr.columns:
+        df_scr = df_scr[df_scr["bad"] == 0].copy()
+    df_scr["sub_ID"] = df_scr["sid"].astype(str).str.strip()
+    df_scr["SCR_Condition"] = df_scr["stTy"].map(SCR_CONDITION_MAP)
+    df_scr = df_scr[df_scr["SCR_Condition"].isin(["CS-", "CSS", "CSR"])].copy()
+    df_scr["SCR_Trial"] = pd.to_numeric(df_scr["stNum"], errors="coerce")
+    df_scr["SCR_Anticipatory"] = pd.to_numeric(df_scr["phaBase2Peak"], errors="coerce")
+    df_scr["SCR_US"] = pd.to_numeric(df_scr.get("USbase2peak", np.nan), errors="coerce")
+    df_scr = df_scr.sort_values(["sub_ID", "SCR_Condition", "SCR_Trial"])
+    df_scr["condition_trial"] = df_scr.groupby(["sub_ID", "SCR_Condition"]).cumcount() + 1
+    keep_cols = ["sub_ID", "SCR_Condition", "SCR_Trial", "condition_trial", "SCR_Anticipatory", "SCR_US"]
+    print(f"[SCR] Loaded {len(df_scr)} valid trial-wise SCR rows from {scr_path}")
+    return df_scr[keep_cols].copy(), scr_path
+
+
+def _safe_slope(x, y):
+    valid = pd.DataFrame({"x": x, "y": y}).dropna()
+    if len(valid) < 3 or valid["x"].nunique() < 2:
+        return np.nan
+    return float(np.polyfit(valid["x"], valid["y"], 1)[0])
+
+
+def summarize_scr_indices(df_scr):
+    rows = []
+    if df_scr is None or df_scr.empty:
+        return pd.DataFrame(columns=["sub_ID"] + SCR_BEHAVIORAL_INDICES)
+    for sub_id, sub_df in df_scr.groupby("sub_ID"):
+        by_cond = sub_df.groupby("SCR_Condition")["SCR_Anticipatory"].mean()
+        safety_mean = by_cond.get("CSS", np.nan)
+        threat_mean = by_cond.get("CSR", np.nan)
+        background_mean = by_cond.get("CS-", np.nan)
+        css = sub_df[sub_df["SCR_Condition"] == "CSS"]
+        csr = sub_df[sub_df["SCR_Condition"] == "CSR"]
+        rows.append({
+            "sub_ID": str(sub_id),
+            "SCR_Safety_Mean": safety_mean,
+            "SCR_Threat_Mean": threat_mean,
+            "SCR_Background_Mean": background_mean,
+            "SCR_SafetyMinusBackground": safety_mean - background_mean,
+            "SCR_ThreatMinusSafety": threat_mean - safety_mean,
+            "SCR_Safety_Trajectory_Slope": _safe_slope(css["condition_trial"], css["SCR_Anticipatory"]),
+            "SCR_Threat_Trajectory_Slope": _safe_slope(csr["condition_trial"], csr["SCR_Anticipatory"]),
+        })
+    return pd.DataFrame(rows)
+
+
+def calculate_neural_scr_safety_coupling(df_safe, df_scr):
+    if df_safe is None or df_scr is None or df_safe.empty or df_scr.empty:
+        return pd.DataFrame(columns=["sub_ID", "Neural_SCR_Safety_Coupling", "Neural_SCR_Safety_Coupling_N"])
+    neural = df_safe.rename(columns={"sub": "sub_ID", "trial": "condition_trial", "score": "Neural_Safety_Score"}).copy()
+    neural["sub_ID"] = neural["sub_ID"].astype(str)
+    neural["condition_trial"] = pd.to_numeric(neural["condition_trial"], errors="coerce")
+    scr_css = df_scr[df_scr["SCR_Condition"] == "CSS"][["sub_ID", "condition_trial", "SCR_Anticipatory"]].copy()
+    merged = neural.merge(scr_css, on=["sub_ID", "condition_trial"], how="inner")
+    rows = []
+    for sub_id, sub_df in merged.groupby("sub_ID"):
+        valid = sub_df[["Neural_Safety_Score", "SCR_Anticipatory"]].dropna()
+        if len(valid) >= 3 and valid["Neural_Safety_Score"].nunique() > 1 and valid["SCR_Anticipatory"].nunique() > 1:
+            r_val, _ = pearsonr(valid["Neural_Safety_Score"], valid["SCR_Anticipatory"])
+        else:
+            r_val = np.nan
+        rows.append({
+            "sub_ID": str(sub_id),
+            "Neural_SCR_Safety_Coupling": r_val,
+            "Neural_SCR_Safety_Coupling_N": len(valid),
+        })
+    return pd.DataFrame(rows)
 
 
 def calculate_plasticity_vectors(X_learn, y_learn, sub_learn, X_targ, y_targ, sub_targ, mask, cond_l, cond_t):
@@ -603,7 +711,11 @@ def get_default_c_for_sub(sub_id, meta_map, best_c_sad=None, best_c_hc=None):
 def calculate_distribution_stats(X, y, subjects, feature_mask, best_params_dict, cond_threat, cond_safe, meta_map, best_c_sad=None, best_c_hc=None):
     X_masked = X[:, feature_mask]
     unique_subs = np.unique(subjects)
-    res = {'sub': [], 'entropy': [], 'kurtosis': [], 'variance': [], 'probabilities': [], 'brier': [], 'calib': []}
+    res = {
+        'sub': [], 'entropy': [], 'kurtosis': [], 'variance': [], 'probabilities': [],
+        'probabilities_csr': [], 'p_csr_css': [], 'p_csr_csr': [], 'boundary_separation': [],
+        'decision_margin_css': [], 'decision_margin_all': [], 'brier': [], 'calib': []
+    }
     for sub in unique_subs:
         c_val = best_params_dict.get(sub, get_default_c_for_sub(sub, meta_map, best_c_sad, best_c_hc))
         mask_sub = subjects == sub
@@ -625,6 +737,7 @@ def calculate_distribution_stats(X, y, subjects, feature_mask, best_params_dict,
                 continue
             idx_threat = classes.index(cond_threat)
             probs_css = probs_all[y_binary == cond_safe, idx_threat]
+            probs_csr = probs_all[y_binary == cond_threat, idx_threat]
             if len(probs_css) == 0:
                 continue
             y_bin_threat = (y_binary == cond_threat).astype(int)
@@ -637,6 +750,14 @@ def calculate_distribution_stats(X, y, subjects, feature_mask, best_params_dict,
             res['kurtosis'].append(kurtosis(probs_css, fisher=True))
             res['variance'].append(np.var(probs_css))
             res['probabilities'].append(probs_css)
+            res['probabilities_csr'].append(probs_csr)
+            res['p_csr_css'].append(float(np.mean(probs_css)))
+            res['p_csr_csr'].append(float(np.mean(probs_csr)) if len(probs_csr) else np.nan)
+            res['boundary_separation'].append(
+                (float(np.mean(probs_csr)) if len(probs_csr) else np.nan) - float(np.mean(probs_css))
+            )
+            res['decision_margin_css'].append(float(np.mean(np.abs(probs_css - 0.5))))
+            res['decision_margin_all'].append(float(np.mean(np.abs(probs_all[:, idx_threat] - 0.5))))
             res['brier'].append(brier)
             res['calib'].append({'frac_pos': frac_pos, 'mean_pred': mean_pred})
         except Exception:
@@ -2149,8 +2270,11 @@ if stage_active(2):
     print("\n[Step 0] Selecting empirical whole-brain FDR neural features...")
     
     analysis_masks, feature_space_12 = get_analysis_feature_masks("Analysis 1.2")
-    mask_sad_top5 = analysis_masks['SAD']
-    mask_hc_top5 = analysis_masks['HC']
+    mask_sad_analysis = analysis_masks['SAD']
+    mask_hc_analysis = analysis_masks['HC']
+    # Legacy aliases kept so older result bundles remain readable.
+    mask_sad_top5 = mask_sad_analysis
+    mask_hc_top5 = mask_hc_analysis
     
     # =============================================================================
     # 1. Data Preparation (Recovering CS-)
@@ -2186,11 +2310,11 @@ if stage_active(2):
     mask_hc_grp = (grp_raw == "HC")
     
     # Slice Features (apply selected FDR or top-100 sensitivity masks)
-    X_sad_12 = X_raw[mask_sad_grp][:, mask_sad_top5]
+    X_sad_12 = X_raw[mask_sad_grp][:, mask_sad_analysis]
     y_sad_12 = y_raw[mask_sad_grp]
     sub_sad_12 = sub_raw[mask_sad_grp]
     
-    X_hc_12 = X_raw[mask_hc_grp][:, mask_hc_top5]
+    X_hc_12 = X_raw[mask_hc_grp][:, mask_hc_analysis]
     y_hc_12 = y_raw[mask_hc_grp]
     sub_hc_12 = sub_raw[mask_hc_grp]
     
@@ -2214,6 +2338,12 @@ if stage_active(2):
     
     vec_a_sad, vec_b_sad = extract_topology_metrics(rdms_sad, idx_cs_minus, idx_css, idx_csr)
     vec_a_hc, vec_b_hc = extract_topology_metrics(rdms_hc, idx_cs_minus, idx_css, idx_csr)
+    vec_c_sad = rdms_sad[:, idx_csr, idx_cs_minus]
+    vec_c_hc = rdms_hc[:, idx_csr, idx_cs_minus]
+    safety_integration_sad = vec_a_sad - vec_b_sad
+    safety_integration_hc = vec_a_hc - vec_b_hc
+    threat_bias_sad = vec_c_sad - vec_b_sad
+    threat_bias_hc = vec_c_hc - vec_b_hc
     
     print("\n[Step 3] Statistical Testing...")
     
@@ -2235,6 +2365,13 @@ if stage_active(2):
     print("  > Group Comparison (SAD vs HC):")
     t_b, p_b, m_b_sad, m_b_hc = perm_ttest_ind(vec_b_sad, vec_b_hc, n_perm=N_PERMUTATION)
     print(f"    Diff: SAD={m_b_sad:.3f}, HC={m_b_hc:.3f} | t={t_b:.3f}, p={p_b:.4f}")
+
+    print("\nPrimary Topology Index: Safety Integration = dist(CSR,CSS) - dist(CSS,CS-)")
+    t_sii, p_sii, m_sii_sad, m_sii_hc = perm_ttest_ind(safety_integration_sad, safety_integration_hc, n_perm=N_PERMUTATION)
+    print(f"    Diff: SAD={m_sii_sad:.3f}, HC={m_sii_hc:.3f} | t={t_sii:.3f}, p={p_sii:.4f}")
+    print("Secondary Topology Index: Threat Bias = dist(CSR,CS-) - dist(CSS,CS-)")
+    t_tbi, p_tbi, m_tbi_sad, m_tbi_hc = perm_ttest_ind(threat_bias_sad, threat_bias_hc, n_perm=N_PERMUTATION)
+    print(f"    Diff: SAD={m_tbi_sad:.3f}, HC={m_tbi_hc:.3f} | t={t_tbi:.3f}, p={p_tbi:.4f}")
     
     # =============================================================================
     # 4. Visualization
@@ -2287,14 +2424,22 @@ if stage_active(2):
     plt.show()
     
     # Store Results
-    n_feat_sad = max(int(np.sum(mask_sad_top5)), 1)
-    n_feat_hc = max(int(np.sum(mask_hc_top5)), 1)
+    n_feat_sad = max(int(np.sum(mask_sad_analysis)), 1)
+    n_feat_hc = max(int(np.sum(mask_hc_analysis)), 1)
     rdms_sad_pv = rdms_sad / n_feat_sad
     rdms_hc_pv = rdms_hc / n_feat_hc
     vec_a_sad_pv, vec_b_sad_pv = extract_topology_metrics(rdms_sad_pv, idx_cs_minus, idx_css, idx_csr)
     vec_a_hc_pv, vec_b_hc_pv = extract_topology_metrics(rdms_hc_pv, idx_cs_minus, idx_css, idx_csr)
+    vec_c_sad_pv = rdms_sad_pv[:, idx_csr, idx_cs_minus]
+    vec_c_hc_pv = rdms_hc_pv[:, idx_csr, idx_cs_minus]
+    safety_integration_sad_pv = vec_a_sad_pv - vec_b_sad_pv
+    safety_integration_hc_pv = vec_a_hc_pv - vec_b_hc_pv
+    threat_bias_sad_pv = vec_c_sad_pv - vec_b_sad_pv
+    threat_bias_hc_pv = vec_c_hc_pv - vec_b_hc_pv
     t_a_pv, p_a_pv, m_a_sad_pv, m_a_hc_pv = perm_ttest_ind(vec_a_sad_pv, vec_a_hc_pv, n_perm=N_PERMUTATION)
     t_b_pv, p_b_pv, m_b_sad_pv, m_b_hc_pv = perm_ttest_ind(vec_b_sad_pv, vec_b_hc_pv, n_perm=N_PERMUTATION)
+    t_sii_pv, p_sii_pv, m_sii_sad_pv, m_sii_hc_pv = perm_ttest_ind(safety_integration_sad_pv, safety_integration_hc_pv, n_perm=N_PERMUTATION)
+    t_tbi_pv, p_tbi_pv, m_tbi_sad_pv, m_tbi_hc_pv = perm_ttest_ind(threat_bias_sad_pv, threat_bias_hc_pv, n_perm=N_PERMUTATION)
 
     results_12 = {
         "rdms_sad": rdms_sad, "rdms_hc": rdms_hc,
@@ -2302,10 +2447,22 @@ if stage_active(2):
         "rdms_sad_raw_pv": rdms_sad_pv, "rdms_hc_raw_pv": rdms_hc_pv,
         "subs_sad_rdm": subs_sad_rdm, "subs_hc_rdm": subs_hc_rdm,
         "metric_a_stats": (t_a, p_a), "metric_b_stats": (t_b, p_b),
+        "safety_integration_index": {"SAD": safety_integration_sad, "HC": safety_integration_hc},
+        "threat_bias_index": {"SAD": threat_bias_sad, "HC": threat_bias_hc},
+        "safety_integration_stats": (t_sii, p_sii),
+        "threat_bias_stats": (t_tbi, p_tbi),
         "metric_a_stats_pv": (t_a_pv, p_a_pv), "metric_b_stats_pv": (t_b_pv, p_b_pv),
+        "safety_integration_index_pv": {"SAD": safety_integration_sad_pv, "HC": safety_integration_hc_pv},
+        "threat_bias_index_pv": {"SAD": threat_bias_sad_pv, "HC": threat_bias_hc_pv},
+        "safety_integration_stats_pv": (t_sii_pv, p_sii_pv),
+        "threat_bias_stats_pv": (t_tbi_pv, p_tbi_pv),
         "metric_a_means_pv": {"SAD": m_a_sad_pv, "HC": m_a_hc_pv},
         "metric_b_means_pv": {"SAD": m_b_sad_pv, "HC": m_b_hc_pv},
+        "safety_integration_means_pv": {"SAD": m_sii_sad_pv, "HC": m_sii_hc_pv},
+        "threat_bias_means_pv": {"SAD": m_tbi_sad_pv, "HC": m_tbi_hc_pv},
         "features_sad": n_feat_sad, "features_hc": n_feat_hc,
+        "mask_sad_analysis": mask_sad_analysis,
+        "mask_hc_analysis": mask_hc_analysis,
         "feature_space": feature_space_12,
         "one_sample_stats": {"p_a_sad": p_a_sad_0, "p_a_hc": p_a_hc_0, "p_b_sad": p_b_sad_0, "p_b_hc": p_b_hc_0}
     }
@@ -2330,6 +2487,8 @@ if stage_active(2):
             "subs_hc_rdm": locals().get("subs_hc_rdm"),
             "sub_sad_12": locals().get("sub_sad_12"),
             "sub_hc_12": locals().get("sub_hc_12"),
+            "mask_sad_analysis": locals().get("mask_sad_analysis"),
+            "mask_hc_analysis": locals().get("mask_hc_analysis"),
             "mask_sad_top5": locals().get("mask_sad_top5"),
             "mask_hc_top5": locals().get("mask_hc_top5"),
             "feature_space": locals().get("feature_space_12"),
@@ -2489,7 +2648,22 @@ if stage_active(3):
     _save_fig("results_13_drift")
     plt.show()
     
-    results_13 = {'safe_sad': df_safe_sad, 'threat_sad': df_threat_sad, 'feature_space': feature_space_13}
+    drift_summary = (
+        df_plot.groupby(["Group", "Condition"])[["projection", "cosine", "init_dist"]]
+        .agg(["mean", "sem", "count"])
+        .reset_index()
+        if not df_plot.empty else pd.DataFrame()
+    )
+    results_13 = {
+        'safe_sad': df_safe_sad,
+        'safe_hc': df_safe_hc,
+        'threat_sad': df_threat_sad,
+        'threat_hc': df_threat_hc,
+        'df_plot': df_plot,
+        'drift_summary': drift_summary,
+        'primary_metric': 'projection',
+        'feature_space': feature_space_13,
+    }
     results_13_main = results_13
     _save_result("results_13", results_13)
     _save_result("results_13", results_13)
@@ -2504,6 +2678,7 @@ if stage_active(3):
     save_intermediate("stage13_drift", {
         "results_13": results_13,
         "df_plot": locals().get("df_plot"),
+        "drift_summary": locals().get("drift_summary"),
         "df_safe_sad": locals().get("df_safe_sad"),
         "df_safe_hc": locals().get("df_safe_hc"),
         "df_threat_sad": locals().get("df_threat_sad"),
@@ -2624,11 +2799,36 @@ if stage_active(3):
     _save_fig("results_13_trajectories")
     plt.show()
     
+    def subject_trajectory_slopes(df, domain):
+        rows = []
+        if df is None or df.empty:
+            return pd.DataFrame(columns=["sub", "Group", "Condition", "slope", "mean_score"])
+        for (sub, group), sub_df in df.groupby(["sub", "Group"]):
+            sub_df = sub_df.sort_values("trial")
+            if len(sub_df) < 3:
+                continue
+            slope, _ = np.polyfit(sub_df["trial"], sub_df["score"], 1)
+            rows.append({
+                "sub": sub,
+                "Group": group,
+                "Condition": domain,
+                "slope": slope,
+                "mean_score": sub_df["score"].mean(),
+            })
+        return pd.DataFrame(rows)
+
+    trajectory_slopes = pd.concat([
+        subject_trajectory_slopes(df_safe, "Safety Learning"),
+        subject_trajectory_slopes(df_threat, "Threat Maintenance"),
+    ], ignore_index=True)
+
     results_13 = {
         'stats_safe': stats_safe, 
         'stats_threat': stats_threat,
         'data_safe': df_safe,
         'data_threat': df_threat,
+        'trajectory_slopes': trajectory_slopes,
+        'primary_metric': 'safety_trajectory_slope',
         'feature_space': feature_space_13b,
     }
     results_13_2 = results_13
@@ -2705,14 +2905,16 @@ if stage_active(4):
     print("  > Analyzing SAD Placebo...")
     df_sad_stats = calculate_distribution_stats(
         X_sad, y_sad, sub_sad, 
-        mask_sad_native, subject_best_params
+        mask_sad_native, subject_best_params,
+        COND_CLASS_THREAT, COND_CLASS_SAFE, sub_to_meta, best_c_sad, best_c_hc
     )
     
     # HC Analysis (Native)
     print("  > Analyzing HC Placebo...")
     df_hc_stats = calculate_distribution_stats(
         X_hc, y_hc, sub_hc, 
-        mask_hc_native, subject_best_params
+        mask_hc_native, subject_best_params,
+        COND_CLASS_THREAT, COND_CLASS_SAFE, sub_to_meta, best_c_sad, best_c_hc
     )
     
     # =============================================================================
@@ -2722,13 +2924,16 @@ if stage_active(4):
     p_ent = compare_metric(df_sad_stats['entropy'], df_hc_stats['entropy'], "Entropy (Uncertainty)")
     p_kurt = compare_metric(df_sad_stats['kurtosis'], df_hc_stats['kurtosis'], "Kurtosis (Sharpness)")
     p_var = compare_metric(df_sad_stats['variance'], df_hc_stats['variance'], "Variance (Spread)")
+    p_margin = compare_metric(df_sad_stats['decision_margin_css'], df_hc_stats['decision_margin_css'], "Decision Margin |P(CSR|CSS)-.5|")
+    p_pcsr_css = compare_metric(df_sad_stats['p_csr_css'], df_hc_stats['p_csr_css'], "Threat-like Safety P(CSR|CSS)")
+    p_boundary = compare_metric(df_sad_stats['boundary_separation'], df_hc_stats['boundary_separation'], "Boundary Separation P(CSR|CSR)-P(CSR|CSS)")
     
     # =============================================================================
     # 4. Visualization
     # =============================================================================
     sns.set_context("poster")
-    fig = plt.figure(figsize=(24, 8))
-    gs = fig.add_gridspec(1, 3)
+    fig = plt.figure(figsize=(30, 12))
+    gs = fig.add_gridspec(2, 3)
     
     # A. Entropy (Violin)
     ax1 = fig.add_subplot(gs[0, 0])
@@ -2765,6 +2970,38 @@ if stage_active(4):
         ax3.set_xlabel("P(Threat) for Safety Cues")
         ax3.set_xlim(0, 1)
         ax3.legend()
+
+    ax4 = fig.add_subplot(gs[1, 0])
+    if not df_sad_stats.empty and not df_hc_stats.empty:
+        df_margin_plot = pd.concat([
+            pd.DataFrame({'Val': df_sad_stats['decision_margin_css'], 'Group': 'SAD'}),
+            pd.DataFrame({'Val': df_hc_stats['decision_margin_css'], 'Group': 'HC'})
+        ])
+        sns.violinplot(data=df_margin_plot, x='Group', y='Val', palette={'SAD': '#c44e52', 'HC': '#4c72b0'}, ax=ax4)
+        ax4.set_title("Decision Margin for CSS")
+        ax4.set_ylabel("|P(CSR|CSS) - 0.5|")
+
+    ax5 = fig.add_subplot(gs[1, 1])
+    if not df_sad_stats.empty and not df_hc_stats.empty:
+        df_pcss_plot = pd.concat([
+            pd.DataFrame({'Val': df_sad_stats['p_csr_css'], 'Group': 'SAD'}),
+            pd.DataFrame({'Val': df_hc_stats['p_csr_css'], 'Group': 'HC'})
+        ])
+        sns.violinplot(data=df_pcss_plot, x='Group', y='Val', palette={'SAD': '#c44e52', 'HC': '#4c72b0'}, ax=ax5)
+        ax5.axhline(0.5, color='gray', linestyle='--', alpha=0.6)
+        ax5.set_title("Threat-Like Safety")
+        ax5.set_ylabel("Mean P(CSR | CSS)")
+
+    ax6 = fig.add_subplot(gs[1, 2])
+    if not df_sad_stats.empty and not df_hc_stats.empty:
+        df_boundary_plot = pd.concat([
+            pd.DataFrame({'Val': df_sad_stats['boundary_separation'], 'Group': 'SAD'}),
+            pd.DataFrame({'Val': df_hc_stats['boundary_separation'], 'Group': 'HC'})
+        ])
+        sns.violinplot(data=df_boundary_plot, x='Group', y='Val', palette={'SAD': '#c44e52', 'HC': '#4c72b0'}, ax=ax6)
+        ax6.axhline(0, color='gray', linestyle='--', alpha=0.6)
+        ax6.set_title("Boundary Separation")
+        ax6.set_ylabel("P(CSR|CSR) - P(CSR|CSS)")
     
     plt.tight_layout()
     _save_fig("analysis_14_decision_stats")
@@ -2795,6 +3032,9 @@ if stage_active(4):
             "df_hc_stats": locals().get("df_hc_stats"),
             "p_ent": locals().get("p_ent"),
             "p_kurt": locals().get("p_kurt"),
+            "p_margin": locals().get("p_margin"),
+            "p_pcsr_css": locals().get("p_pcsr_css"),
+            "p_boundary": locals().get("p_boundary"),
             "feature_space": locals().get("feature_space_14"),
         },
     )
@@ -2820,11 +3060,13 @@ if stage_active(5):
     # =============================================================================
     # 0. Validate / Recompute Masks from Cell 9
     # =============================================================================
-    if 'mask_sad_top5' not in locals() or 'mask_hc_top5' not in locals():
+    if 'mask_sad_analysis' not in locals() or 'mask_hc_analysis' not in locals():
         # Reload empirical FDR masks so this stage can run standalone
         importance_scores, importance_masks = ensure_importance_loaded()
-        mask_sad_top5 = importance_masks['SAD']
-        mask_hc_top5 = importance_masks['HC']
+        mask_sad_analysis = importance_masks['SAD']
+        mask_hc_analysis = importance_masks['HC']
+        mask_sad_top5 = mask_sad_analysis
+        mask_hc_top5 = mask_hc_analysis
     
     # =============================================================================
     # 1. Calculate Distances (Both Metrics)
@@ -2854,7 +3096,7 @@ if stage_active(5):
         group, drug = key.split('_')
         
         # Select Native Mask
-        current_mask = mask_sad_top5 if group == "SAD" else mask_hc_top5
+        current_mask = mask_sad_analysis if group == "SAD" else mask_hc_analysis
             
         for sub in subject_list:
             mask_sub = (sub_ext == sub)
@@ -2969,7 +3211,7 @@ if stage_active(5):
 # %% [cell 16]
 if stage_active(6):
     # Cell 13: Analysis 2.2 - Drift Efficiency (Safety & Threat Maintenance)
-    # Objective: Test OXT effect on neural drift efficiency in the Core Top 5% Network.
+    # Objective: Test OXT effect on neural drift efficiency in the empirical feature network.
     # Domains:
     #   1. Safety Learning:    CSS(Ext) -> CS-(Ext)
     #   2. Threat Maintenance: CSR(Ext) -> CSR(Reinst)
@@ -2982,7 +3224,7 @@ if stage_active(6):
     COND_SAFE_TGT = "CS-"
     COND_SAFE_LRN = "CSS"
     COND_THREAT_LRN = "CSR"
-    PERCENTILE_THRESH = 95  # Top 5%
+    PERCENTILE_THRESH = None  # Uses empirical permutation masks, with top-100 fallback if needed.
     
     # =============================================================================
     # 0. Setup: Masks & Data Loading
@@ -3260,11 +3502,11 @@ if stage_active(7):
     _save_result("results_23", results_23)
     save_checkpoint(15, {
         "results_23": results_23,
-        "df_ent": locals().get("df_ent"),
+        "df_metrics": locals().get("df_metrics"),
     })
     save_intermediate("stage15_results_23", {
         "results_23": results_23,
-        "df_ent": locals().get("df_ent"),
+        "df_metrics": locals().get("df_metrics"),
     })
     save_stage_bundle(
         7,
@@ -3566,8 +3808,8 @@ if stage_active(9):
     plt.yticks(rotation=0) 
     
     plt.tight_layout()
-    _save_fig("analysis_24")
-    _save_fig("results_24")
+    _save_fig("analysis_25")
+    _save_fig("results_25")
     plt.show()
     
     results_25 = {
@@ -3636,11 +3878,18 @@ if stage_active(10):
     df_dass["dass_stress"] = df_dass_raw[stress_items].sum(axis=1) * 2
 
     df_scored_clinical = df_dass.merge(df_lsas, on="sub_ID", how="inner").merge(df_ecr, on="sub_ID", how="inner")
+    df_scr_trials, SCR_path = load_trialwise_scr(PROJECT_ROOT)
+    df_scr_indices = summarize_scr_indices(df_scr_trials)
+    if not df_scr_indices.empty:
+        df_scored_clinical = df_scored_clinical.merge(df_scr_indices, on="sub_ID", how="left")
+        print(f"SCR behavioral indices merged for {df_scr_indices['sub_ID'].nunique()} subjects.")
     print(f"Clinical scores generated for {len(df_scored_clinical)} subjects.")
 
     stage10_payload = {
         "df_scored_clinical": df_scored_clinical,
-        "clinical_paths": {"LSAS": LSAS_path, "ECR": ECR_path, "DASS": DASS_path},
+        "df_scr_trials": df_scr_trials,
+        "df_scr_indices": df_scr_indices,
+        "clinical_paths": {"LSAS": LSAS_path, "ECR": ECR_path, "DASS": DASS_path, "SCR": SCR_path},
     }
     _save_result("df_scored_clinical", df_scored_clinical)
     save_stage_bundle(10, "stage10_ClinicalScores", stage10_payload)
@@ -3671,6 +3920,7 @@ if stage_active(11):
     df_neural_topology = pd.DataFrame({
         "sub_ID": np.concatenate([s_id_sad, s_id_hc]).astype(str),
         "Neural_Dist_Threat_Safety": np.concatenate([vA_sad_pv, vA_hc_pv]),
+        "Neural_Dist_Safety_Background": np.concatenate([vB_sad_pv, vB_hc_pv]),
         "Neural_Dist_Safety_Backgr": np.concatenate([vB_sad_pv, vB_hc_pv]),
         "Group": ["SAD"] * len(s_id_sad) + ["HC"] * len(s_id_hc),
     })
@@ -3682,7 +3932,10 @@ if stage_active(11):
     def calculate_subject_slopes(df):
         slopes = []
         if df is None or df.empty:
-            return pd.DataFrame(columns=["sub_ID", "Neural_Rigidity_Slope", "Neural_Safety_Mean"])
+            return pd.DataFrame(columns=[
+                "sub_ID", "Neural_Safety_Trajectory_Slope",
+                "Neural_Rigidity_Slope", "Neural_Safety_Mean"
+            ])
         for sub in df["sub"].unique():
             sub_data = df[df["sub"] == sub].sort_values("trial")
             if len(sub_data) < 3:
@@ -3690,23 +3943,38 @@ if stage_active(11):
             slope, _ = np.polyfit(sub_data["trial"], sub_data["score"], 1)
             slopes.append({
                 "sub_ID": str(sub),
-                "Neural_Rigidity_Slope": slope,
+                "Neural_Safety_Trajectory_Slope": slope,
+                "Neural_Rigidity_Slope": slope,  # Legacy alias for older saved analyses.
                 "Neural_Safety_Mean": sub_data["score"].mean(),
             })
         return pd.DataFrame(slopes)
 
     df_neural_trajectories = calculate_subject_slopes(trajectory_payload["data_safe"])
+    if "df_scr_trials" not in globals():
+        df_scr_trials, SCR_path = load_trialwise_scr(PROJECT_ROOT)
+    df_scr_neural_coupling = calculate_neural_scr_safety_coupling(trajectory_payload["data_safe"], df_scr_trials)
+    if not df_scr_neural_coupling.empty:
+        df_neural_trajectories = df_neural_trajectories.merge(df_scr_neural_coupling, on="sub_ID", how="left")
 
     df_sad_stats = results_14_self["df_sad"]
     df_hc_stats = results_14_self["df_hc"]
-    df_sad_idx = df_sad_stats[["sub", "entropy", "kurtosis"]].copy()
+    uncertainty_cols = [
+        "sub", "entropy", "kurtosis", "decision_margin_css",
+        "p_csr_css", "p_csr_csr", "boundary_separation"
+    ]
+    available_uncertainty_cols = [col for col in uncertainty_cols if col in df_sad_stats.columns and col in df_hc_stats.columns]
+    df_sad_idx = df_sad_stats[available_uncertainty_cols].copy()
     df_sad_idx["Group"] = "SAD"
-    df_hc_idx = df_hc_stats[["sub", "entropy", "kurtosis"]].copy()
+    df_hc_idx = df_hc_stats[available_uncertainty_cols].copy()
     df_hc_idx["Group"] = "HC"
     df_neural_uncertainty = pd.concat([df_sad_idx, df_hc_idx], ignore_index=True).rename(columns={
         "sub": "sub_ID",
         "entropy": "Neural_Uncertainty_Entropy",
         "kurtosis": "Neural_Sharpness_Kurtosis",
+        "decision_margin_css": "Neural_Decision_Margin_CSS",
+        "p_csr_css": "Neural_ThreatLike_Safety",
+        "p_csr_csr": "Neural_Threat_Evidence_CSR",
+        "boundary_separation": "Neural_Boundary_Separation",
     })
     df_neural_uncertainty["sub_ID"] = df_neural_uncertainty["sub_ID"].astype(str)
 
@@ -3718,6 +3986,7 @@ if stage_active(11):
         "df_neural_topology": df_neural_topology,
         "df_neural_trajectories": df_neural_trajectories,
         "df_neural_uncertainty": df_neural_uncertainty,
+        "df_scr_neural_coupling": df_scr_neural_coupling,
         "topology_feature_counts": {"SAD": sad_feature_count, "HC": hc_feature_count},
     }
     _save_result("df_neural_topology", df_neural_topology)
@@ -3735,19 +4004,20 @@ if stage_active(12):
     if missing:
         raise ValueError(f"Missing inputs for Stage 12: {missing}. Run/resume Stages 10-11 first.")
 
-    df_final_indecision = (
+    df_final_clinical_neural = (
         df_scored_clinical
         .merge(df_neural_topology, on="sub_ID", how="inner")
         .merge(df_neural_trajectories, on="sub_ID", how="inner")
         .merge(df_neural_uncertainty, on="sub_ID", how="inner")
     )
-    group_col_pre_meta = clinical_group_column(df_final_indecision)
+    df_final_indecision = df_final_clinical_neural  # Legacy alias for older saved analyses.
+    group_col_pre_meta = clinical_group_column(df_final_clinical_neural)
     if group_col_pre_meta is not None:
-        df_final_indecision["Analysis_Group"] = df_final_indecision[group_col_pre_meta]
+        df_final_clinical_neural["Analysis_Group"] = df_final_clinical_neural[group_col_pre_meta]
 
     meta_merge = meta.copy()
     meta_merge["sub_ID"] = meta_merge["subject_id"].astype(str)
-    df_master_analysis = df_final_indecision.merge(meta_merge, on="sub_ID", how="inner", suffixes=("", "_meta"))
+    df_master_analysis = df_final_clinical_neural.merge(meta_merge, on="sub_ID", how="inner", suffixes=("", "_meta"))
     if "Analysis_Group" not in df_master_analysis.columns:
         group_col = clinical_group_column(df_master_analysis)
         if group_col is not None:
@@ -3755,9 +4025,11 @@ if stage_active(12):
 
     print(f"Merged clinical-neural sample: {len(df_master_analysis)} subjects.")
     stage12_payload = {
+        "df_final_clinical_neural": df_final_clinical_neural,
         "df_final_indecision": df_final_indecision,
         "df_master_analysis": df_master_analysis,
     }
+    _save_result("df_final_clinical_neural", df_final_clinical_neural)
     _save_result("df_final_indecision", df_final_indecision)
     _save_result("df_master_analysis", df_master_analysis)
     save_stage_bundle(12, "stage12_MasterClinicalNeural", stage12_payload)

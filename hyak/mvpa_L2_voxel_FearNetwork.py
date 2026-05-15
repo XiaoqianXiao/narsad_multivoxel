@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Generated from mvpa_L2_voxel_MemoryFearNetwork.ipynb for Hyak execution.
+# Generated from mvpa_L2_voxel_FearNetwork.py for Hyak execution.
 # %% [cell 1]
 # Cell 1: Imports & basic config
 
@@ -102,8 +102,8 @@ def parse_runtime_args():
     parser.add_argument(
         "--roi_dir",
         default=os.environ.get(
-            "MEMORY_FEAR_ROI_DIR",
-            os.path.join(os.environ.get("PROJECT_ROOT", "/gscratch/fang/NARSAD"), "ROI/MemoryFearNetwork"),
+            "FEAR_ROI_DIR",
+            os.path.join(os.environ.get("PROJECT_ROOT", "/gscratch/fang/NARSAD"), "ROI/Gillian_anatomically_constrained"),
         ),
     )
     parser.add_argument("--n_jobs", type=int, default=int(os.environ.get("N_JOBS", "1")))
@@ -429,7 +429,7 @@ def resolve_output_dirs():
         PROJECT_ROOT,
         "MRI/derivatives/fMRI_analysis/LSS",
         "results",
-        "MemoryFearNetwork",
+        "fear_network",
     )
     checkpoint_dir = os.path.join(out_dir, "checkpoints")
     intermediate_dir = os.path.join(out_dir, "intermediate")
@@ -1889,13 +1889,13 @@ print(f"Checkpoints will be saved to: {CHECKPOINT_DIR}")
 print("--- Data Loading (Whole-Brain Parcellation) ---")
 
 
-phase2_npz_path = os.path.join(data_root, "phase2_X_ext_y_ext_roi_voxels_MemoryFearNetwork.npz")
-phase3_npz_path = os.path.join(data_root, "phase3_X_reinst_y_reinst_roi_voxels_MemoryFearNetwork.npz") # Note: using 'reinst' variable name
+phase2_npz_path = os.path.join(data_root, "phase2_X_ext_y_ext_roi_voxels.npz")
+phase3_npz_path = os.path.join(data_root, "phase3_X_reinst_y_reinst_roi_voxels.npz") # Note: using 'reinst' variable name
 
 # Define the specific ROIs to keep
 TARGET_ROIS = [
-    'left_acc', 'left_amygdala', 'left_hippocampus', 'left_insula', 'left_vmpfc', 'left_VVC', 'left_AG', 'left_SMG', 'left_IFG', 'left_MFG', 'left_SFG', 'left_Precuneus',
-    'right_acc', 'right_amygdala', 'right_hippocampus', 'right_insula', 'right_vmpfc', 'right_VVC', 'right_AG', 'right_SMG', 'right_IFG', 'right_MFG', 'right_SFG', 'right_Precuneus'
+    'left_acc', 'left_amygdala', 'left_hippocampus', 'left_insula', 'left_vmpfc',
+    'right_acc', 'right_amygdala', 'right_hippocampus', 'right_insula', 'right_vmpfc'
 ]
 
 # Load Files
@@ -2406,8 +2406,8 @@ if cell_active(10):
         print(f"  [CONFIG] Using FDR Alpha: {fdr_alpha}")
     
         ROI_ORDER = [
-                'left_acc', 'left_amygdala', 'left_hippocampus', 'left_insula', 'left_vmpfc', 'left_VVC', 'left_AG', 'left_SMG', 'left_IFG', 'left_MFG', 'left_SFG', 'left_Precuneus',
-                'right_acc', 'right_amygdala', 'right_hippocampus', 'right_insula', 'right_vmpfc', 'right_VVC', 'right_AG', 'right_SMG', 'right_IFG', 'right_MFG', 'right_SFG', 'right_Precuneus'
+                'left_acc', 'left_amygdala', 'left_hippocampus', 'left_insula', 'left_vmpfc',
+                'right_acc', 'right_amygdala', 'right_hippocampus', 'right_insula', 'right_vmpfc'
             ]
         target_pair = ['CSR', 'CSS']
     

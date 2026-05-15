@@ -137,18 +137,47 @@ mkdir -p "$LOG_DIR"
 mkdir -p "$OUT_BASE"
 module load apptainer 2>/dev/null || true
 
+stage_output_suffix() {
+  case "$1" in
+    6)  printf 'a11_models' ;;
+    7)  printf 'crossphase_nulls' ;;
+    10) printf 'spatial_haufe' ;;
+    11) printf 'a11_importance' ;;
+    12) printf 'a12_topology' ;;
+    13) printf 'a13_drift' ;;
+    14) printf 'a13_trajectories' ;;
+    15) printf 'a14_decision_stats' ;;
+    16) printf 'a21_safety_restoration_pv' ;;
+    17) printf 'a21_safety_restoration_raw' ;;
+    18) printf 'a22_drift_efficiency' ;;
+    19) printf 'a23_probabilistic_opening' ;;
+    20) printf 'a24_spatial_realignment' ;;
+    21) printf 'a25_reverse_cross_decoding' ;;
+    23) printf 'c23_clinical_scores' ;;
+    24) printf 'c24_neural_clinical_indices' ;;
+    26) printf 'c26_master_clinical_neural' ;;
+    27) printf 'c27_neural_clinical_pearson' ;;
+    28) printf 'c28_neural_clinical_partial' ;;
+    29) printf 'c29_neural_clinical_zscore' ;;
+    30) printf 'c30_neural_clinical_ols' ;;
+    *)  printf 'stage%s' "$1" ;;
+  esac
+}
+
 submit_stage() {
   local stage_spec="$1"
   local dependency="${2:-}"
   local stage="$stage_spec"
   local stage11_group="ALL"
-  local job_suffix="$stage_spec"
+  local job_suffix
   local dependency_args=()
 
   if [[ "$stage_spec" =~ ^11[:_-](SAD|HC|ALL)$ ]]; then
     stage="11"
     stage11_group="${BASH_REMATCH[1]}"
-    job_suffix="11_${stage11_group}"
+    job_suffix="$(stage_output_suffix "$stage")_${stage11_group}"
+  else
+    job_suffix="$(stage_output_suffix "$stage")"
   fi
 
   if [[ -n "$dependency" ]]; then
@@ -195,9 +224,9 @@ submit_stage11_array() {
       --cpus-per-task="$CPUS" \
       --mem="$MEM" \
       --time="$TIME" \
-      --job-name="mvpa_memfear_c11_${group_name}" \
-      --output="$LOG_DIR/mvpa_memfear_c11_${group_name}_%A_%a.out" \
-      --error="$LOG_DIR/mvpa_memfear_c11_${group_name}_%A_%a.err" \
+      --job-name="mvpa_memfear_c$(stage_output_suffix 11)_${group_name}" \
+      --output="$LOG_DIR/mvpa_memfear_c$(stage_output_suffix 11)_${group_name}_%A_%a.out" \
+      --error="$LOG_DIR/mvpa_memfear_c$(stage_output_suffix 11)_${group_name}_%A_%a.err" \
       --wrap="export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 N_PERMUTATION=${N_PERMUTATION} N_NULL_PERMS=${N_NULL_PERMS} STAGE11_ACTUAL_REPEATS=${STAGE11_ACTUAL_REPEATS} STAGE11_CHUNK_COUNT=${STAGE11_CHUNKS}; apptainer exec -B ${PROJECT_ROOT}:${PROJECT_ROOT} -B ${APP_PATH}:/app -B ${OUT_BASE}:/output_dir ${CONTAINER_SIF} python3 /app/mvpa_L2_voxel_MemoryFearNetwork.py --project_root ${PROJECT_ROOT} --output_dir ${OUT_DIR} --roi_dir ${ROI_DIR} --n_jobs ${N_JOBS} --n_jobs_cv ${N_JOBS_CV} --n_permutation ${N_PERMUTATION} --n_null_perms ${N_NULL_PERMS} --stage11_actual_repeats ${STAGE11_ACTUAL_REPEATS} --stage11_chunk_count ${STAGE11_CHUNKS} --stage11_chunk_idx \$SLURM_ARRAY_TASK_ID --stage 11 --stage11_group ${group_name} ${EXTRA_ARGS}"
   )
   echo "$job_id"
@@ -217,9 +246,9 @@ submit_stage11_merge() {
       --cpus-per-task="$CPUS" \
       --mem="$MEM" \
       --time="$TIME" \
-      --job-name="mvpa_memfear_c11_${group_name}_merge" \
-      --output="$LOG_DIR/mvpa_memfear_c11_${group_name}_merge_%j.out" \
-      --error="$LOG_DIR/mvpa_memfear_c11_${group_name}_merge_%j.err" \
+      --job-name="mvpa_memfear_c$(stage_output_suffix 11)_${group_name}_merge" \
+      --output="$LOG_DIR/mvpa_memfear_c$(stage_output_suffix 11)_${group_name}_merge_%j.out" \
+      --error="$LOG_DIR/mvpa_memfear_c$(stage_output_suffix 11)_${group_name}_merge_%j.err" \
       --wrap="export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 N_PERMUTATION=${N_PERMUTATION} N_NULL_PERMS=${N_NULL_PERMS} STAGE11_ACTUAL_REPEATS=${STAGE11_ACTUAL_REPEATS} STAGE11_CHUNK_COUNT=${STAGE11_CHUNKS}; apptainer exec -B ${PROJECT_ROOT}:${PROJECT_ROOT} -B ${APP_PATH}:/app -B ${OUT_BASE}:/output_dir ${CONTAINER_SIF} python3 /app/mvpa_L2_voxel_MemoryFearNetwork.py --project_root ${PROJECT_ROOT} --output_dir ${OUT_DIR} --roi_dir ${ROI_DIR} --n_jobs ${N_JOBS} --n_jobs_cv ${N_JOBS_CV} --n_permutation ${N_PERMUTATION} --n_null_perms ${N_NULL_PERMS} --stage11_actual_repeats ${STAGE11_ACTUAL_REPEATS} --stage11_chunk_count ${STAGE11_CHUNKS} --stage11_merge --stage 11 --stage11_group ${group_name} ${EXTRA_ARGS}"
   )
   echo "$job_id"
