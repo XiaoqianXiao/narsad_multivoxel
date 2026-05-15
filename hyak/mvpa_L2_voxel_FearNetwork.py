@@ -88,7 +88,6 @@ C_MIN_EXP = -2
 C_MAX_EXP = 2
 C_POINTS = 20
 MIN_FEATURES_FOR_PRIMARY_MASK = 100
-SENSITIVITY_TOP_K = 100
 
 # Hyak/runtime configuration adapted from hyak/mvpa_L2_voxel_WholeBrain_Schaefer.py.
 import argparse
@@ -271,15 +270,10 @@ def calculate_neural_scr_safety_coupling(df_safe, df_scr):
     return pd.DataFrame(rows)
 
 
-def make_top_positive_importance_mask(scores, top_k=SENSITIVITY_TOP_K):
+def make_all_positive_importance_mask(scores):
     scores = np.asarray(scores)
     mask = np.zeros(scores.shape, dtype=bool)
-    positive_idx = np.where(scores > 0)[0]
-    if len(positive_idx) == 0:
-        return mask
-    ranked_positive = positive_idx[np.argsort(scores[positive_idx])[::-1]]
-    keep_idx = ranked_positive[:min(top_k, len(ranked_positive))]
-    mask[keep_idx] = True
+    mask[np.isfinite(scores) & (scores > 0)] = True
     return mask
 
 
@@ -301,19 +295,19 @@ def get_analysis_feature_masks(analysis_label, min_primary_features=MIN_FEATURES
         source = "empirical_p_lt_0.05_positive_permutation_importance"
 
         if primary_n < min_primary_features:
-            fallback_mask = make_top_positive_importance_mask(scores, SENSITIVITY_TOP_K)
+            fallback_mask = make_all_positive_importance_mask(scores)
             fallback_n = int(np.sum(fallback_mask))
             print(
                 f"  [FEATURE SPACE] {analysis_label} {grp}: primary empirical mask has "
-                f"{primary_n} features; using top-{fallback_n} positive permutation-importance fallback."
+                f"{primary_n} features; using all {fallback_n} positive permutation-importance voxels."
             )
             if fallback_n == 0:
                 raise ValueError(
                     f"{analysis_label} {grp}: empirical mask has {primary_n} features and no positive "
-                    "permutation-importance scores are available for the top-100 fallback."
+                    "permutation-importance scores are available for the all-positive fallback."
                 )
             selected_mask = fallback_mask
-            source = f"top_{fallback_n}_positive_permutation_importance_sensitivity"
+            source = "all_positive_permutation_importance_sensitivity"
         else:
             print(f"  [FEATURE SPACE] {analysis_label} {grp}: using empirical mask with {primary_n} features.")
 
@@ -322,7 +316,7 @@ def get_analysis_feature_masks(analysis_label, min_primary_features=MIN_FEATURES
             "source": source,
             "primary_empirical_features": primary_n,
             "selected_features": int(np.sum(selected_mask)),
-            "fallback_top_k": SENSITIVITY_TOP_K if source.startswith("top_") else None,
+            "fallback_rule": "all_positive_permutation_importance" if source == "all_positive_permutation_importance_sensitivity" else None,
         }
 
     return selected_masks, feature_space
@@ -3209,7 +3203,7 @@ if cell_active(13):
         print(f"\n[Step 0] Significance Mask Setup...")
         # [Internal Note: Ensure you run the Stage 9 Significance Block before this cell]
     
-        # 1. Feature Selection: empirical mask with top-100 positive fallback
+        # 1. Feature Selection: empirical mask with all-positive fallback
         importance_masks, feature_space_13 = get_analysis_feature_masks("Analysis 1.3")
         mask_sad = importance_masks['SAD']
         mask_hc = importance_masks['HC']
@@ -3356,7 +3350,7 @@ if cell_active(14):
     else:
         print(f"\n[Step 0] Significance Mask Setup & Calculation...")
 
-        # Logic: empirical mask with top-100 positive fallback
+        # Logic: empirical mask with all-positive fallback
         importance_masks, feature_space_13b = get_analysis_feature_masks("Analysis 1.3 part 2")
         mask_sad = importance_masks['SAD']
         mask_hc = importance_masks['HC']

@@ -68,7 +68,6 @@ SUBJECT_INNER_SPLITS = 3
 CALIB_BINS = 5
 TOP_PCT = 95
 MIN_FDR_FEATURES_FOR_PRIMARY = 100
-SENSITIVITY_TOP_K = 100
 LOW_PCT = 5
 TWO_TAIL_LOW = 2.5
 TWO_TAIL_HIGH = 97.5
@@ -287,7 +286,7 @@ def load_intermediate(name: str):
 def ensure_importance_loaded():
     """Ensure importance scores/masks are available using user-selected source."""
     global importance_scores, importance_masks, importance_mask_permutated, importance_scores_permutated
-    global importance_masks_top100_positive
+    global importance_masks_all_positive
     if (
         "importance_scores" in globals()
         and importance_scores
@@ -299,7 +298,7 @@ def ensure_importance_loaded():
     merged_scores = {}
     merged_masks = {}
     merged_p_values = {}
-    merged_top100_masks = {}
+    merged_all_positive_masks = {}
 
     def load_combined():
         for name in (
@@ -314,7 +313,10 @@ def ensure_importance_loaded():
             merged_scores.update(prev.get("importance_scores_permutated", prev.get("importance_scores", {})))
             merged_masks.update(prev.get("importance_mask_permutated", prev.get("importance_masks_permutated", prev.get("importance_masks", {}))))
             merged_p_values.update(prev.get("p_values_permutated", {}))
-            merged_top100_masks.update(prev.get("importance_masks_top100_positive", prev.get("importance_mask_top100_positive", {})))
+            merged_all_positive_masks.update(prev.get(
+                "importance_masks_all_positive",
+                prev.get("importance_masks_top100_positive", prev.get("importance_mask_top100_positive", {}))
+            ))
             return
         raise FileNotFoundError("No combined importance intermediate found.")
 
@@ -333,7 +335,10 @@ def ensure_importance_loaded():
                 merged_scores.update(prev.get("importance_scores_permutated", prev.get("importance_scores", {})))
                 merged_masks.update(prev.get("importance_mask_permutated", prev.get("importance_masks_permutated", prev.get("importance_masks", {}))))
                 merged_p_values.update(prev.get("p_values_permutated", {}))
-                merged_top100_masks.update(prev.get("importance_masks_top100_positive", prev.get("importance_mask_top100_positive", {})))
+                merged_all_positive_masks.update(prev.get(
+                    "importance_masks_all_positive",
+                    prev.get("importance_masks_top100_positive", prev.get("importance_mask_top100_positive", {}))
+                ))
                 loaded = True
                 break
             if not loaded:
@@ -371,56 +376,55 @@ def ensure_importance_loaded():
     importance_masks = merged_masks
     importance_scores_permutated = merged_scores
     importance_mask_permutated = merged_masks
-    importance_masks_top100_positive = merged_top100_masks
+    importance_masks_all_positive = merged_all_positive_masks
     if merged_p_values:
         globals()["p_values_permutated"] = merged_p_values
     return importance_scores, importance_masks
 
 
-def make_top_positive_importance_mask(scores, top_k=SENSITIVITY_TOP_K):
-    """Return a pre-specified top-k mask among features with positive importance."""
+def make_all_positive_importance_mask(scores):
+    """Return all finite features with positive permutation importance."""
     scores = np.asarray(scores)
     mask = np.zeros(scores.shape, dtype=bool)
-    positive_idx = np.where(scores > 0)[0]
-    if positive_idx.size == 0:
-        return mask
-    ranked_positive = positive_idx[np.argsort(scores[positive_idx])[::-1]]
-    selected = ranked_positive[:min(int(top_k), ranked_positive.size)]
-    mask[selected] = True
+    mask[np.isfinite(scores) & (scores > 0)] = True
     return mask
 
 
 def get_analysis_feature_masks(label):
-    """Use FDR masks when sufficiently populated, otherwise top-100 positive sensitivity masks."""
-    global importance_masks_top100_positive
+    """Use FDR masks when sufficiently populated, otherwise all-positive sensitivity masks."""
+    global importance_masks_all_positive
     if 'importance_masks' not in globals() or not importance_masks:
         ensure_importance_loaded()
-    if 'importance_masks_top100_positive' not in globals() or not importance_masks_top100_positive:
-        importance_masks_top100_positive = {
-            grp: make_top_positive_importance_mask(scores)
-            for grp, scores in importance_scores.items()
-        }
+    importance_masks_all_positive = {
+        grp: make_all_positive_importance_mask(scores)
+        for grp, scores in importance_scores.items()
+    }
 
     selected_masks = {}
     feature_space = {}
     for grp in ("SAD", "HC"):
         fdr_mask = np.asarray(importance_masks[grp], dtype=bool)
         fdr_n = int(np.sum(fdr_mask))
-        top100_mask = np.asarray(importance_masks_top100_positive.get(grp), dtype=bool)
-        top100_n = int(np.sum(top100_mask)) if top100_mask.size else 0
+        positive_mask = np.asarray(importance_masks_all_positive.get(grp), dtype=bool)
+        positive_n = int(np.sum(positive_mask)) if positive_mask.size else 0
 
-        if fdr_n < MIN_FDR_FEATURES_FOR_PRIMARY and top100_n > 0:
-            selected_masks[grp] = top100_mask
+        if fdr_n < MIN_FDR_FEATURES_FOR_PRIMARY and positive_n > 0:
+            selected_masks[grp] = positive_mask
             feature_space[grp] = {
-                "source": "top100_positive_permutation_importance_sensitivity",
-                "n_features": top100_n,
+                "source": "all_positive_permutation_importance_sensitivity",
+                "n_features": positive_n,
                 "primary_fdr_n_features": fdr_n,
                 "threshold": f"FDR feature count < {MIN_FDR_FEATURES_FOR_PRIMARY}",
             }
             print(
                 f"  ! {label} {grp}: whole-brain FDR selected {fdr_n} features "
-                f"(< {MIN_FDR_FEATURES_FOR_PRIMARY}); using pre-specified top-{SENSITIVITY_TOP_K} "
-                f"positive permutation-importance sensitivity mask ({top100_n} features)."
+                f"(< {MIN_FDR_FEATURES_FOR_PRIMARY}); using all positive permutation-importance "
+                f"voxels ({positive_n} features)."
+            )
+        elif fdr_n < MIN_FDR_FEATURES_FOR_PRIMARY:
+            raise ValueError(
+                f"{label} {grp}: whole-brain FDR selected {fdr_n} features and no positive "
+                "permutation-importance scores are available for the all-positive fallback."
             )
         else:
             selected_masks[grp] = fdr_mask
@@ -1849,7 +1853,7 @@ if stage_active(1):
     PERCENTILE_THRESH = None
     importance_masks = {}
     importance_scores = {}
-    importance_masks_top100_positive = {}
+    importance_masks_all_positive = {}
     feature_space_reports = {}
     p_values_permutated = {}
     q_values_permutated = {}
@@ -1894,24 +1898,24 @@ if stage_active(1):
     def stage1_save_group(group_name, actual_imp, p_values, null_n):
         _, q_values, _, _ = multipletests(p_values, alpha=ALPHA_LEVEL, method='fdr_bh')
         sig_mask = (q_values < ALPHA_LEVEL) & (actual_imp > 0)
-        top100_mask = make_top_positive_importance_mask(actual_imp, SENSITIVITY_TOP_K)
+        positive_mask = make_all_positive_importance_mask(actual_imp)
         fdr_n = int(np.sum(sig_mask))
-        top100_n = int(np.sum(top100_mask))
+        positive_n = int(np.sum(positive_mask))
         fallback_recommended = fdr_n < MIN_FDR_FEATURES_FOR_PRIMARY
         payload = {
             "importance_mask_permutated": {group_name: sig_mask},
             "importance_masks_permutated": {group_name: sig_mask},
-            "importance_masks_top100_positive": {group_name: top100_mask},
+            "importance_masks_all_positive": {group_name: positive_mask},
             "importance_scores_permutated": {group_name: actual_imp},
             "p_values_permutated": {group_name: p_values},
             "q_values_permutated": {group_name: q_values},
             "null_permutations": {group_name: int(null_n)},
             "actual_repeats": {group_name: int(STAGE1_ACTUAL_REPEATS)},
             "fdr_feature_counts": {group_name: fdr_n},
-            "top100_positive_feature_counts": {group_name: top100_n},
+            "all_positive_feature_counts": {group_name: positive_n},
             "fallback_sensitivity_recommended": {group_name: fallback_recommended},
             "fallback_sensitivity_rule": (
-                f"Use top-{SENSITIVITY_TOP_K} positive permutation-importance mask "
+                "Use all positive permutation-importance voxels "
                 f"when whole-brain FDR selects fewer than {MIN_FDR_FEATURES_FOR_PRIMARY} features."
             ),
             "fdr_method": "fdr_bh_whole_brain",
@@ -1921,13 +1925,13 @@ if stage_active(1):
         joblib.dump(payload, group_ckpt)
         joblib.dump(payload, group_intermediate)
         importance_masks[group_name] = sig_mask
-        importance_masks_top100_positive[group_name] = top100_mask
+        importance_masks_all_positive[group_name] = positive_mask
         importance_scores[group_name] = actual_imp
         p_values_permutated[group_name] = p_values
         q_values_permutated[group_name] = q_values
         feature_space_reports[group_name] = {
             "fdr_n_features": fdr_n,
-            "top100_positive_n_features": top100_n,
+            "all_positive_n_features": positive_n,
             "fallback_sensitivity_recommended": fallback_recommended,
         }
         print(
@@ -1937,8 +1941,8 @@ if stage_active(1):
         if fallback_recommended:
             print(
                 f"   ! {group_name}: FDR selected fewer than {MIN_FDR_FEATURES_FOR_PRIMARY} features; "
-                f"pre-specified top-{SENSITIVITY_TOP_K} positive-importance sensitivity mask has "
-                f"{top100_n} features."
+                f"all-positive permutation-importance sensitivity mask has "
+                f"{positive_n} features."
             )
 
     def stage1_compute_chunk(group_name):
@@ -2101,25 +2105,25 @@ if stage_active(1):
     importance_scores_permutated = importance_scores
     print("Permutated Importance masks generated and stored in 'importance_mask_permutated'.")
     _save_result("results_1_importance_mask_permutated", importance_masks)
-    _save_result("results_1_importance_mask_top100_positive", importance_masks_top100_positive)
+    _save_result("results_1_importance_mask_all_positive", importance_masks_all_positive)
     _save_result("results_1_importance_scores_permutated", importance_scores)
     _save_result("results_1_importance_p_values_permutated", p_values_permutated)
     _save_result("results_1_importance_q_values_permutated", q_values_permutated)
     for grp in importance_scores.keys():
         _save_result(f"results_1_importance_masks_permutated_{grp}", {grp: importance_masks.get(grp)})
-        _save_result(f"results_1_importance_masks_top100_positive_{grp}", {grp: importance_masks_top100_positive.get(grp)})
+        _save_result(f"results_1_importance_masks_all_positive_{grp}", {grp: importance_masks_all_positive.get(grp)})
         _save_result(f"results_1_importance_scores_permutated_{grp}", {grp: importance_scores.get(grp)})
     save_checkpoint(1, {
         "importance_mask_permutated": importance_masks,
         "importance_masks_permutated": importance_masks,
-        "importance_masks_top100_positive": importance_masks_top100_positive,
+        "importance_masks_all_positive": importance_masks_all_positive,
         "importance_scores_permutated": importance_scores,
         "p_values_permutated": p_values_permutated,
         "q_values_permutated": q_values_permutated,
         "feature_space_reports": feature_space_reports,
         "fdr_method": "fdr_bh_whole_brain",
         "fallback_sensitivity_rule": (
-            f"Use top-{SENSITIVITY_TOP_K} positive permutation-importance mask when whole-brain FDR "
+            "Use all positive permutation-importance voxels when whole-brain FDR "
             f"selects fewer than {MIN_FDR_FEATURES_FOR_PRIMARY} features."
         ),
         "PERCENTILE_THRESH_permutated": PERCENTILE_THRESH,
@@ -2130,14 +2134,14 @@ if stage_active(1):
     save_intermediate("stage01_importance_permutated", {
         "importance_mask_permutated": importance_masks,
         "importance_masks_permutated": importance_masks,
-        "importance_masks_top100_positive": importance_masks_top100_positive,
+        "importance_masks_all_positive": importance_masks_all_positive,
         "importance_scores_permutated": importance_scores,
         "p_values_permutated": p_values_permutated,
         "q_values_permutated": q_values_permutated,
         "feature_space_reports": feature_space_reports,
         "fdr_method": "fdr_bh_whole_brain",
         "fallback_sensitivity_rule": (
-            f"Use top-{SENSITIVITY_TOP_K} positive permutation-importance mask when whole-brain FDR "
+            "Use all positive permutation-importance voxels when whole-brain FDR "
             f"selects fewer than {MIN_FDR_FEATURES_FOR_PRIMARY} features."
         ),
         "PERCENTILE_THRESH_permutated": PERCENTILE_THRESH,
@@ -2148,14 +2152,14 @@ if stage_active(1):
     save_intermediate("stage09_permutation_masks", {
         "importance_mask_permutated": importance_masks,
         "importance_masks_permutated": importance_masks,
-        "importance_masks_top100_positive": importance_masks_top100_positive,
+        "importance_masks_all_positive": importance_masks_all_positive,
         "importance_scores_permutated": importance_scores,
         "p_values_permutated": p_values_permutated,
         "q_values_permutated": q_values_permutated,
         "feature_space_reports": feature_space_reports,
         "fdr_method": "fdr_bh_whole_brain",
         "fallback_sensitivity_rule": (
-            f"Use top-{SENSITIVITY_TOP_K} positive permutation-importance mask when whole-brain FDR "
+            "Use all positive permutation-importance voxels when whole-brain FDR "
             f"selects fewer than {MIN_FDR_FEATURES_FOR_PRIMARY} features."
         ),
         "PERCENTILE_THRESH_permutated": PERCENTILE_THRESH,
@@ -2167,14 +2171,14 @@ if stage_active(1):
         save_intermediate(f"stage01_importance_permutated_{grp}", {
             "importance_mask_permutated": {grp: importance_masks.get(grp)},
             "importance_masks_permutated": {grp: importance_masks.get(grp)},
-            "importance_masks_top100_positive": {grp: importance_masks_top100_positive.get(grp)},
+            "importance_masks_all_positive": {grp: importance_masks_all_positive.get(grp)},
             "importance_scores_permutated": {grp: importance_scores.get(grp)},
             "p_values_permutated": {grp: p_values_permutated.get(grp)},
             "q_values_permutated": {grp: q_values_permutated.get(grp)},
             "feature_space_reports": {grp: feature_space_reports.get(grp)},
             "fdr_method": "fdr_bh_whole_brain",
             "fallback_sensitivity_rule": (
-                f"Use top-{SENSITIVITY_TOP_K} positive permutation-importance mask when whole-brain FDR "
+                "Use all positive permutation-importance voxels when whole-brain FDR "
                 f"selects fewer than {MIN_FDR_FEATURES_FOR_PRIMARY} features."
             ),
             "PERCENTILE_THRESH_permutated": PERCENTILE_THRESH,
@@ -2185,14 +2189,14 @@ if stage_active(1):
         save_intermediate(f"stage09_permutation_masks_{grp}", {
             "importance_mask_permutated": {grp: importance_masks.get(grp)},
             "importance_masks_permutated": {grp: importance_masks.get(grp)},
-            "importance_masks_top100_positive": {grp: importance_masks_top100_positive.get(grp)},
+            "importance_masks_all_positive": {grp: importance_masks_all_positive.get(grp)},
             "importance_scores_permutated": {grp: importance_scores.get(grp)},
             "p_values_permutated": {grp: p_values_permutated.get(grp)},
             "q_values_permutated": {grp: q_values_permutated.get(grp)},
             "feature_space_reports": {grp: feature_space_reports.get(grp)},
             "fdr_method": "fdr_bh_whole_brain",
             "fallback_sensitivity_rule": (
-                f"Use top-{SENSITIVITY_TOP_K} positive permutation-importance mask when whole-brain FDR "
+                "Use all positive permutation-importance voxels when whole-brain FDR "
                 f"selects fewer than {MIN_FDR_FEATURES_FOR_PRIMARY} features."
             ),
             "PERCENTILE_THRESH_permutated": PERCENTILE_THRESH,
@@ -2235,7 +2239,7 @@ if stage_active(1):
             "importance_masks": importance_masks,
             "importance_scores": importance_scores,
             "importance_mask_permutated": importance_mask_permutated,
-            "importance_masks_top100_positive": importance_masks_top100_positive,
+            "importance_masks_all_positive": importance_masks_all_positive,
             "importance_scores_permutated": importance_scores_permutated,
             "p_values_permutated": p_values_permutated,
             "q_values_permutated": q_values_permutated,
@@ -2249,13 +2253,13 @@ if stage_active(1):
     
 
 if stage_active(2):
-    # Cell 9: Analysis 1.2 - Static Representational Topology (FDR or top-100 sensitivity | Centroid)
+    # Cell 9: Analysis 1.2 - Static Representational Topology (FDR or all-positive sensitivity | Centroid)
     # Objective: Characterize the stable organization of the social learning space.
-    # Constraint: whole-brain FDR permutation-importance masks, with top-100 positive sensitivity fallback.
+    # Constraint: whole-brain FDR permutation-importance masks, with all-positive sensitivity fallback.
     # Method: Cross-validated Mahalanobis (crossnobis) distance with shrinkage covariance, averaged over split-half repeats.
     # Tests: Group Comparison (SAD vs HC) AND One-Sample Test (Dist > 0).
     
-    print("--- Running Analysis 1.2: Static Representational Topology (FDR/top-100 sensitivity | Centroid) ---")
+    print("--- Running Analysis 1.2: Static Representational Topology (FDR/all-positive sensitivity | Centroid) ---")
     
     from scipy.stats import ttest_1samp
     
@@ -2309,7 +2313,7 @@ if stage_active(2):
     mask_sad_grp = (grp_raw == "SAD")
     mask_hc_grp = (grp_raw == "HC")
     
-    # Slice Features (apply selected FDR or top-100 sensitivity masks)
+    # Slice Features (apply selected FDR or all-positive sensitivity masks)
     X_sad_12 = X_raw[mask_sad_grp][:, mask_sad_analysis]
     y_sad_12 = y_raw[mask_sad_grp]
     sub_sad_12 = sub_raw[mask_sad_grp]
@@ -2499,14 +2503,14 @@ if stage_active(2):
     
 # %% [cell 12]
 if stage_active(3):
-    # Cell 10: Analysis 1.3 - Dynamic Representational Drift (FDR or top-100 sensitivity features)
+    # Cell 10: Analysis 1.3 - Dynamic Representational Drift (FDR or all-positive sensitivity features)
     # Objective: Quantify plasticity magnitude (Projection) and fidelity (Cosine).
     # Target Definitions:
     #   - Safety:  Extinction CSS -> Extinction CS-
     #   - Threat:  Extinction CSR -> Reinstatement CSR
-    # Feature Selection: whole-brain FDR permutation importance, with top-100 positive sensitivity fallback.
+    # Feature Selection: whole-brain FDR permutation importance, with all-positive sensitivity fallback.
     
-    print("--- Running Analysis 1.3: Dynamic Representational Drift (FDR/top-100 sensitivity features) ---")
+    print("--- Running Analysis 1.3: Dynamic Representational Drift (FDR/all-positive sensitivity features) ---")
     
     import pandas as pd
     import statsmodels.api as sm
@@ -2689,12 +2693,12 @@ if stage_active(3):
 # %% [cell 13]
 if stage_active(3):
     # Cell 10: Analysis 1.3 - Dynamic Representational Drift (Single-Trial Trajectories)
-    # Objective: Visualize plasticity trial-by-trial using FDR or top-100 sensitivity features.
+    # Objective: Visualize plasticity trial-by-trial using FDR or all-positive sensitivity features.
     # Method: Project every trial onto the Ideal Axis (Start -> Target).
     #   - Score 0 = Resembles Early Extinction (Start)
     #   - Score 1 = Resembles Target (CS- or Reinstated CSR)
     
-    print("--- Running Analysis 1.3: Single-Trial Trajectories (FDR/top-100 sensitivity) ---")
+    print("--- Running Analysis 1.3: Single-Trial Trajectories (FDR/all-positive sensitivity) ---")
     
     import pandas as pd
     import seaborn as sns
@@ -3224,7 +3228,7 @@ if stage_active(6):
     COND_SAFE_TGT = "CS-"
     COND_SAFE_LRN = "CSS"
     COND_THREAT_LRN = "CSR"
-    PERCENTILE_THRESH = None  # Uses empirical permutation masks, with top-100 fallback if needed.
+    PERCENTILE_THRESH = None  # Uses empirical permutation masks, with all-positive fallback if needed.
     
     # =============================================================================
     # 0. Setup: Masks & Data Loading
