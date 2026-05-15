@@ -87,6 +87,8 @@ MIN_TRIALS_PER_SUBJECT = 10
 C_MIN_EXP = -2
 C_MAX_EXP = 2
 C_POINTS = 20
+MIN_FEATURES_FOR_PRIMARY_MASK = 100
+SENSITIVITY_TOP_K = 100
 
 # Hyak/runtime configuration adapted from hyak/mvpa_L2_voxel_WholeBrain_Schaefer.py.
 import argparse
@@ -269,6 +271,63 @@ def calculate_neural_scr_safety_coupling(df_safe, df_scr):
     return pd.DataFrame(rows)
 
 
+def make_top_positive_importance_mask(scores, top_k=SENSITIVITY_TOP_K):
+    scores = np.asarray(scores)
+    mask = np.zeros(scores.shape, dtype=bool)
+    positive_idx = np.where(scores > 0)[0]
+    if len(positive_idx) == 0:
+        return mask
+    ranked_positive = positive_idx[np.argsort(scores[positive_idx])[::-1]]
+    keep_idx = ranked_positive[:min(top_k, len(ranked_positive))]
+    mask[keep_idx] = True
+    return mask
+
+
+def get_analysis_feature_masks(analysis_label, min_primary_features=MIN_FEATURES_FOR_PRIMARY_MASK):
+    if "importance_mask_permutated" not in globals() or not importance_mask_permutated:
+        raise ValueError(f"{analysis_label}: importance_mask_permutated missing. Run/resume Stage 11 first.")
+    if "importance_scores_permutated" not in globals() or not importance_scores_permutated:
+        raise ValueError(f"{analysis_label}: importance_scores_permutated missing. Run/resume Stage 11 first.")
+
+    selected_masks = {}
+    feature_space = {}
+    for grp in ("SAD", "HC"):
+        if grp not in importance_mask_permutated or grp not in importance_scores_permutated:
+            raise ValueError(f"{analysis_label}: missing {grp} permutation-importance outputs.")
+        primary_mask = np.asarray(importance_mask_permutated[grp], dtype=bool)
+        scores = np.asarray(importance_scores_permutated[grp])
+        primary_n = int(np.sum(primary_mask))
+        selected_mask = primary_mask
+        source = "empirical_p_lt_0.05_positive_permutation_importance"
+
+        if primary_n < min_primary_features:
+            fallback_mask = make_top_positive_importance_mask(scores, SENSITIVITY_TOP_K)
+            fallback_n = int(np.sum(fallback_mask))
+            print(
+                f"  [FEATURE SPACE] {analysis_label} {grp}: primary empirical mask has "
+                f"{primary_n} features; using top-{fallback_n} positive permutation-importance fallback."
+            )
+            if fallback_n == 0:
+                raise ValueError(
+                    f"{analysis_label} {grp}: empirical mask has {primary_n} features and no positive "
+                    "permutation-importance scores are available for the top-100 fallback."
+                )
+            selected_mask = fallback_mask
+            source = f"top_{fallback_n}_positive_permutation_importance_sensitivity"
+        else:
+            print(f"  [FEATURE SPACE] {analysis_label} {grp}: using empirical mask with {primary_n} features.")
+
+        selected_masks[grp] = selected_mask
+        feature_space[grp] = {
+            "source": source,
+            "primary_empirical_features": primary_n,
+            "selected_features": int(np.sum(selected_mask)),
+            "fallback_top_k": SENSITIVITY_TOP_K if source.startswith("top_") else None,
+        }
+
+    return selected_masks, feature_space
+
+
 _args, _unknown = parse_runtime_args()
 PROJECT_ROOT = _args.project_root
 OUTPUT_DIR = _args.output_dir
@@ -429,7 +488,7 @@ def resolve_output_dirs():
         PROJECT_ROOT,
         "MRI/derivatives/fMRI_analysis/LSS",
         "results",
-        "fear_network",
+        "FearNetwork",
     )
     checkpoint_dir = os.path.join(out_dir, "checkpoints")
     intermediate_dir = os.path.join(out_dir, "intermediate")
@@ -2763,7 +2822,7 @@ if cell_active(12):
         # =============================================================================
         # 0. Feature Selection
         print("\n[Step 0] Using empirical permutation-importance feature masks.")
-        importance_masks = importance_mask_permutated.copy()
+        importance_masks, feature_space_12 = get_analysis_feature_masks("Analysis 1.2")
 
         mask_sad_analysis = importance_masks['SAD']
         mask_hc_analysis = importance_masks['HC']
@@ -2955,6 +3014,7 @@ if cell_active(12):
             "rdms_hc_z_pv": rdms_hc_z_pv,
             "mask_sad_analysis": mask_sad_analysis,
             "mask_hc_analysis": mask_hc_analysis,
+            "feature_space": feature_space_12,
             "metric_a_stats_raw": (t_a_raw, p_a_raw),
             "metric_b_stats_raw": (t_b_raw, p_b_raw),
             "metric_a_stats_z": (t_a_z, p_a_z),
@@ -2999,6 +3059,7 @@ if cell_active(12):
             "rdms_hc_z_pv": rdms_hc_z_pv,
             "mask_sad_analysis": mask_sad_analysis,
             "mask_hc_analysis": mask_hc_analysis,
+            "feature_space": feature_space_12,
             "mask_sad_top5": mask_sad_top5,
             "mask_hc_top5": mask_hc_top5,
         }
@@ -3148,15 +3209,11 @@ if cell_active(13):
         print(f"\n[Step 0] Significance Mask Setup...")
         # [Internal Note: Ensure you run the Stage 9 Significance Block before this cell]
     
-        # 1. Feature Selection: Prioritize the Stage 9 Empirical Mask (26 vs 1300)
-        if 'importance_mask_permutated' in locals():
-            importance_masks = importance_mask_permutated
-        elif 'importance_masks' not in locals():
-            raise ValueError("Significance masks not found. Run Cell 9 (Stage 9) first.")
-
+        # 1. Feature Selection: empirical mask with top-100 positive fallback
+        importance_masks, feature_space_13 = get_analysis_feature_masks("Analysis 1.3")
         mask_sad = importance_masks['SAD']
         mask_hc = importance_masks['HC']
-        print(f"  > Using Significant Voxels: SAD={np.sum(mask_sad)}, HC={np.sum(mask_hc)}")
+        print(f"  > Using selected voxels: SAD={np.sum(mask_sad)}, HC={np.sum(mask_hc)}")
 
         # 2. Load Phase Data (Beta Maps)
         X_ext_sad, y_ext_sad, sub_ext_sad = get_phase_data("SAD_Placebo", "ext")
@@ -3201,10 +3258,11 @@ if cell_active(13):
             'df_plot': df_plot,
             'drift_summary': drift_summary,
             'primary_metric': 'projection',
+            'feature_space': feature_space_13,
         }
         joblib.dump(results_13, cache_cell11)
-        save_checkpoint(13, {"results_13": results_13, "df_plot": df_plot, "drift_summary": drift_summary})
-        save_intermediate("stage13_drift", {"results_13": results_13, "df_plot": df_plot, "drift_summary": drift_summary})
+        save_checkpoint(13, {"results_13": results_13, "df_plot": df_plot, "drift_summary": drift_summary, "feature_space": feature_space_13})
+        save_intermediate("stage13_drift", {"results_13": results_13, "df_plot": df_plot, "drift_summary": drift_summary, "feature_space": feature_space_13})
 
     # =============================================================================
     # 3. STATISTICS & VISUALIZATION (Updated Layout: 1 Row, 3 Columns)
@@ -3298,12 +3356,8 @@ if cell_active(14):
     else:
         print(f"\n[Step 0] Significance Mask Setup & Calculation...")
 
-        # Logic: Prioritize the Stage 9 Empirical Mask
-        if 'importance_mask_permutated' in locals():
-            importance_masks = importance_mask_permutated
-        elif 'importance_masks' not in locals():
-            raise ValueError("Significance masks not found. Run Cell 9 first.")
-
+        # Logic: empirical mask with top-100 positive fallback
+        importance_masks, feature_space_13b = get_analysis_feature_masks("Analysis 1.3 part 2")
         mask_sad = importance_masks['SAD']
         mask_hc = importance_masks['HC']
 
@@ -3366,10 +3420,11 @@ if cell_active(14):
             'data_threat': df_threat,
             'trajectory_slopes': trajectory_slopes,
             'primary_metric': 'safety_trajectory_slope',
+            'feature_space': feature_space_13b,
         }
         joblib.dump(results_13_2, cache_cell12_part2)
-        save_checkpoint(14, {"results_13_2": results_13_2})
-        save_intermediate("stage14_trajectories", {"results_13_2": results_13_2})
+        save_checkpoint(14, {"results_13_2": results_13_2, "feature_space": feature_space_13b})
+        save_intermediate("stage14_trajectories", {"results_13_2": results_13_2, "feature_space": feature_space_13b})
 
     # =============================================================================
     # 4. VISUALIZATION (Always Runs)
@@ -3499,13 +3554,14 @@ if cell_active(15):
                 })
             return pd.DataFrame(rows)
 
-        df_sad_stats = get_stats_calibrated(data_subsets["SAD_Placebo"]["ext"], importance_mask_permutated['SAD'], c_sad)
-        df_hc_stats = get_stats_calibrated(data_subsets["HC_Placebo"]["ext"], importance_mask_permutated['HC'], c_hc)
+        decision_masks, feature_space_14 = get_analysis_feature_masks("Analysis 1.4")
+        df_sad_stats = get_stats_calibrated(data_subsets["SAD_Placebo"]["ext"], decision_masks['SAD'], c_sad)
+        df_hc_stats = get_stats_calibrated(data_subsets["HC_Placebo"]["ext"], decision_masks['HC'], c_hc)
 
-        results_14_self = {'df_sad': df_sad_stats, 'df_hc': df_hc_stats}
+        results_14_self = {'df_sad': df_sad_stats, 'df_hc': df_hc_stats, 'feature_space': feature_space_14}
         joblib.dump(results_14_self, cache_cell13)
-        save_checkpoint(15, {"results_14_self": results_14_self})
-        save_intermediate("stage15_decision_stats", {"results_14_self": results_14_self})
+        save_checkpoint(15, {"results_14_self": results_14_self, "feature_space": feature_space_14})
+        save_intermediate("stage15_decision_stats", {"results_14_self": results_14_self, "feature_space": feature_space_14})
 
     # =============================================================================
     # 4. STATISTICS & VISUALIZATION
@@ -3594,11 +3650,9 @@ if cell_active(16):
     # =============================================================================
     # 0. Validate Masks & Constants from Cell 9/10
     # =============================================================================
-    if 'importance_mask_permutated' not in locals():
-        raise ValueError("Importance masks not found! Please run Cell 9 first.")
-
-    mask_sad = importance_mask_permutated['SAD']
-    mask_hc = importance_mask_permutated['HC']
+    importance_masks, feature_space_21_pv = get_analysis_feature_masks("Analysis 2.1 per-voxel")
+    mask_sad = importance_masks['SAD']
+    mask_hc = importance_masks['HC']
 
     # Get voxel counts for Per-Voxel (PV) normalization
     n_vox_sad = np.sum(mask_sad)
@@ -3742,16 +3796,11 @@ if cell_active(17):
     # 0. Validate Masks from Cell 9
     # =============================================================================
     if 'mask_sad_analysis' not in locals() or 'mask_hc_analysis' not in locals():
-        if 'importance_masks' in locals():
-            mask_sad_analysis = importance_masks['SAD']
-            mask_hc_analysis = importance_masks['HC']
-            mask_sad_top5 = mask_sad_analysis
-            mask_hc_top5 = mask_hc_analysis
-        elif 'mask_sad_top5' in locals() and 'mask_hc_top5' in locals():
-            mask_sad_analysis = mask_sad_top5
-            mask_hc_analysis = mask_hc_top5
-        else:
-            raise ValueError("Analysis feature masks not found. Please run Analysis 1.1 / Cell 9 first.")
+        importance_masks, feature_space_21 = get_analysis_feature_masks("Analysis 2.1")
+        mask_sad_analysis = importance_masks['SAD']
+        mask_hc_analysis = importance_masks['HC']
+        mask_sad_top5 = mask_sad_analysis
+        mask_hc_top5 = mask_hc_analysis
 
     # =============================================================================
     # 1. Calculate Distances (Both Metrics)
@@ -3906,11 +3955,9 @@ if cell_active(18):
 
     # Ensure core masks exist
     if 'mask_sad_core' not in locals() or 'mask_hc_core' not in locals():
-        if 'importance_masks' in locals():
-            mask_sad_core = importance_masks['SAD']
-            mask_hc_core = importance_masks['HC']
-        else:
-            raise ValueError("Core masks not found. Run Analysis 1.1 / Cell 9 first.")
+        importance_masks, feature_space_22 = get_analysis_feature_masks("Analysis 2.2")
+        mask_sad_core = importance_masks['SAD']
+        mask_hc_core = importance_masks['HC']
 
     # Build subject lists if missing
     if 'subgroups_22' not in locals():
@@ -3926,7 +3973,7 @@ if cell_active(18):
     data_rows = []
 
     if 'importance_masks' not in locals():
-        raise ValueError("Empirical feature masks not found. Run Analysis 1.1 / Cell 9 first.")
+        importance_masks, feature_space_22 = get_analysis_feature_masks("Analysis 2.2")
 
 
     for key, subject_list in subgroups_22.items():
@@ -4015,11 +4062,9 @@ if cell_active(19):
         print(f"  [CALC] Executing Probability Extraction across Groups/Drugs...")
     
         # 1. Verification of Required Variables
-        if 'importance_mask_permutated' not in locals(): 
-            raise ValueError("Importance masks missing. Run Cell 9.")
-    
-        mask_sad_native = importance_mask_permutated['SAD']
-        mask_hc_native = importance_mask_permutated['HC']
+        importance_masks, feature_space_23 = get_analysis_feature_masks("Analysis 2.3")
+        mask_sad_native = importance_masks['SAD']
+        mask_hc_native = importance_masks['HC']
 
         # 2. Extract Optimized C from Cell 6
         try:
