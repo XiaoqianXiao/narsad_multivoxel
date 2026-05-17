@@ -57,6 +57,9 @@ Usage:
       job for that group. Stage 12+ automatically merges/loads the final
       cell_11_SAD.joblib and cell_11_HC.joblib outputs.
 
+      If STAGE11_CHUNK_IDX is set, submit only that single chunk. This is for
+      recovering one failed array task without recomputing the full array.
+
 Examples:
   submit_mvpa_L2_memoryfearnetwork_stage.sh 6
   submit_mvpa_L2_memoryfearnetwork_stage.sh 11:SAD
@@ -64,6 +67,7 @@ Examples:
   submit_mvpa_L2_memoryfearnetwork_stage.sh 12 --n_permutation 1000
   N_PERMUTATION=1000 CPUS=8 N_JOBS=8 submit_mvpa_L2_memoryfearnetwork_stage.sh all
   STAGE11_CHUNKS=200 submit_mvpa_L2_memoryfearnetwork_stage.sh 11:SAD
+  STAGE11_CHUNKS=100 STAGE11_CHUNK_IDX=80 submit_mvpa_L2_memoryfearnetwork_stage.sh 11:SAD
 
 Analysis structure:
   Main prerequisite chain:
@@ -115,6 +119,7 @@ Environment overrides:
   LOG_DIR, PARTITION, ACCOUNT, TIME, MEM, CPUS
   N_JOBS, N_JOBS_CV, N_PERMUTATION, N_NULL_PERMS
   STAGE11_ACTUAL_REPEATS, STAGE11_CHUNKS, STAGE11_ARRAY_MAX_RUNNING
+  STAGE11_CHUNK_IDX for single-chunk recovery
 EOF
 }
 
@@ -232,13 +237,45 @@ submit_stage11_array() {
   echo "$job_id"
 }
 
-submit_stage11_merge() {
+submit_stage11_chunk() {
   local group_name="$1"
-  local dependency="$2"
+  local chunk_idx="$2"
+  local dependency="${3:-}"
+  local dependency_args=()
+  if [[ -n "$dependency" ]]; then
+    dependency_args=(--dependency="afterok:${dependency}")
+  fi
+
   local job_id
   job_id=$(
     sbatch --parsable \
-      --dependency="afterok:${dependency}" \
+      "${dependency_args[@]}" \
+      --partition="$PARTITION" \
+      --account="$ACCOUNT" \
+      --nodes=1 \
+      --ntasks=1 \
+      --cpus-per-task="$CPUS" \
+      --mem="$MEM" \
+      --time="$TIME" \
+      --job-name="mvpa_memfear_c$(stage_output_suffix 11)_${group_name}_chunk${chunk_idx}" \
+      --output="$LOG_DIR/mvpa_memfear_c$(stage_output_suffix 11)_${group_name}_chunk${chunk_idx}_%j.out" \
+      --error="$LOG_DIR/mvpa_memfear_c$(stage_output_suffix 11)_${group_name}_chunk${chunk_idx}_%j.err" \
+      --wrap="export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 N_PERMUTATION=${N_PERMUTATION} N_NULL_PERMS=${N_NULL_PERMS} STAGE11_ACTUAL_REPEATS=${STAGE11_ACTUAL_REPEATS} STAGE11_CHUNK_COUNT=${STAGE11_CHUNKS}; apptainer exec -B ${PROJECT_ROOT}:${PROJECT_ROOT} -B ${APP_PATH}:/app -B ${OUT_BASE}:/output_dir ${CONTAINER_SIF} python3 /app/mvpa_L2_voxel_MemoryFearNetwork.py --project_root ${PROJECT_ROOT} --output_dir ${OUT_DIR} --roi_dir ${ROI_DIR} --n_jobs ${N_JOBS} --n_jobs_cv ${N_JOBS_CV} --n_permutation ${N_PERMUTATION} --n_null_perms ${N_NULL_PERMS} --stage11_actual_repeats ${STAGE11_ACTUAL_REPEATS} --stage11_chunk_count ${STAGE11_CHUNKS} --stage11_chunk_idx ${chunk_idx} --stage 11 --stage11_group ${group_name} ${EXTRA_ARGS}"
+  )
+  echo "$job_id"
+}
+
+submit_stage11_merge() {
+  local group_name="$1"
+  local dependency="${2:-}"
+  local dependency_args=()
+  if [[ -n "$dependency" ]]; then
+    dependency_args=(--dependency="afterok:${dependency}")
+  fi
+  local job_id
+  job_id=$(
+    sbatch --parsable \
+      "${dependency_args[@]}" \
       --partition="$PARTITION" \
       --account="$ACCOUNT" \
       --nodes=1 \
@@ -284,9 +321,23 @@ if [[ "$REQUESTED" == "ALL" ]]; then
 else
   if [[ "$REQUESTED" =~ ^11[:_-](SAD|HC)$ ]]; then
     group_name="${BASH_REMATCH[1]}"
-    array_job_id="$(submit_stage11_array "$group_name")"
-    echo "Submitted MemoryFearNetwork cell/stage 11:${group_name} array: job ${array_job_id}"
-    merge_job_id="$(submit_stage11_merge "$group_name" "$array_job_id")"
+    if [[ -n "${STAGE11_CHUNK_IDX:-}" ]]; then
+      if (( STAGE11_CHUNK_IDX < 0 || STAGE11_CHUNK_IDX >= STAGE11_CHUNKS )); then
+        echo "ERROR: STAGE11_CHUNK_IDX=${STAGE11_CHUNK_IDX} must be between 0 and $((STAGE11_CHUNKS - 1))." >&2
+        exit 1
+      fi
+      chunk_job_id="$(submit_stage11_chunk "$group_name" "$STAGE11_CHUNK_IDX")"
+      echo "Submitted MemoryFearNetwork cell/stage 11:${group_name} chunk ${STAGE11_CHUNK_IDX}/${STAGE11_CHUNKS}: job ${chunk_job_id}"
+      echo "After this chunk completes, run: STAGE11_CHUNKS=${STAGE11_CHUNKS} hyak/submit_mvpa_L2_memoryfearnetwork_stage.sh 11:${group_name}:merge"
+    else
+      array_job_id="$(submit_stage11_array "$group_name")"
+      echo "Submitted MemoryFearNetwork cell/stage 11:${group_name} array: job ${array_job_id}"
+      merge_job_id="$(submit_stage11_merge "$group_name" "$array_job_id")"
+      echo "Submitted MemoryFearNetwork cell/stage 11:${group_name} merge: job ${merge_job_id}"
+    fi
+  elif [[ "$REQUESTED" =~ ^11[:_-](SAD|HC)[:_-]MERGE$ ]]; then
+    group_name="${BASH_REMATCH[1]}"
+    merge_job_id="$(submit_stage11_merge "$group_name" "")"
     echo "Submitted MemoryFearNetwork cell/stage 11:${group_name} merge: job ${merge_job_id}"
   else
     job_id="$(submit_stage "$REQUESTED")"
