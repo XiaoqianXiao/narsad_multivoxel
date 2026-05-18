@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Submit mvpa_L2_voxel_FearNetwork.py by notebook code-cell stage.
+# Submit mvpa_L2_voxel_FearNetwork.py by analysis stage.
 # Usage:
 #   ./submit_mvpa_L2_fearnetwork_stage.sh all
 #   ./submit_mvpa_L2_fearnetwork_stage.sh 11:SAD
@@ -46,8 +46,8 @@ Usage:
       Submit every analysis stage below with the dependency graph shown under
       "Analysis structure".
 
-  submit_mvpa_L2_fearnetwork_stage.sh <stage_cell> [extra python args]
-      Submit one notebook code-cell stage. Extra args are passed through to
+  submit_mvpa_L2_fearnetwork_stage.sh <stage_id> [extra python args]
+      Submit one analysis stage. Extra args are passed through to
       mvpa_L2_voxel_FearNetwork.py.
 
   submit_mvpa_L2_fearnetwork_stage.sh 11:SAD
@@ -200,9 +200,9 @@ submit_stage() {
       --cpus-per-task="$CPUS" \
       --mem="$MEM" \
       --time="$TIME" \
-      --job-name="mvpa_fear_c${job_suffix}" \
-      --output="$LOG_DIR/mvpa_fear_c${job_suffix}_%j.out" \
-      --error="$LOG_DIR/mvpa_fear_c${job_suffix}_%j.err" \
+      --job-name="mvpa_fear_${job_suffix}" \
+      --output="$LOG_DIR/mvpa_fear_${job_suffix}_%j.out" \
+      --error="$LOG_DIR/mvpa_fear_${job_suffix}_%j.err" \
       --wrap="export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 N_PERMUTATION=${N_PERMUTATION} N_NULL_PERMS=${N_NULL_PERMS}; apptainer exec -B ${PROJECT_ROOT}:${PROJECT_ROOT} -B ${APP_PATH}:/app -B ${OUT_BASE}:/output_dir ${CONTAINER_SIF} python3 /app/mvpa_L2_voxel_FearNetwork.py --project_root ${PROJECT_ROOT} --output_dir ${OUT_DIR} --roi_dir ${ROI_DIR} --n_jobs ${N_JOBS} --n_jobs_cv ${N_JOBS_CV} --n_permutation ${N_PERMUTATION} --n_null_perms ${N_NULL_PERMS} --stage ${stage} --stage11_group ${stage11_group} ${EXTRA_ARGS}"
   )
   echo "$job_id"
@@ -229,9 +229,9 @@ submit_stage11_array() {
       --cpus-per-task="$CPUS" \
       --mem="$MEM" \
       --time="$TIME" \
-      --job-name="mvpa_fear_c$(stage_output_suffix 11)_${group_name}" \
-      --output="$LOG_DIR/mvpa_fear_c$(stage_output_suffix 11)_${group_name}_%A_%a.out" \
-      --error="$LOG_DIR/mvpa_fear_c$(stage_output_suffix 11)_${group_name}_%A_%a.err" \
+      --job-name="mvpa_fear_$(stage_output_suffix 11)_${group_name}" \
+      --output="$LOG_DIR/mvpa_fear_$(stage_output_suffix 11)_${group_name}_%A_%a.out" \
+      --error="$LOG_DIR/mvpa_fear_$(stage_output_suffix 11)_${group_name}_%A_%a.err" \
       --wrap="export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 N_PERMUTATION=${N_PERMUTATION} N_NULL_PERMS=${N_NULL_PERMS} STAGE11_ACTUAL_REPEATS=${STAGE11_ACTUAL_REPEATS} STAGE11_CHUNK_COUNT=${STAGE11_CHUNKS}; apptainer exec -B ${PROJECT_ROOT}:${PROJECT_ROOT} -B ${APP_PATH}:/app -B ${OUT_BASE}:/output_dir ${CONTAINER_SIF} python3 /app/mvpa_L2_voxel_FearNetwork.py --project_root ${PROJECT_ROOT} --output_dir ${OUT_DIR} --roi_dir ${ROI_DIR} --n_jobs ${N_JOBS} --n_jobs_cv ${N_JOBS_CV} --n_permutation ${N_PERMUTATION} --n_null_perms ${N_NULL_PERMS} --stage11_actual_repeats ${STAGE11_ACTUAL_REPEATS} --stage11_chunk_count ${STAGE11_CHUNKS} --stage11_chunk_idx \$SLURM_ARRAY_TASK_ID --stage 11 --stage11_group ${group_name} ${EXTRA_ARGS}"
   )
   echo "$job_id"
@@ -257,9 +257,9 @@ submit_stage11_chunk() {
       --cpus-per-task="$CPUS" \
       --mem="$MEM" \
       --time="$TIME" \
-      --job-name="mvpa_fear_c$(stage_output_suffix 11)_${group_name}_chunk${chunk_idx}" \
-      --output="$LOG_DIR/mvpa_fear_c$(stage_output_suffix 11)_${group_name}_chunk${chunk_idx}_%j.out" \
-      --error="$LOG_DIR/mvpa_fear_c$(stage_output_suffix 11)_${group_name}_chunk${chunk_idx}_%j.err" \
+      --job-name="mvpa_fear_$(stage_output_suffix 11)_${group_name}_chunk${chunk_idx}" \
+      --output="$LOG_DIR/mvpa_fear_$(stage_output_suffix 11)_${group_name}_chunk${chunk_idx}_%j.out" \
+      --error="$LOG_DIR/mvpa_fear_$(stage_output_suffix 11)_${group_name}_chunk${chunk_idx}_%j.err" \
       --wrap="export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 N_PERMUTATION=${N_PERMUTATION} N_NULL_PERMS=${N_NULL_PERMS} STAGE11_ACTUAL_REPEATS=${STAGE11_ACTUAL_REPEATS} STAGE11_CHUNK_COUNT=${STAGE11_CHUNKS}; apptainer exec -B ${PROJECT_ROOT}:${PROJECT_ROOT} -B ${APP_PATH}:/app -B ${OUT_BASE}:/output_dir ${CONTAINER_SIF} python3 /app/mvpa_L2_voxel_FearNetwork.py --project_root ${PROJECT_ROOT} --output_dir ${OUT_DIR} --roi_dir ${ROI_DIR} --n_jobs ${N_JOBS} --n_jobs_cv ${N_JOBS_CV} --n_permutation ${N_PERMUTATION} --n_null_perms ${N_NULL_PERMS} --stage11_actual_repeats ${STAGE11_ACTUAL_REPEATS} --stage11_chunk_count ${STAGE11_CHUNKS} --stage11_chunk_idx ${chunk_idx} --stage 11 --stage11_group ${group_name} ${EXTRA_ARGS}"
   )
   echo "$job_id"
@@ -283,9 +283,9 @@ submit_stage11_merge() {
       --cpus-per-task="$CPUS" \
       --mem="$MEM" \
       --time="$TIME" \
-      --job-name="mvpa_fear_c$(stage_output_suffix 11)_${group_name}_merge" \
-      --output="$LOG_DIR/mvpa_fear_c$(stage_output_suffix 11)_${group_name}_merge_%j.out" \
-      --error="$LOG_DIR/mvpa_fear_c$(stage_output_suffix 11)_${group_name}_merge_%j.err" \
+      --job-name="mvpa_fear_$(stage_output_suffix 11)_${group_name}_merge" \
+      --output="$LOG_DIR/mvpa_fear_$(stage_output_suffix 11)_${group_name}_merge_%j.out" \
+      --error="$LOG_DIR/mvpa_fear_$(stage_output_suffix 11)_${group_name}_merge_%j.err" \
       --wrap="export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 N_PERMUTATION=${N_PERMUTATION} N_NULL_PERMS=${N_NULL_PERMS} STAGE11_ACTUAL_REPEATS=${STAGE11_ACTUAL_REPEATS} STAGE11_CHUNK_COUNT=${STAGE11_CHUNKS}; apptainer exec -B ${PROJECT_ROOT}:${PROJECT_ROOT} -B ${APP_PATH}:/app -B ${OUT_BASE}:/output_dir ${CONTAINER_SIF} python3 /app/mvpa_L2_voxel_FearNetwork.py --project_root ${PROJECT_ROOT} --output_dir ${OUT_DIR} --roi_dir ${ROI_DIR} --n_jobs ${N_JOBS} --n_jobs_cv ${N_JOBS_CV} --n_permutation ${N_PERMUTATION} --n_null_perms ${N_NULL_PERMS} --stage11_actual_repeats ${STAGE11_ACTUAL_REPEATS} --stage11_chunk_count ${STAGE11_CHUNKS} --stage11_merge --stage 11 --stage11_group ${group_name} ${EXTRA_ARGS}"
   )
   echo "$job_id"
@@ -295,7 +295,7 @@ if [[ "$REQUESTED" == "ALL" ]]; then
   prev_job=""
   for stage in "${PRE_STAGE11_STAGES[@]}"; do
     job_id="$(submit_stage "$stage" "$prev_job")"
-    echo "Submitted FearNetwork cell/stage ${stage}: job ${job_id}"
+    echo "Submitted FearNetwork stage ${stage}: job ${job_id}"
     prev_job="$job_id"
   done
 
@@ -303,17 +303,17 @@ if [[ "$REQUESTED" == "ALL" ]]; then
   stage11_merge_jobs=()
   for group_name in "${STAGE11_GROUPS[@]}"; do
     job_id="$(submit_stage11_array "$group_name" "$prev_job")"
-    echo "Submitted FearNetwork cell/stage 11:${group_name} array: job ${job_id}"
+    echo "Submitted FearNetwork stage 11:${group_name} array: job ${job_id}"
     stage11_jobs+=("$job_id")
     merge_job_id="$(submit_stage11_merge "$group_name" "$job_id")"
-    echo "Submitted FearNetwork cell/stage 11:${group_name} merge: job ${merge_job_id}"
+    echo "Submitted FearNetwork stage 11:${group_name} merge: job ${merge_job_id}"
     stage11_merge_jobs+=("$merge_job_id")
   done
   prev_job="$(IFS=:; echo "${stage11_merge_jobs[*]}")"
 
   for stage in "${POST_STAGE11_STAGES[@]}"; do
     job_id="$(submit_stage "$stage" "$prev_job")"
-    echo "Submitted FearNetwork cell/stage ${stage}: job ${job_id}"
+    echo "Submitted FearNetwork stage ${stage}: job ${job_id}"
     prev_job="$job_id"
   done
 
@@ -327,20 +327,20 @@ else
         exit 1
       fi
       chunk_job_id="$(submit_stage11_chunk "$group_name" "$STAGE11_CHUNK_IDX")"
-      echo "Submitted FearNetwork cell/stage 11:${group_name} chunk ${STAGE11_CHUNK_IDX}/${STAGE11_CHUNKS}: job ${chunk_job_id}"
+      echo "Submitted FearNetwork stage 11:${group_name} chunk ${STAGE11_CHUNK_IDX}/${STAGE11_CHUNKS}: job ${chunk_job_id}"
       echo "After this chunk completes, run: STAGE11_CHUNKS=${STAGE11_CHUNKS} hyak/submit_mvpa_L2_fearnetwork_stage.sh 11:${group_name}:merge"
     else
       array_job_id="$(submit_stage11_array "$group_name")"
-      echo "Submitted FearNetwork cell/stage 11:${group_name} array: job ${array_job_id}"
+      echo "Submitted FearNetwork stage 11:${group_name} array: job ${array_job_id}"
       merge_job_id="$(submit_stage11_merge "$group_name" "$array_job_id")"
-      echo "Submitted FearNetwork cell/stage 11:${group_name} merge: job ${merge_job_id}"
+      echo "Submitted FearNetwork stage 11:${group_name} merge: job ${merge_job_id}"
     fi
   elif [[ "$REQUESTED" =~ ^11[:_-](SAD|HC)[:_-]MERGE$ ]]; then
     group_name="${BASH_REMATCH[1]}"
     merge_job_id="$(submit_stage11_merge "$group_name" "")"
-    echo "Submitted FearNetwork cell/stage 11:${group_name} merge: job ${merge_job_id}"
+    echo "Submitted FearNetwork stage 11:${group_name} merge: job ${merge_job_id}"
   else
     job_id="$(submit_stage "$REQUESTED")"
-    echo "Submitted FearNetwork cell/stage ${REQUESTED}: job ${job_id}"
+    echo "Submitted FearNetwork stage ${REQUESTED}: job ${job_id}"
   fi
 fi

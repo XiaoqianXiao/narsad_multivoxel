@@ -143,12 +143,12 @@ def parse_runtime_args():
         "--stage11_group",
         default=os.environ.get("STAGE11_GROUP", "ALL"),
         choices=["ALL", "SAD", "HC"],
-        help="For stage/cell 11 only, run empirical permutation-importance masks for ALL, SAD, or HC.",
+        help="For stage 11 only, run empirical permutation-importance masks for ALL, SAD, or HC.",
     )
     parser.add_argument(
         "--stage",
         default=os.environ.get("STAGE"),
-        help="Notebook code cell/stage to run, for example 6, 12, or a comma/range list like 6,10-12. Omit to run all.",
+        help="Analysis stage to run, for example 6, 12, or a comma/range list like 6,10-12. Omit to run all.",
     )
     return parser.parse_known_args()
 
@@ -383,7 +383,7 @@ def load_stage11_split_results() -> bool:
     for group_name in ("SAD", "HC"):
         group_paths = [
             os.path.join(CHECKPOINT_DIR, f"cell_11_{group_name}.joblib"),
-            os.path.join(INTERMEDIATE_DIR, f"stage09_permutation_masks_{group_name}.joblib"),
+            os.path.join(INTERMEDIATE_DIR, f"stage11_importance_masks_{group_name}.joblib"),
         ]
         for group_path in group_paths:
             if not os.path.exists(group_path):
@@ -406,7 +406,7 @@ def load_stage11_split_results() -> bool:
             raise FileNotFoundError(
                 "Stage 11 downstream inputs are incomplete. Missing final split output for: "
                 f"{sorted(missing_groups)}. Expected cell_11_SAD.joblib and cell_11_HC.joblib "
-                f"in {CHECKPOINT_DIR} or matching stage09_permutation_masks_* files in {INTERMEDIATE_DIR}."
+                f"in {CHECKPOINT_DIR} or matching stage11_importance_masks_* files in {INTERMEDIATE_DIR}."
             )
         globals()["importance_mask_permutated"] = merged_masks
         globals()["importance_scores_permutated"] = merged_scores
@@ -417,7 +417,7 @@ def load_stage11_split_results() -> bool:
             "p_values_permutated": merged_p_values,
         }
         joblib.dump(combined_payload, main_path)
-        joblib.dump(combined_payload, _script_intermediate_path("stage09_permutation_masks"))
+        joblib.dump(combined_payload, _script_intermediate_path("stage11_importance_masks"))
         print(f"[Cell checkpoint] Merged split stage 11 outputs -> {main_path}")
         return True
 
@@ -2640,7 +2640,7 @@ if cell_active(11):
             "actual_repeats": {group_name: int(STAGE11_ACTUAL_REPEATS)},
         }
         group_ckpt = os.path.join(CHECKPOINT_DIR, f"cell_11_{group_name}.joblib")
-        group_intermediate = os.path.join(INTERMEDIATE_DIR, f"stage09_permutation_masks_{group_name}.joblib")
+        group_intermediate = os.path.join(INTERMEDIATE_DIR, f"stage11_importance_masks_{group_name}.joblib")
         joblib.dump(payload, group_ckpt)
         joblib.dump(payload, group_intermediate)
         importance_mask_permutated[group_name] = sig_mask
@@ -2792,9 +2792,9 @@ if cell_active(11):
             },
         }
         joblib.dump(combined_stage11_payload, _script_ckpt_path(11))
-        joblib.dump(combined_stage11_payload, _script_intermediate_path("stage09_permutation_masks"))
-        save_checkpoint(9, combined_stage11_payload)
-        save_intermediate("stage09_permutation_masks", combined_stage11_payload)
+        joblib.dump(combined_stage11_payload, _script_intermediate_path("stage11_importance_masks"))
+        save_checkpoint(11, combined_stage11_payload)
+        save_intermediate("stage11_importance_masks", combined_stage11_payload)
         save_cell_results(11, ['ALPHA_LEVEL', 'N_NULL_PERMS', 'STAGE11_GROUP', 'data_subsets', 'importance_mask_permutated', 'importance_scores_permutated', 'meta', 'p_values_permutated', 'results_11', 'results_12', 'results_13', 'results_13_2', 'results_14_self', 'results_21', 'results_21_pv', 'results_22', 'results_23', 'results_24', 'results_25', 'stage11_groups', 'strict_cross_phase_results', 'sub_to_meta'])
     elif not STAGE11_MERGE and STAGE11_CHUNK_COUNT > 1:
         print(
@@ -3097,7 +3097,6 @@ if cell_active(12):
         joblib.dump(cache_payload_12, cache_cell10)
         save_checkpoint(12, cache_payload_12)
         save_intermediate("stage12_topology_stats", cache_payload_12)
-        save_intermediate("stage10_topology_stats", results_12)
 
 
     # =============================================================================

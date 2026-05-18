@@ -78,22 +78,24 @@ C_MAX_EXP = 2
 C_POINTS = 20
 
 STAGE_INTERMEDIATE_MAP = {
-    1: ["stage01_NeuralDissociation"],
-    2: ["stage02_StaticRepresentationalTopology"],
-    3: ["stage03_DynamicRepresentationalDrift"],
-    4: ["stage04_DecisionBoundaryCharacteristics"],
-    5: ["stage05_SafetyRestoration"],
-    6: ["stage06_DriftEfficiency"],
-    7: ["stage07_ProbabilisticOpening"],
-    8: ["stage08_SpatialReAlignment"],
-    9: ["stage09_ReverseCrossDecoding"],
-    10: ["stage10_ClinicalScores", "stage23_clinical_scores"],
-    11: ["stage11_NeuralClinicalIndices", "stage24_neural_clinical_indices"],
-    12: ["stage12_MasterClinicalNeural", "stage26_master_clinical_neural"],
-    13: ["stage13_NeuralClinicalPearson", "stage27_neural_clinical_pearson"],
-    14: ["stage14_NeuralClinicalPartial", "stage28_neural_clinical_partial"],
-    15: ["stage15_NeuralClinicalZScore", "stage29_neural_clinical_zscore"],
-    16: ["stage16_NeuralClinicalOLS", "stage30_neural_clinical_ols"],
+    6: ["stage06_NeuralDissociation", "stage06_models", "stage06_permutation"],
+    10: ["stage10_spatial_haufe"],
+    11: ["stage11_importance_masks"],
+    12: ["stage12_StaticRepresentationalTopology", "stage12_topology_stats"],
+    13: ["stage13_DynamicRepresentationalDrift", "stage13_drift", "stage14_trajectories"],
+    15: ["stage15_DecisionBoundaryCharacteristics", "stage15_decision_stats"],
+    16: ["stage16_SafetyRestoration"],
+    18: ["stage18_DriftEfficiency"],
+    19: ["stage19_ProbabilisticOpening"],
+    20: ["stage20_SpatialReAlignment"],
+    21: ["stage21_ReverseCrossDecoding"],
+    23: ["stage23_ClinicalScores", "stage23_clinical_scores"],
+    24: ["stage24_NeuralClinicalIndices", "stage24_neural_clinical_indices"],
+    26: ["stage26_MasterClinicalNeural", "stage26_master_clinical_neural"],
+    27: ["stage27_NeuralClinicalPearson", "stage27_neural_clinical_pearson"],
+    28: ["stage28_NeuralClinicalPartial", "stage28_neural_clinical_partial"],
+    29: ["stage29_NeuralClinicalZScore", "stage29_neural_clinical_zscore"],
+    30: ["stage30_NeuralClinicalOLS", "stage30_neural_clinical_ols"],
 }
 
 sns.set_context("poster")
@@ -107,24 +109,25 @@ def parse_runtime_args():
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument("--project_root", default=os.environ.get("PROJECT_ROOT", "/gscratch/fang/NARSAD"))
     parser.add_argument("--output_dir", default=os.environ.get("OUTPUT_DIR"))
-    parser.add_argument("--stage", type=int, default=None, help="Run a single logical stage (1-16).")
+    parser.add_argument("--stage", type=int, default=None, help="Run a single user-facing stage matching the ROI scripts.")
     parser.add_argument(
         "--resume",
         action="store_true",
         help="Load checkpoints for prior cells when running a single stage.",
     )
     parser.add_argument(
-        "--stage1_group",
-        default=os.environ.get("STAGE1_GROUP", "ALL"),
+        "--stage11_group",
+        dest="stage11_group",
+        default=os.environ.get("STAGE11_GROUP", "ALL"),
         choices=["SAD", "HC", "ALL"],
-        help="For stage 1, compute importance for SAD, HC, or ALL.",
+        help="For stage 11, compute importance for SAD, HC, or ALL.",
     )
     parser.add_argument(
         "--importance_source",
         default=os.environ.get("IMPORTANCE_SOURCE", "auto"),
         choices=["auto", "combined", "group"],
         help=(
-            "How to load stage 1 importance for downstream stages: "
+            "How to load stage 11 importance for downstream stages: "
             "'combined' uses only a combined importance joblib; "
             "'group' requires per-group SAD/HC importance files; "
             "'auto' tries combined then per-group."
@@ -135,32 +138,36 @@ def parse_runtime_args():
     parser.add_argument("--n_permutation", type=int, default=int(os.environ.get("N_PERMUTATION", "5000")))
     parser.add_argument("--n_null_perms", type=int, default=int(os.environ.get("N_NULL_PERMS", "5000")))
     parser.add_argument(
-        "--stage1_actual_repeats",
+        "--stage11_actual_repeats",
+        dest="stage11_actual_repeats",
         type=int,
-        default=int(os.environ.get("STAGE1_ACTUAL_REPEATS", os.environ.get("N_NULL_PERMS", "5000"))),
-        help="Total actual permutation-importance repeats for stage 1.",
+        default=int(os.environ.get("STAGE11_ACTUAL_REPEATS", os.environ.get("N_NULL_PERMS", "5000"))),
+        help="Total actual permutation-importance repeats for stage 11.",
     )
     parser.add_argument(
-        "--stage1_chunk_idx",
+        "--stage11_chunk_idx",
+        dest="stage11_chunk_idx",
         type=int,
         default=(
             None
-            if os.environ.get("STAGE1_CHUNK_IDX", os.environ.get("SLURM_ARRAY_TASK_ID")) is None
-            else int(os.environ.get("STAGE1_CHUNK_IDX", os.environ.get("SLURM_ARRAY_TASK_ID")))
+            if os.environ.get("STAGE11_CHUNK_IDX", os.environ.get("SLURM_ARRAY_TASK_ID")) is None
+            else int(os.environ.get("STAGE11_CHUNK_IDX", os.environ.get("SLURM_ARRAY_TASK_ID")))
         ),
-        help="Zero-based stage 1 permutation-importance chunk index.",
+        help="Zero-based stage 11 permutation-importance chunk index.",
     )
     parser.add_argument(
-        "--stage1_chunk_count",
+        "--stage11_chunk_count",
+        dest="stage11_chunk_count",
         type=int,
-        default=int(os.environ.get("STAGE1_CHUNK_COUNT", "1")),
-        help="Total number of stage 1 permutation-importance chunks.",
+        default=int(os.environ.get("STAGE11_CHUNK_COUNT", "1")),
+        help="Total number of stage 11 permutation-importance chunks.",
     )
     parser.add_argument(
-        "--stage1_merge",
+        "--stage11_merge",
+        dest="stage11_merge",
         action="store_true",
-        default=os.environ.get("STAGE1_MERGE", "0") == "1",
-        help="Merge stage 1 permutation-importance chunks instead of computing a chunk.",
+        default=os.environ.get("STAGE11_MERGE", "0") == "1",
+        help="Merge stage 11 permutation-importance chunks instead of computing a chunk.",
     )
     return parser.parse_known_args()
 
@@ -175,10 +182,10 @@ N_JOBS = _args.n_jobs
 N_JOBS_CV = _args.n_jobs_cv
 N_PERMUTATION = _args.n_permutation
 N_NULL_PERMS = _args.n_null_perms
-STAGE1_ACTUAL_REPEATS = _args.stage1_actual_repeats
-STAGE1_CHUNK_IDX = _args.stage1_chunk_idx
-STAGE1_CHUNK_COUNT = _args.stage1_chunk_count
-STAGE1_MERGE = _args.stage1_merge
+STAGE11_ACTUAL_REPEATS = _args.stage11_actual_repeats
+STAGE11_CHUNK_IDX = _args.stage11_chunk_idx
+STAGE11_CHUNK_COUNT = _args.stage11_chunk_count
+STAGE11_MERGE = _args.stage11_merge
 
 
 def configure_blas_threads():
@@ -303,9 +310,7 @@ def ensure_importance_loaded():
 
     def load_combined():
         for name in (
-            "stage01_importance_permutated",
-            "stage08_importance",
-            "stage09_permutation_masks",
+            "stage11_importance_masks",
         ):
             try:
                 prev = load_intermediate(name)
@@ -325,9 +330,7 @@ def ensure_importance_loaded():
         for grp in ("SAD", "HC"):
             loaded = False
             for name in (
-                f"stage01_importance_permutated_{grp}",
-                f"stage08_importance_{grp}",
-                f"stage09_permutation_masks_{grp}",
+                f"stage11_importance_masks_{grp}",
             ):
                 try:
                     prev = load_intermediate(name)
@@ -362,15 +365,15 @@ def ensure_importance_loaded():
         if IMPORTANCE_SOURCE == "group":
             raise FileNotFoundError(
                 "Missing per-group importance intermediates. Expected "
-                "stage08_importance_SAD.joblib and stage08_importance_HC.joblib."
+                "stage11_importance_masks_SAD.joblib and stage11_importance_masks_HC.joblib."
             )
         if IMPORTANCE_SOURCE == "combined":
             raise FileNotFoundError(
-                "Missing combined importance intermediate stage08_importance.joblib."
+                "Missing combined importance intermediate stage11_importance_masks.joblib."
             )
         raise FileNotFoundError(
-            "Missing importance intermediates. Expected stage08_importance.joblib "
-            "or stage08_importance_{SAD,HC}.joblib in /intermediate."
+            "Missing importance intermediates. Expected stage11_importance_masks.joblib "
+            "or stage11_importance_masks_{SAD,HC}.joblib in /intermediate."
         )
 
     importance_scores = merged_scores
@@ -1583,12 +1586,12 @@ if RESUME and STAGE is not None:
             _current_stage_loaded = True
         except FileNotFoundError:
             continue
-    if _current_stage_loaded:
+    if _current_stage_loaded and STAGE != 11:
         print(f"[Resume] Reused saved outputs for logical stage {STAGE}; skipping recomputation.")
         raise SystemExit(0)
 
 
-if stage_active(1):
+if stage_active(6):
     # Analysis 1.1 - Neural Dissociation Execution
     # Protocol: SAD -> HC
     # Updates:
@@ -1790,7 +1793,7 @@ if stage_active(1):
     _save_result("results_11", results_11)
     _save_result("results_11", results_11)
     
-    save_checkpoint(1, {
+    save_checkpoint(6, {
         "res_sad_dict": res_sad_dict,
         "res_hc_dict": res_hc_dict,
         "res_sad": res_sad,
@@ -1822,13 +1825,33 @@ if stage_active(1):
         "perm_sad2hc": perm_sad2hc, "perm_hc2sad": perm_hc2sad,
         "p_sad": p_sad, "p_hc": p_hc, "p_sad2hc": p_sad2hc, "p_hc2sad": p_hc2sad,
     })
-    save_intermediate("stage01_maps", {"map_sad": map_sad, "map_hc": map_hc, "obs_sim": obs_sim, "p_sim_spatial": p_sim_spatial})
+    save_intermediate("stage10_spatial_haufe", {"map_sad": map_sad, "map_hc": map_hc, "obs_sim": obs_sim, "p_sim_spatial": p_sim_spatial})
+    save_stage_bundle(6, "stage06_NeuralDissociation", {
+        "results_11": results_11,
+        "res_sad_dict": res_sad_dict,
+        "res_hc_dict": res_hc_dict,
+        "res_sad": res_sad,
+        "res_hc": res_hc,
+        "best_c_sad": best_c_sad,
+        "best_c_hc": best_c_hc,
+        "X_sad": X_sad, "y_sad": y_sad, "sub_sad": sub_sad,
+        "X_hc": X_hc, "y_hc": y_hc, "sub_hc": sub_hc,
+        "func_matrix": func_matrix,
+        "p_sad": p_sad, "p_hc": p_hc,
+        "p_sad2hc": p_sad2hc, "p_hc2sad": p_hc2sad,
+        "accs_sad2hc": accs_sad2hc, "accs_hc2sad": accs_hc2sad,
+        "mean_sad2hc": mean_sad2hc, "mean_hc2sad": mean_hc2sad,
+        "perm_acc_sad": perm_acc_sad, "perm_acc_hc": perm_acc_hc,
+        "perm_sad2hc": perm_sad2hc, "perm_hc2sad": perm_hc2sad,
+        "map_sad": map_sad, "map_hc": map_hc,
+        "obs_sim": obs_sim, "p_sim_spatial": p_sim_spatial,
+    })
     
 # %% importance
 ##Hauf score
     
 ## permuted importance
-if stage_active(1):
+if stage_active(11):
     # Cell 8: Feature Importance (Permutation) & Mask Generation
     # Objective: Identify task-relevant voxels/regions using Permutation Importance.
     # Context: Used as the primary feature selector for downstream analysis (Cell 9 & 10).
@@ -1873,23 +1896,25 @@ if stage_active(1):
     p_values_permutated = {}
     q_values_permutated = {}
     importance_diagnostics_permutated = {}
-    stage1_group = _args.stage1_group.upper()
-    stage1_groups = ['SAD', 'HC'] if stage1_group == "ALL" else [stage1_group]
-    stage1_chunk_dir = os.path.join(CHECKPOINT_DIR, "stage01_importance_chunks")
-    os.makedirs(stage1_chunk_dir, exist_ok=True)
+    stage11_group = _args.stage11_group.upper()
+    stage11_groups = ['SAD', 'HC'] if stage11_group == "ALL" else [stage11_group]
+    stage11_chunk_dir = os.path.join(CHECKPOINT_DIR, "stage11_importance_chunks")
+    os.makedirs(stage11_chunk_dir, exist_ok=True)
 
-    # If resuming, merge any existing stage 1 intermediates (SAD/HC)
+    # If resuming, merge any existing stage 11 intermediates (SAD/HC)
     if RESUME:
-        try:
-            prev = load_intermediate("stage01_importance")
+        for resume_name in ("stage11_importance_masks",):
+            try:
+                prev = load_intermediate(resume_name)
+            except FileNotFoundError:
+                continue
             if isinstance(prev, dict):
                 importance_masks.update(prev.get("importance_masks", {}))
                 importance_scores.update(prev.get("importance_scores", {}))
-                print(f"  > Loaded existing stage01_importance for merge: {list(importance_scores.keys())}")
-        except FileNotFoundError:
-            pass
+                print(f"  > Loaded existing {resume_name} for merge: {list(importance_scores.keys())}")
+            break
 
-    def stage1_bounds(total, chunk_idx, chunk_count):
+    def stage11_bounds(total, chunk_idx, chunk_count):
         total = int(total)
         chunk_count = max(1, int(chunk_count))
         chunk_idx = 0 if chunk_idx is None else int(chunk_idx)
@@ -1901,17 +1926,17 @@ if stage_active(1):
         end = start + base + (1 if chunk_idx < rem else 0)
         return start, end
 
-    def stage1_prepare_group(group_name):
+    def stage11_prepare_group(group_name):
         if group_name == "SAD":
             mask_cls = np.isin(y_sad, target_pair)
             return X_sad[mask_cls], y_sad[mask_cls], res_sad['model']
         mask_cls = np.isin(y_hc, target_pair)
         return X_hc[mask_cls], y_hc[mask_cls], res_hc['model']
 
-    def stage1_chunk_path(group_name, chunk_idx):
-        return os.path.join(stage1_chunk_dir, f"stage01_{group_name}_chunk_{int(chunk_idx):04d}.joblib")
+    def stage11_chunk_path(group_name, chunk_idx):
+        return os.path.join(stage11_chunk_dir, f"stage11_{group_name}_chunk_{int(chunk_idx):04d}.joblib")
 
-    def stage1_save_group(group_name, actual_imp, p_values, null_n):
+    def stage11_save_group(group_name, actual_imp, p_values, null_n):
         _, q_values, _, _ = multipletests(p_values, alpha=ALPHA_LEVEL, method='fdr_bh')
         sig_mask = (q_values < ALPHA_LEVEL) & (actual_imp > 0)
         positive_mask = make_all_positive_importance_mask(actual_imp)
@@ -1944,7 +1969,7 @@ if stage_active(1):
             "q_values_permutated": {group_name: q_values},
             "importance_diagnostics_permutated": {group_name: diag},
             "null_permutations": {group_name: int(null_n)},
-            "actual_repeats": {group_name: int(STAGE1_ACTUAL_REPEATS)},
+            "actual_repeats": {group_name: int(STAGE11_ACTUAL_REPEATS)},
             "fdr_feature_counts": {group_name: fdr_n},
             "all_positive_feature_counts": {group_name: positive_n},
             "fallback_sensitivity_recommended": {group_name: fallback_recommended},
@@ -1954,8 +1979,8 @@ if stage_active(1):
             ),
             "fdr_method": "fdr_bh_whole_brain",
         }
-        group_ckpt = os.path.join(CHECKPOINT_DIR, f"stage01_importance_{group_name}.joblib")
-        group_intermediate = _intermediate_path(f"stage01_importance_permutated_{group_name}")
+        group_ckpt = os.path.join(CHECKPOINT_DIR, f"stage11_importance_{group_name}.joblib")
+        group_intermediate = _intermediate_path(f"stage11_importance_masks_{group_name}")
         joblib.dump(payload, group_ckpt)
         joblib.dump(payload, group_intermediate)
         importance_masks[group_name] = sig_mask
@@ -1985,20 +2010,20 @@ if stage_active(1):
                 f"{positive_n} features."
             )
 
-    def stage1_compute_chunk(group_name):
-        chunk_idx = 0 if STAGE1_CHUNK_IDX is None else int(STAGE1_CHUNK_IDX)
-        chunk_count = max(1, int(STAGE1_CHUNK_COUNT))
-        actual_start, actual_end = stage1_bounds(STAGE1_ACTUAL_REPEATS, chunk_idx, chunk_count)
-        null_start, null_end = stage1_bounds(N_NULL_PERMS, chunk_idx, chunk_count)
+    def stage11_compute_chunk(group_name):
+        chunk_idx = 0 if STAGE11_CHUNK_IDX is None else int(STAGE11_CHUNK_IDX)
+        chunk_count = max(1, int(STAGE11_CHUNK_COUNT))
+        actual_start, actual_end = stage11_bounds(STAGE11_ACTUAL_REPEATS, chunk_idx, chunk_count)
+        null_start, null_end = stage11_bounds(N_NULL_PERMS, chunk_idx, chunk_count)
         actual_repeats = actual_end - actual_start
         null_repeats = null_end - null_start
         if actual_repeats <= 0 and null_repeats <= 0:
             print(f"  [SKIP] {group_name} chunk {chunk_idx + 1}/{chunk_count} has no work.")
             return
 
-        X_target, y_target, model_template = stage1_prepare_group(group_name)
+        X_target, y_target, model_template = stage11_prepare_group(group_name)
         print(
-            f"--- Stage 1 importance chunk {chunk_idx + 1}/{chunk_count} for {group_name}: "
+            f"--- Stage 11 importance chunk {chunk_idx + 1}/{chunk_count} for {group_name}: "
             f"actual repeats {actual_start}:{actual_end}, null perms {null_start}:{null_end} ---"
         )
 
@@ -2045,20 +2070,20 @@ if stage_active(1):
             "null_end": null_end,
             "null_dist": null_dist,
         }
-        out_path = stage1_chunk_path(group_name, chunk_idx)
+        out_path = stage11_chunk_path(group_name, chunk_idx)
         joblib.dump(chunk_payload, out_path, compress=3)
-        print(f"  [SAVE] Stage 1 importance chunk saved -> {out_path}")
+        print(f"  [SAVE] Stage 11 importance chunk saved -> {out_path}")
 
         if chunk_count == 1:
             actual_imp = actual_sum / max(1, actual_repeats)
             p_values = ((np.sum(null_dist >= actual_imp, axis=0) + 1) / (max(1, null_repeats) + 1)).astype(np.float64)
-            stage1_save_group(group_name, actual_imp, p_values, null_repeats)
+            stage11_save_group(group_name, actual_imp, p_values, null_repeats)
 
-    def stage1_merge_group(group_name):
-        paths = sorted(glob.glob(os.path.join(stage1_chunk_dir, f"stage01_{group_name}_chunk_*.joblib")))
+    def stage11_merge_group(group_name):
+        paths = sorted(glob.glob(os.path.join(stage11_chunk_dir, f"stage11_{group_name}_chunk_*.joblib")))
         if not paths:
-            raise FileNotFoundError(f"No stage 1 importance chunk files found for {group_name} in {stage1_chunk_dir}")
-        print(f"--- Stage 1 importance merge for {group_name}: {len(paths)} chunk files ---")
+            raise FileNotFoundError(f"No stage 11 importance chunk files found for {group_name} in {stage11_chunk_dir}")
+        print(f"--- Stage 11 importance merge for {group_name}: {len(paths)} chunk files ---")
         actual_sum = None
         actual_n = 0
         null_n = 0
@@ -2090,28 +2115,28 @@ if stage_active(1):
         expected_chunks = max(int(joblib.load(paths[0]).get("chunk_count", len(paths))), len(paths))
         if len(chunks_seen) < expected_chunks:
             raise FileNotFoundError(
-                f"Only found {len(chunks_seen)}/{expected_chunks} stage 1 chunks for {group_name}. "
+                f"Only found {len(chunks_seen)}/{expected_chunks} stage 11 chunks for {group_name}. "
                 "Wait for all array tasks to finish before merging."
             )
         p_values = (count_ge + 1) / (null_n + 1)
-        stage1_save_group(group_name, actual_imp, p_values, null_n)
+        stage11_save_group(group_name, actual_imp, p_values, null_n)
 
     print(
-        f"--- Stage 1 empirical permutation-importance masks "
-        f"(group={stage1_group}, null={N_NULL_PERMS}, actual_repeats={STAGE1_ACTUAL_REPEATS}, "
-        f"chunks={STAGE1_CHUNK_COUNT}, merge={STAGE1_MERGE}, correction=whole-brain FDR) ---"
+        f"--- Stage 11 empirical permutation-importance masks "
+        f"(group={stage11_group}, null={N_NULL_PERMS}, actual_repeats={STAGE11_ACTUAL_REPEATS}, "
+        f"chunks={STAGE11_CHUNK_COUNT}, merge={STAGE11_MERGE}, correction=whole-brain FDR) ---"
     )
 
-    for group_name in stage1_groups:
-        if STAGE1_MERGE:
-            stage1_merge_group(group_name)
+    for group_name in stage11_groups:
+        if STAGE11_MERGE:
+            stage11_merge_group(group_name)
         else:
-            stage1_compute_chunk(group_name)
+            stage11_compute_chunk(group_name)
 
     if not importance_scores:
         print(
-            "--- Stage 1 importance chunk complete. No final masks were produced in this run; "
-            "merge chunks with --stage1_merge before downstream analyses. ---"
+            "--- Stage 11 importance chunk complete. No final masks were produced in this run; "
+            "merge chunks with --stage11_merge before downstream analyses. ---"
         )
         raise SystemExit(0)
     
@@ -2137,23 +2162,23 @@ if stage_active(1):
                 top_k=20,  # Show top 20 most important features per group
                 title="Neural Signatures (Permutation Importance)"
             )
-            _save_fig("results_1_importance_river")
+            _save_fig("results_11_importance_river")
     except Exception as e:
         print(f"  ! Visualization skipped due to error: {e}")
     
     importance_mask_permutated = importance_masks
     importance_scores_permutated = importance_scores
-    print("Permutated Importance masks generated and stored in 'importance_mask_permutated'.")
-    _save_result("results_1_importance_mask_permutated", importance_masks)
-    _save_result("results_1_importance_mask_all_positive", importance_masks_all_positive)
-    _save_result("results_1_importance_scores_permutated", importance_scores)
-    _save_result("results_1_importance_p_values_permutated", p_values_permutated)
-    _save_result("results_1_importance_q_values_permutated", q_values_permutated)
+    print("Permutation-importance masks generated and stored in 'importance_mask_permutated'.")
+    _save_result("results_11_importance_mask", importance_masks)
+    _save_result("results_11_importance_mask_all_positive", importance_masks_all_positive)
+    _save_result("results_11_importance_scores", importance_scores)
+    _save_result("results_11_importance_p_values", p_values_permutated)
+    _save_result("results_11_importance_q_values", q_values_permutated)
     for grp in importance_scores.keys():
-        _save_result(f"results_1_importance_masks_permutated_{grp}", {grp: importance_masks.get(grp)})
-        _save_result(f"results_1_importance_masks_all_positive_{grp}", {grp: importance_masks_all_positive.get(grp)})
-        _save_result(f"results_1_importance_scores_permutated_{grp}", {grp: importance_scores.get(grp)})
-    save_checkpoint(1, {
+        _save_result(f"results_11_importance_masks_{grp}", {grp: importance_masks.get(grp)})
+        _save_result(f"results_11_importance_masks_all_positive_{grp}", {grp: importance_masks_all_positive.get(grp)})
+        _save_result(f"results_11_importance_scores_{grp}", {grp: importance_scores.get(grp)})
+    save_checkpoint(11, {
         "importance_mask_permutated": importance_masks,
         "importance_masks_permutated": importance_masks,
         "importance_masks_all_positive": importance_masks_all_positive,
@@ -2172,26 +2197,7 @@ if stage_active(1):
         "thr_hc_permutated": locals().get("thr_hc"),
         "parcel_names_ext_permutated": parcel_names_ext,
     })
-    save_intermediate("stage01_importance_permutated", {
-        "importance_mask_permutated": importance_masks,
-        "importance_masks_permutated": importance_masks,
-        "importance_masks_all_positive": importance_masks_all_positive,
-        "importance_scores_permutated": importance_scores,
-        "p_values_permutated": p_values_permutated,
-        "q_values_permutated": q_values_permutated,
-        "importance_diagnostics_permutated": importance_diagnostics_permutated,
-        "feature_space_reports": feature_space_reports,
-        "fdr_method": "fdr_bh_whole_brain",
-        "fallback_sensitivity_rule": (
-            "Use all positive permutation-importance voxels when whole-brain FDR "
-            f"selects fewer than {MIN_FDR_FEATURES_FOR_PRIMARY} features."
-        ),
-        "PERCENTILE_THRESH_permutated": PERCENTILE_THRESH,
-        "thr_sad_permutated": locals().get("thr_sad"),
-        "thr_hc_permutated": locals().get("thr_hc"),
-        "parcel_names_ext_permutated": parcel_names_ext,
-    })
-    save_intermediate("stage09_permutation_masks", {
+    save_intermediate("stage11_importance_masks", {
         "importance_mask_permutated": importance_masks,
         "importance_masks_permutated": importance_masks,
         "importance_masks_all_positive": importance_masks_all_positive,
@@ -2211,26 +2217,7 @@ if stage_active(1):
         "parcel_names_ext_permutated": parcel_names_ext,
     })
     for grp in importance_scores.keys():
-        save_intermediate(f"stage01_importance_permutated_{grp}", {
-            "importance_mask_permutated": {grp: importance_masks.get(grp)},
-            "importance_masks_permutated": {grp: importance_masks.get(grp)},
-            "importance_masks_all_positive": {grp: importance_masks_all_positive.get(grp)},
-            "importance_scores_permutated": {grp: importance_scores.get(grp)},
-            "p_values_permutated": {grp: p_values_permutated.get(grp)},
-            "q_values_permutated": {grp: q_values_permutated.get(grp)},
-            "importance_diagnostics_permutated": {grp: importance_diagnostics_permutated.get(grp)},
-            "feature_space_reports": {grp: feature_space_reports.get(grp)},
-            "fdr_method": "fdr_bh_whole_brain",
-            "fallback_sensitivity_rule": (
-                "Use all positive permutation-importance voxels when whole-brain FDR "
-                f"selects fewer than {MIN_FDR_FEATURES_FOR_PRIMARY} features."
-            ),
-            "PERCENTILE_THRESH_permutated": PERCENTILE_THRESH,
-            "thr_sad_permutated": locals().get("thr_sad"),
-            "thr_hc_permutated": locals().get("thr_hc"),
-            "parcel_names_ext_permutated": parcel_names_ext,
-        })
-        save_intermediate(f"stage09_permutation_masks_{grp}", {
+        save_intermediate(f"stage11_importance_masks_{grp}", {
             "importance_mask_permutated": {grp: importance_masks.get(grp)},
             "importance_masks_permutated": {grp: importance_masks.get(grp)},
             "importance_masks_all_positive": {grp: importance_masks_all_positive.get(grp)},
@@ -2250,12 +2237,12 @@ if stage_active(1):
             "parcel_names_ext_permutated": parcel_names_ext,
         })
     save_stage_bundle(
-        1,
-        "stage01_NeuralDissociation",
+        11,
+        "stage11_importance_masks",
         {
             "results_11": locals().get("results_11"),
-            "results_1_importance_masks_permutated": importance_masks,
-            "results_1_importance_scores_permutated": importance_scores,
+            "results_11_importance_masks": importance_masks,
+            "results_11_importance_scores": importance_scores,
             "res_sad_dict": res_sad_dict,
             "res_hc_dict": res_hc_dict,
             "res_sad": res_sad,
@@ -2298,7 +2285,7 @@ if stage_active(1):
     )
     
 
-if stage_active(2):
+if stage_active(12):
     # Cell 9: Analysis 1.2 - Static Representational Topology (FDR or all-positive sensitivity | Centroid)
     # Objective: Characterize the stable organization of the social learning space.
     # Constraint: whole-brain FDR permutation-importance masks, with all-positive sensitivity fallback.
@@ -2518,15 +2505,13 @@ if stage_active(2):
     }
     _save_result("results_12", results_12)
     _save_result("results_12", results_12)
-    save_checkpoint(9, {
+    save_checkpoint(12, {
         "results_12": results_12
     })
-    save_intermediate("stage09_results_12", results_12)
     save_intermediate("stage12_topology_stats", {"results_12": results_12})
-    save_intermediate("stage10_topology_stats", results_12)
     save_stage_bundle(
-        2,
-        "stage02_StaticRepresentationalTopology",
+        12,
+        "stage12_StaticRepresentationalTopology",
         {
             "results_12": results_12,
             "rdms_sad": locals().get("rdms_sad"),
@@ -2548,7 +2533,7 @@ if stage_active(2):
     )
     
 # %% [cell 12]
-if stage_active(3):
+if stage_active(13):
     # Cell 10: Analysis 1.3 - Dynamic Representational Drift (FDR or all-positive sensitivity features)
     # Objective: Quantify plasticity magnitude (Projection) and fidelity (Cosine).
     # Target Definitions:
@@ -2717,7 +2702,7 @@ if stage_active(3):
     results_13_main = results_13
     _save_result("results_13", results_13)
     _save_result("results_13", results_13)
-    save_checkpoint(10, {
+    save_checkpoint(13, {
         "results_13": results_13,
         "df_safe_sad": locals().get("df_safe_sad"),
         "df_safe_hc": locals().get("df_safe_hc"),
@@ -2737,7 +2722,7 @@ if stage_active(3):
     })
     
 # %% [cell 13]
-if stage_active(3):
+if stage_active(13):
     # Cell 10: Analysis 1.3 - Dynamic Representational Drift (Single-Trial Trajectories)
     # Objective: Visualize plasticity trial-by-trial using FDR or all-positive sensitivity features.
     # Method: Project every trial onto the Ideal Axis (Start -> Target).
@@ -2885,14 +2870,14 @@ if stage_active(3):
     _save_result("results_13b", results_13)
     _save_result("results_13b", results_13)
     _save_result("results_13_2", results_13_2)
-    save_checkpoint(11, {
+    save_checkpoint(13, {
         "results_13b": results_13,
         "results_13_2": results_13_2,
     })
     save_intermediate("stage14_trajectories", {"results_13_2": results_13_2})
     save_stage_bundle(
-        3,
-        "stage03_DynamicRepresentationalDrift",
+        13,
+        "stage13_DynamicRepresentationalDrift",
         {
             "results_13": globals().get("results_13_main"),
             "results_13b": results_13,
@@ -2910,7 +2895,7 @@ if stage_active(3):
     )
     
 # %% [cell 14]
-if stage_active(4):
+if stage_active(15):
     # Cell 11: Analysis 1.4 - Decision Boundary Characteristics (Self-Network with Stats)
     # Objective: Quantify "Cognitive Certainty" (Entropy) and "Decision Sharpness" (Kurtosis) 
     #            using each group's NATIVE feature network.
@@ -3061,7 +3046,7 @@ if stage_active(4):
     results_14_self = {'df_sad': df_sad_stats, 'df_hc': df_hc_stats, 'feature_space': feature_space_14}
     _save_result("results_14_self", results_14_self)
     _save_result("results_14_self", results_14_self)
-    save_checkpoint(12, {
+    save_checkpoint(15, {
         "results_14_self": results_14_self,
         "df_sad_stats": locals().get("df_sad_stats"),
         "df_hc_stats": locals().get("df_hc_stats"),
@@ -3074,8 +3059,8 @@ if stage_active(4):
         "feature_space": locals().get("feature_space_14"),
     })
     save_stage_bundle(
-        4,
-        "stage04_DecisionBoundaryCharacteristics",
+        15,
+        "stage15_DecisionBoundaryCharacteristics",
         {
             "results_14_self": results_14_self,
             "df_sad_stats": locals().get("df_sad_stats"),
@@ -3090,7 +3075,7 @@ if stage_active(4):
     )
     
 # %% [cell 15]
-if stage_active(5):
+if stage_active(16):
     # Cell 12: Analysis 2.1 - Safety Restoration & Threat Discrimination (Mixed Effects)
     # Objective: Test if Oxytocin rescues network topology in SAD.
     # Metrics:
@@ -3237,7 +3222,7 @@ if stage_active(5):
     results_21 = {'df': df_topo, 'p_safe': p_int_safe, 'p_threat': p_int_threat}
     _save_result("results_21", results_21)
     _save_result("results_21", results_21)
-    save_checkpoint(13, {
+    save_checkpoint(16, {
         "results_21": results_21,
         "df_topo": locals().get("df_topo"),
         "lme_results": locals().get("lme_results"),
@@ -3248,8 +3233,8 @@ if stage_active(5):
         "lme_results": locals().get("lme_results"),
     })
     save_stage_bundle(
-        5,
-        "stage05_SafetyRestoration",
+        16,
+        "stage16_SafetyRestoration",
         {
             "results_21": results_21,
             "df_topo": locals().get("df_topo"),
@@ -3259,7 +3244,7 @@ if stage_active(5):
     )
     
 # %% [cell 16]
-if stage_active(6):
+if stage_active(18):
     # Cell 13: Analysis 2.2 - Drift Efficiency (Safety & Threat Maintenance)
     # Objective: Test OXT effect on neural drift efficiency in the empirical feature network.
     # Domains:
@@ -3287,7 +3272,7 @@ if stage_active(6):
         missing = [g for g in ("SAD", "HC") if g not in importance_scores]
         raise ValueError(
             f"Stage 9 requires importance_scores for both SAD and HC. Missing: {missing}. "
-            "Run Stage 8 with --stage1_group SAD and --stage1_group HC (or ALL), then resume."
+            "Run Stage 11 with --stage11_group SAD and --stage11_group HC (or ALL), then resume."
         )
     
     if 'importance_masks' not in locals() or not importance_masks:
@@ -3406,7 +3391,7 @@ if stage_active(6):
     results_22 = {'df': df_drift, 'stats': lme_results}
     _save_result("results_22", results_22)
     _save_result("results_22", results_22)
-    save_checkpoint(14, {
+    save_checkpoint(18, {
         "results_22": results_22,
         "df_drift": locals().get("df_drift"),
     })
@@ -3415,8 +3400,8 @@ if stage_active(6):
         "df_drift": locals().get("df_drift"),
     })
     save_stage_bundle(
-        6,
-        "stage06_DriftEfficiency",
+        18,
+        "stage18_DriftEfficiency",
         {
             "results_22": results_22,
             "df_drift": locals().get("df_drift"),
@@ -3425,7 +3410,7 @@ if stage_active(6):
     )
     
 # %% [cell 17]
-if stage_active(7):
+if stage_active(19):
     # Cell 14: Analysis 2.3 - The "Probabilistic Opening" Test (Entropy, Kurtosis, Variance)
     # Objective: Test if Oxytocin increases "Cognitive Uncertainty" in SAD.
     # Hypothesis: SAD-OXT will show HIGHER Entropy, LOWER Kurtosis, HIGHER Variance than SAD-PLC.
@@ -3550,7 +3535,7 @@ if stage_active(7):
     results_23 = {'df': df_metrics, 'stats': stats_results}
     _save_result("results_23", results_23)
     _save_result("results_23", results_23)
-    save_checkpoint(15, {
+    save_checkpoint(19, {
         "results_23": results_23,
         "df_metrics": locals().get("df_metrics"),
     })
@@ -3559,8 +3544,8 @@ if stage_active(7):
         "df_metrics": locals().get("df_metrics"),
     })
     save_stage_bundle(
-        7,
-        "stage07_ProbabilisticOpening",
+        19,
+        "stage19_ProbabilisticOpening",
         {
             "results_23": results_23,
             "df_metrics": locals().get("df_metrics"),
@@ -3569,7 +3554,7 @@ if stage_active(7):
     )
     
 # %% [cell 18]
-if stage_active(8):
+if stage_active(20):
     # Cell 15: Analysis 2.4 - Spatial Re-Alignment (The "Normalizing" Effect)
     # Objective: Test if OXT shifts SAD representations to align with the "Healthy" template.
     # Protocol: 
@@ -3711,13 +3696,13 @@ if stage_active(8):
     results_24 = {'acc_plc': acc_sad_plc, 'acc_oxt': acc_sad_oxt, 'p_val': p_val, 'model': gold_model}
     _save_result("results_24", results_24)
     _save_result("results_24", results_24)
-    save_checkpoint(16, {
+    save_checkpoint(20, {
         "results_24": results_24
     })
     save_intermediate("stage16_results_24", {"results_24": results_24})
     save_stage_bundle(
-        8,
-        "stage08_SpatialReAlignment",
+        20,
+        "stage20_SpatialReAlignment",
         {
             "results_24": results_24,
             "gold_model": locals().get("gold_model"),
@@ -3728,7 +3713,7 @@ if stage_active(8):
     )
     
 # %% [cell 19]
-if stage_active(9):
+if stage_active(21):
     # Cell 16: Analysis 2.5 - Reverse Cross-Decoding (SAD Template -> HC)
     # Objective: Test if the "Disordered" SAD representation generalizes to Healthy brains.
     # Protocol:
@@ -3872,8 +3857,8 @@ if stage_active(9):
     _save_result("results_25", results_25)
     _save_result("results_25", results_25)
     save_stage_bundle(
-        9,
-        "stage09_ReverseCrossDecoding",
+        21,
+        "stage21_ReverseCrossDecoding",
         {
             "results_25": results_25,
             "sad_model": sad_model,
@@ -3885,8 +3870,8 @@ if stage_active(9):
     )
 
 # %% [cell 20]
-if stage_active(10):
-    print("--- Running Stage 10: Clinical Score Loading ---")
+if stage_active(23):
+    print("--- Running Stage 23: Clinical Score Loading ---")
 
     clinical_dir = os.path.join(PROJECT_ROOT, "MRI/source_data/behav")
     LSAS_path = os.path.join(clinical_dir, "SocialSafetyLearning-LSASSubtotals_DATA_2026-04-25_2306.csv")
@@ -3942,17 +3927,17 @@ if stage_active(10):
         "clinical_paths": {"LSAS": LSAS_path, "ECR": ECR_path, "DASS": DASS_path, "SCR": SCR_path},
     }
     _save_result("df_scored_clinical", df_scored_clinical)
-    save_stage_bundle(10, "stage10_ClinicalScores", stage10_payload)
+    save_stage_bundle(23, "stage23_ClinicalScores", stage10_payload)
     save_intermediate("stage23_clinical_scores", stage10_payload)
 
 # %% [cell 21]
-if stage_active(11):
-    print("--- Running Stage 11: Neural Clinical Index Generation ---")
+if stage_active(24):
+    print("--- Running Stage 24: Neural Clinical Index Generation ---")
 
     if "results_12" not in globals():
-        raise ValueError("results_12 missing. Run/resume Stage 2 before Stage 11.")
+        raise ValueError("results_12 missing. Run/resume Stage 12 before Stage 24.")
     if "results_14_self" not in globals():
-        raise ValueError("results_14_self missing. Run/resume Stage 4 before Stage 11.")
+        raise ValueError("results_14_self missing. Run/resume Stage 15 before Stage 24.")
 
     idx_cs_minus, idx_css, idx_csr = 0, 1, 2
     sad_feature_count = max(float(results_12.get("features_sad", 1)), 1.0)
@@ -3965,7 +3950,7 @@ if stage_active(11):
     s_id_sad = np.asarray(results_12.get("subs_sad_rdm", globals().get("subs_sad_rdm", []))).astype(str)
     s_id_hc = np.asarray(results_12.get("subs_hc_rdm", globals().get("subs_hc_rdm", []))).astype(str)
     if len(s_id_sad) != len(vA_sad_pv) or len(s_id_hc) != len(vA_hc_pv):
-        raise ValueError("Topology subject IDs do not match RDM metric lengths. Re-run Stage 2 with the updated script.")
+        raise ValueError("Topology subject IDs do not match RDM metric lengths. Re-run Stage 12 with the updated script.")
 
     df_neural_topology = pd.DataFrame({
         "sub_ID": np.concatenate([s_id_sad, s_id_hc]).astype(str),
@@ -3977,7 +3962,7 @@ if stage_active(11):
 
     trajectory_payload = globals().get("results_13b") or globals().get("results_13_2") or globals().get("results_13")
     if not isinstance(trajectory_payload, dict) or "data_safe" not in trajectory_payload:
-        raise ValueError("Single-trial trajectory data missing. Run/resume Stage 3 before Stage 11.")
+        raise ValueError("Single-trial trajectory data missing. Run/resume Stage 13 before Stage 24.")
 
     def calculate_subject_slopes(df):
         slopes = []
@@ -4042,17 +4027,17 @@ if stage_active(11):
     _save_result("df_neural_topology", df_neural_topology)
     _save_result("df_neural_trajectories", df_neural_trajectories)
     _save_result("df_neural_uncertainty", df_neural_uncertainty)
-    save_stage_bundle(11, "stage11_NeuralClinicalIndices", stage11_payload)
+    save_stage_bundle(24, "stage24_NeuralClinicalIndices", stage11_payload)
     save_intermediate("stage24_neural_clinical_indices", stage11_payload)
 
 # %% [cell 22]
-if stage_active(12):
-    print("--- Running Stage 12: Clinical-Neural Master Merge ---")
+if stage_active(26):
+    print("--- Running Stage 26: Clinical-Neural Master Merge ---")
 
     required = ["df_scored_clinical", "df_neural_topology", "df_neural_trajectories", "df_neural_uncertainty"]
     missing = [name for name in required if name not in globals()]
     if missing:
-        raise ValueError(f"Missing inputs for Stage 12: {missing}. Run/resume Stages 10-11 first.")
+        raise ValueError(f"Missing inputs for Stage 26: {missing}. Run/resume Stages 23-24 first.")
 
     df_final_clinical_neural = (
         df_scored_clinical
@@ -4082,15 +4067,15 @@ if stage_active(12):
     _save_result("df_final_clinical_neural", df_final_clinical_neural)
     _save_result("df_final_indecision", df_final_indecision)
     _save_result("df_master_analysis", df_master_analysis)
-    save_stage_bundle(12, "stage12_MasterClinicalNeural", stage12_payload)
+    save_stage_bundle(26, "stage26_MasterClinicalNeural", stage12_payload)
     save_intermediate("stage26_master_clinical_neural", stage12_payload)
 
 # %% [cell 23]
-if stage_active(13):
-    print("--- Running Stage 13: Group-Wise Neural-Clinical Pearson Correlations ---")
+if stage_active(27):
+    print("--- Running Stage 27: Group-Wise Neural-Clinical Pearson Correlations ---")
 
     if "df_master_analysis" not in globals():
-        raise ValueError("df_master_analysis missing. Run/resume Stage 12 before Stage 13.")
+        raise ValueError("df_master_analysis missing. Run/resume Stage 26 before Stage 27.")
 
     group_col = clinical_group_column(df_master_analysis)
     groups = sorted(df_master_analysis[group_col].dropna().unique()) if group_col else [None]
@@ -4116,15 +4101,15 @@ if stage_active(13):
 
     df_res_grp = pd.DataFrame(group_results)
     _save_result("df_neural_clinical_pearson", df_res_grp)
-    save_stage_bundle(13, "stage13_NeuralClinicalPearson", {"df_res_grp": df_res_grp})
+    save_stage_bundle(27, "stage27_NeuralClinicalPearson", {"df_res_grp": df_res_grp})
     save_intermediate("stage27_neural_clinical_pearson", {"df_res_grp": df_res_grp})
 
 # %% [cell 24]
-if stage_active(14):
-    print("--- Running Stage 14: Partial Neural-Clinical Correlations ---")
+if stage_active(28):
+    print("--- Running Stage 28: Partial Neural-Clinical Correlations ---")
 
     if "df_master_analysis" not in globals():
-        raise ValueError("df_master_analysis missing. Run/resume Stage 12 before Stage 14.")
+        raise ValueError("df_master_analysis missing. Run/resume Stage 26 before Stage 28.")
 
     group_col = clinical_group_column(df_master_analysis)
     groups = sorted(df_master_analysis[group_col].dropna().unique()) if group_col else [None]
@@ -4150,15 +4135,15 @@ if stage_active(14):
 
     df_res_partial = pd.DataFrame(group_results)
     _save_result("df_neural_clinical_partial", df_res_partial)
-    save_stage_bundle(14, "stage14_NeuralClinicalPartial", {"df_res_partial": df_res_partial})
+    save_stage_bundle(28, "stage28_NeuralClinicalPartial", {"df_res_partial": df_res_partial})
     save_intermediate("stage28_neural_clinical_partial", {"df_res_partial": df_res_partial})
 
 # %% [cell 25]
-if stage_active(15):
-    print("--- Running Stage 15: Outlier Removal and Z-Scoring ---")
+if stage_active(29):
+    print("--- Running Stage 29: Outlier Removal and Z-Scoring ---")
 
     if "df_master_analysis" not in globals():
-        raise ValueError("df_master_analysis missing. Run/resume Stage 12 before Stage 15.")
+        raise ValueError("df_master_analysis missing. Run/resume Stage 26 before Stage 29.")
 
     df_master_analysis_z = df_master_analysis.copy()
     all_cols = NEURAL_CLINICAL_METRICS + CLINICAL_INDICES + CLINICAL_COVARIATES
@@ -4184,8 +4169,8 @@ if stage_active(15):
     _save_result("df_master_analysis_z", df_master_analysis_z)
     _save_result("df_outlier_summary", df_outlier_summary)
     save_stage_bundle(
-        15,
-        "stage15_NeuralClinicalZScore",
+        29,
+        "stage29_NeuralClinicalZScore",
         {"df_master_analysis": df_master_analysis, "df_master_analysis_z": df_master_analysis_z, "df_outlier_summary": df_outlier_summary},
     )
     save_intermediate(
@@ -4194,11 +4179,11 @@ if stage_active(15):
     )
 
 # %% [cell 26]
-if stage_active(16):
-    print("--- Running Stage 16: Z-Scored OLS Neural-Clinical Associations ---")
+if stage_active(30):
+    print("--- Running Stage 30: Z-Scored OLS Neural-Clinical Associations ---")
 
     if "df_master_analysis" not in globals():
-        raise ValueError("df_master_analysis missing. Run/resume Stage 12 or Stage 15 before Stage 16.")
+        raise ValueError("df_master_analysis missing. Run/resume Stage 26 before Stage 30.")
 
     group_col = clinical_group_column(df_master_analysis)
     groups = sorted(df_master_analysis[group_col].dropna().unique()) if group_col else [None]
@@ -4232,5 +4217,5 @@ if stage_active(16):
 
     df_ols_results = pd.DataFrame(ols_rows)
     _save_result("df_neural_clinical_ols", df_ols_results)
-    save_stage_bundle(16, "stage16_NeuralClinicalOLS", {"df_ols_results": df_ols_results})
+    save_stage_bundle(30, "stage30_NeuralClinicalOLS", {"df_ols_results": df_ols_results})
     save_intermediate("stage30_neural_clinical_ols", {"df_ols_results": df_ols_results})
