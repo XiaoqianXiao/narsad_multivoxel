@@ -622,6 +622,20 @@ def forced_choice_scorer(estimator, X, y) -> float:
     return compute_forced_choice_accuracy(y, scores, estimator.classes_)
 
 
+def decision_margin_scorer(estimator, X, y) -> float:
+    """Continuous scorer for permutation importance: true-class score minus strongest alternative."""
+    scores_2d = _force_choice_scores_to_2d(estimator.decision_function(X))
+    classes = np.asarray(estimator.classes_)
+    y_arr = np.asarray(y)
+    class_to_idx = {cls: idx for idx, cls in enumerate(classes)}
+    true_idx = np.array([class_to_idx[label] for label in y_arr])
+    true_scores = scores_2d[np.arange(len(y_arr)), true_idx]
+    other_scores = scores_2d.copy()
+    other_scores[np.arange(len(y_arr)), true_idx] = -np.inf
+    margins = true_scores - np.max(other_scores, axis=1)
+    return float(np.mean(margins))
+
+
 def compute_pairwise_forced_choice(y_true, scores, class_labels):
     """Forced-choice accuracy given decision-score columns per class."""
     scores_arr = np.asarray(scores)
@@ -2615,6 +2629,7 @@ if cell_active(11):
             "p_p05": float(np.nanpercentile(p_values, 5)),
             "p_median": float(np.nanmedian(p_values)),
             "null_permutations": int(null_n),
+            "importance_scoring": "decision_margin_scorer",
         }
         payload = {
             "importance_mask_permutated": {group_name: sig_mask},
@@ -2663,7 +2678,7 @@ if cell_active(11):
                 X_target,
                 y_target,
                 n_repeats=actual_repeats,
-                scoring=forced_choice_scorer,
+                scoring=decision_margin_scorer,
                 n_jobs=N_JOBS,
                 random_state=RANDOM_STATE + actual_start,
             )
@@ -2680,7 +2695,7 @@ if cell_active(11):
                 X_target,
                 y_shuffled,
                 n_repeats=1,
-                scoring=forced_choice_scorer,
+                scoring=decision_margin_scorer,
                 n_jobs=N_JOBS,
                 random_state=RANDOM_STATE + 100000 + perm_idx,
             )
