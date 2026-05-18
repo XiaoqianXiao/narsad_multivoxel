@@ -1858,6 +1858,7 @@ if stage_active(1):
     feature_space_reports = {}
     p_values_permutated = {}
     q_values_permutated = {}
+    importance_diagnostics_permutated = {}
     stage1_group = _args.stage1_group.upper()
     stage1_groups = ['SAD', 'HC'] if stage1_group == "ALL" else [stage1_group]
     stage1_chunk_dir = os.path.join(CHECKPOINT_DIR, "stage01_importance_chunks")
@@ -1903,6 +1904,22 @@ if stage_active(1):
         fdr_n = int(np.sum(sig_mask))
         positive_n = int(np.sum(positive_mask))
         fallback_recommended = fdr_n < MIN_FDR_FEATURES_FOR_PRIMARY
+        diag = {
+            "n_features": int(actual_imp.size),
+            "n_positive_importance": positive_n,
+            "n_fdr_significant_positive": fdr_n,
+            "importance_min": float(np.nanmin(actual_imp)),
+            "importance_max": float(np.nanmax(actual_imp)),
+            "importance_mean": float(np.nanmean(actual_imp)),
+            "importance_p95": float(np.nanpercentile(actual_imp, 95)),
+            "p_min": float(np.nanmin(p_values)),
+            "p_p05": float(np.nanpercentile(p_values, 5)),
+            "p_median": float(np.nanmedian(p_values)),
+            "q_min": float(np.nanmin(q_values)),
+            "q_p05": float(np.nanpercentile(q_values, 5)),
+            "q_median": float(np.nanmedian(q_values)),
+            "null_permutations": int(null_n),
+        }
         payload = {
             "importance_mask_permutated": {group_name: sig_mask},
             "importance_masks_permutated": {group_name: sig_mask},
@@ -1910,6 +1927,7 @@ if stage_active(1):
             "importance_scores_permutated": {group_name: actual_imp},
             "p_values_permutated": {group_name: p_values},
             "q_values_permutated": {group_name: q_values},
+            "importance_diagnostics_permutated": {group_name: diag},
             "null_permutations": {group_name: int(null_n)},
             "actual_repeats": {group_name: int(STAGE1_ACTUAL_REPEATS)},
             "fdr_feature_counts": {group_name: fdr_n},
@@ -1930,6 +1948,7 @@ if stage_active(1):
         importance_scores[group_name] = actual_imp
         p_values_permutated[group_name] = p_values
         q_values_permutated[group_name] = q_values
+        importance_diagnostics_permutated[group_name] = diag
         feature_space_reports[group_name] = {
             "fdr_n_features": fdr_n,
             "all_positive_n_features": positive_n,
@@ -1938,6 +1957,11 @@ if stage_active(1):
         print(
             f"   > {group_name}: {fdr_n} whole-brain FDR-significant "
             f"features (q < {ALPHA_LEVEL}, positive importance)."
+        )
+        print(
+            f"   > {group_name}: positive={positive_n}/{actual_imp.size}, "
+            f"max_importance={diag['importance_max']:.6f}, p_min={diag['p_min']:.6f}, "
+            f"q_min={diag['q_min']:.6f}."
         )
         if fallback_recommended:
             print(
@@ -2012,7 +2036,7 @@ if stage_active(1):
 
         if chunk_count == 1:
             actual_imp = actual_sum / max(1, actual_repeats)
-            p_values = (np.sum(null_dist >= actual_imp, axis=0) / max(1, null_repeats)).astype(np.float64)
+            p_values = ((np.sum(null_dist >= actual_imp, axis=0) + 1) / (max(1, null_repeats) + 1)).astype(np.float64)
             stage1_save_group(group_name, actual_imp, p_values, null_repeats)
 
     def stage1_merge_group(group_name):
@@ -2054,7 +2078,7 @@ if stage_active(1):
                 f"Only found {len(chunks_seen)}/{expected_chunks} stage 1 chunks for {group_name}. "
                 "Wait for all array tasks to finish before merging."
             )
-        p_values = count_ge / null_n
+        p_values = (count_ge + 1) / (null_n + 1)
         stage1_save_group(group_name, actual_imp, p_values, null_n)
 
     print(
@@ -2121,6 +2145,7 @@ if stage_active(1):
         "importance_scores_permutated": importance_scores,
         "p_values_permutated": p_values_permutated,
         "q_values_permutated": q_values_permutated,
+        "importance_diagnostics_permutated": importance_diagnostics_permutated,
         "feature_space_reports": feature_space_reports,
         "fdr_method": "fdr_bh_whole_brain",
         "fallback_sensitivity_rule": (
@@ -2139,6 +2164,7 @@ if stage_active(1):
         "importance_scores_permutated": importance_scores,
         "p_values_permutated": p_values_permutated,
         "q_values_permutated": q_values_permutated,
+        "importance_diagnostics_permutated": importance_diagnostics_permutated,
         "feature_space_reports": feature_space_reports,
         "fdr_method": "fdr_bh_whole_brain",
         "fallback_sensitivity_rule": (
@@ -2157,6 +2183,7 @@ if stage_active(1):
         "importance_scores_permutated": importance_scores,
         "p_values_permutated": p_values_permutated,
         "q_values_permutated": q_values_permutated,
+        "importance_diagnostics_permutated": importance_diagnostics_permutated,
         "feature_space_reports": feature_space_reports,
         "fdr_method": "fdr_bh_whole_brain",
         "fallback_sensitivity_rule": (
@@ -2176,6 +2203,7 @@ if stage_active(1):
             "importance_scores_permutated": {grp: importance_scores.get(grp)},
             "p_values_permutated": {grp: p_values_permutated.get(grp)},
             "q_values_permutated": {grp: q_values_permutated.get(grp)},
+            "importance_diagnostics_permutated": {grp: importance_diagnostics_permutated.get(grp)},
             "feature_space_reports": {grp: feature_space_reports.get(grp)},
             "fdr_method": "fdr_bh_whole_brain",
             "fallback_sensitivity_rule": (
@@ -2194,6 +2222,7 @@ if stage_active(1):
             "importance_scores_permutated": {grp: importance_scores.get(grp)},
             "p_values_permutated": {grp: p_values_permutated.get(grp)},
             "q_values_permutated": {grp: q_values_permutated.get(grp)},
+            "importance_diagnostics_permutated": {grp: importance_diagnostics_permutated.get(grp)},
             "feature_space_reports": {grp: feature_space_reports.get(grp)},
             "fdr_method": "fdr_bh_whole_brain",
             "fallback_sensitivity_rule": (
@@ -2244,6 +2273,7 @@ if stage_active(1):
             "importance_scores_permutated": importance_scores_permutated,
             "p_values_permutated": p_values_permutated,
             "q_values_permutated": q_values_permutated,
+            "importance_diagnostics_permutated": importance_diagnostics_permutated,
             "feature_space_reports": feature_space_reports,
             "PERCENTILE_THRESH": PERCENTILE_THRESH,
             "thr_sad": locals().get("thr_sad"),

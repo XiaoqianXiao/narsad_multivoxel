@@ -2572,6 +2572,7 @@ if cell_active(11):
     importance_mask_permutated = {}
     importance_scores_permutated = {}
     p_values_permutated = {}
+    importance_diagnostics_permutated = {}
     stage11_groups = ['SAD', 'HC'] if STAGE11_GROUP == "ALL" else [STAGE11_GROUP]
     stage11_chunk_dir = os.path.join(CHECKPOINT_DIR, "stage11_chunks")
     os.makedirs(stage11_chunk_dir, exist_ok=True)
@@ -2601,10 +2602,25 @@ if cell_active(11):
 
     def stage11_save_group(group_name, actual_imp, p_values, null_n):
         sig_mask = (p_values < ALPHA_LEVEL) & (actual_imp > 0)
+        positive_n = int(np.sum(actual_imp > 0))
+        diag = {
+            "n_features": int(actual_imp.size),
+            "n_positive_importance": positive_n,
+            "n_significant_p_lt_0_05_positive": int(np.sum(sig_mask)),
+            "importance_min": float(np.nanmin(actual_imp)),
+            "importance_max": float(np.nanmax(actual_imp)),
+            "importance_mean": float(np.nanmean(actual_imp)),
+            "importance_p95": float(np.nanpercentile(actual_imp, 95)),
+            "p_min": float(np.nanmin(p_values)),
+            "p_p05": float(np.nanpercentile(p_values, 5)),
+            "p_median": float(np.nanmedian(p_values)),
+            "null_permutations": int(null_n),
+        }
         payload = {
             "importance_mask_permutated": {group_name: sig_mask},
             "importance_scores_permutated": {group_name: actual_imp},
             "p_values_permutated": {group_name: p_values},
+            "importance_diagnostics_permutated": {group_name: diag},
             "null_permutations": {group_name: int(null_n)},
             "actual_repeats": {group_name: int(STAGE11_ACTUAL_REPEATS)},
         }
@@ -2615,7 +2631,12 @@ if cell_active(11):
         importance_mask_permutated[group_name] = sig_mask
         importance_scores_permutated[group_name] = actual_imp
         p_values_permutated[group_name] = p_values
+        importance_diagnostics_permutated[group_name] = diag
         print(f"   > Result: {np.sum(sig_mask)} voxels significant at p < {ALPHA_LEVEL}.")
+        print(
+            f"   > Importance diagnostics: positive={positive_n}/{actual_imp.size}, "
+            f"max={diag['importance_max']:.6f}, p_min={diag['p_min']:.6f}."
+        )
         print(f"   > Saved final stage 11 output for {group_name} -> {group_ckpt}")
 
     def stage11_compute_chunk(group_name):
@@ -2686,7 +2707,7 @@ if cell_active(11):
 
         if chunk_count == 1:
             actual_imp = actual_sum / max(1, actual_repeats)
-            p_values = (np.sum(null_dist >= actual_imp, axis=0) / max(1, null_repeats)).astype(np.float64)
+            p_values = ((np.sum(null_dist >= actual_imp, axis=0) + 1) / (max(1, null_repeats) + 1)).astype(np.float64)
             stage11_save_group(group_name, actual_imp, p_values, null_repeats)
 
     def stage11_merge_group(group_name):
@@ -2728,7 +2749,7 @@ if cell_active(11):
                 f"Only found {len(chunks_seen)}/{expected_chunks} Stage 11 chunks for {group_name}. "
                 "Wait for all array tasks to finish before merging."
             )
-        p_values = count_ge / null_n
+        p_values = (count_ge + 1) / (null_n + 1)
         stage11_save_group(group_name, actual_imp, p_values, null_n)
 
     print(
@@ -2748,6 +2769,7 @@ if cell_active(11):
             "importance_mask_permutated": importance_mask_permutated,
             "importance_scores_permutated": importance_scores_permutated,
             "p_values_permutated": p_values_permutated,
+            "importance_diagnostics_permutated": importance_diagnostics_permutated,
             "null_permutations": globals().get("null_permutations", {}),
             "actual_repeats": {
                 group_name: int(STAGE11_ACTUAL_REPEATS)

@@ -49,6 +49,21 @@ Usage:
       mainly useful after Analysis 1.1 models already exist and you intentionally
       want to compute/merge split importance chunks for one group.
 
+      Schaefer uses STAGE1_* chunk variables, not STAGE11_* variables:
+        STAGE1_CHUNKS controls the number of Stage 1 importance chunks.
+        STAGE1_CHUNK_IDX is understood by the Python script, but this submit
+        wrapper currently submits the full array whenever STAGE1_CHUNKS > 1.
+
+      For a full Schaefer pipeline, keep STAGE1_CHUNKS=1. The "all" mode
+      enforces this because Schaefer Stage 1 also fits Analysis 1.1 models.
+
+Examples:
+  submit_mvpa_L2_schaefer_stage.sh all
+  submit_mvpa_L2_schaefer_stage.sh 1
+  submit_mvpa_L2_schaefer_stage.sh 2 --resume
+  STAGE1_CHUNKS=100 submit_mvpa_L2_schaefer_stage.sh 1:SAD
+  STAGE1_CHUNKS=100 submit_mvpa_L2_schaefer_stage.sh 1:HC
+
 Stage reference:
   1   Analysis 1.1 models/permutations plus empirical permutation-importance masks.
   2   Analysis 1.2 static representational topology.
@@ -72,6 +87,8 @@ Environment overrides:
   LOG_DIR, PARTITION, ACCOUNT, TIME, MEM, CPUS
   N_JOBS, N_JOBS_CV, N_PERMUTATION, N_NULL_PERMS
   STAGE1_ACTUAL_REPEATS, STAGE1_CHUNKS, STAGE1_ARRAY_MAX_RUNNING
+  STAGE1_CHUNK_IDX is a Python-level option, but this wrapper does not yet
+  expose single failed-chunk recovery.
 
 Notes:
   The Schaefer Python script supports Stage 1 chunk files and merge mode, but
