@@ -87,7 +87,7 @@ MIN_TRIALS_PER_SUBJECT = 10
 C_MIN_EXP = -2
 C_MAX_EXP = 2
 C_POINTS = 20
-MIN_FEATURES_FOR_PRIMARY_MASK = 100
+MIN_FEATURES_FOR_PRIMARY_MASK = 20
 
 # Hyak/runtime configuration adapted from hyak/mvpa_L2_voxel_WholeBrain_Schaefer.py.
 import argparse
