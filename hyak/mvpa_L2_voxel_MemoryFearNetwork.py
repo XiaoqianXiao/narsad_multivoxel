@@ -177,6 +177,13 @@ SCR_BEHAVIORAL_INDICES = [
 ]
 
 
+def extract_metrics_pv(rdms_pv, idx_cs_minus=0, idx_css=1, idx_csr=2):
+    """Extract per-voxel topology metrics from RDMs ordered as CS-, CSS, CSR."""
+    threat_safety = rdms_pv[:, idx_csr, idx_css]
+    safety_background = rdms_pv[:, idx_css, idx_cs_minus]
+    return threat_safety, safety_background
+
+
 def resolve_trial_scr_path(project_root):
     candidates = [
         os.environ.get("TRIAL_SCR_PATH"),
