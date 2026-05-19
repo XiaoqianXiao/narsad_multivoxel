@@ -184,6 +184,40 @@ def extract_metrics_pv(rdms_pv, idx_cs_minus=0, idx_css=1, idx_csr=2):
     return threat_safety, safety_background
 
 
+def resolve_topology_subject_ids(results_12, group_name, distance_len=None):
+    """Resolve Analysis 1.2 subject IDs from saved results or reconstruct them cheaply."""
+    group = group_name.upper()
+    key = f"subs_{group.lower()}_rdm"
+    if isinstance(results_12, dict) and key in results_12:
+        sub_ids = np.asarray(results_12[key]).astype(str)
+    else:
+        required = ("X_ext", "y_ext", "sub_ext", "data_subsets")
+        missing = [name for name in required if name not in globals()]
+        if missing:
+            raise ValueError(
+                f"Cannot recover Analysis 1.2 {group} subject IDs; missing {missing}. "
+                "Re-run stage 12 once with the updated script so subject IDs are saved."
+            )
+        placebo_key = f"{group}_Placebo"
+        if placebo_key not in data_subsets:
+            raise KeyError(f"Missing {placebo_key} in data_subsets; cannot recover topology subject IDs.")
+        known_subs = np.unique(data_subsets[placebo_key]["ext"]["sub"])
+        mask = np.isin(sub_ext, known_subs) & np.isin(y_ext, ["CS-", "CSS", "CSR"])
+        sub_ids = []
+        for sub in np.unique(sub_ext[mask]):
+            y_sub = y_ext[mask & (sub_ext == sub)]
+            if all(np.sum(y_sub == cond) >= 2 for cond in ["CS-", "CSS", "CSR"]):
+                sub_ids.append(sub)
+        sub_ids = np.asarray(sub_ids).astype(str)
+        print(f"[INFO] Recovered Analysis 1.2 {group} subject IDs from extinction data.")
+    if distance_len is not None and len(sub_ids) != int(distance_len):
+        raise ValueError(
+            f"Analysis 1.2 {group} subject ID count ({len(sub_ids)}) does not match RDM metric length ({distance_len}). "
+            "Re-run stage 12 once with the updated script."
+        )
+    return sub_ids
+
+
 def resolve_trial_scr_path(project_root):
     candidates = [
         os.environ.get("TRIAL_SCR_PATH"),
@@ -3121,6 +3155,10 @@ if cell_active(12):
             "rdms_hc_raw_pv": rdms_hc_raw_pv,
             "rdms_sad_z_pv": rdms_sad_z_pv,
             "rdms_hc_z_pv": rdms_hc_z_pv,
+            "subs_sad_rdm": subs_sad_rdm,
+            "subs_hc_rdm": subs_hc_rdm,
+            "subs_sad_rdm_z": subs_sad_rdm_z,
+            "subs_hc_rdm_z": subs_hc_rdm_z,
             "mask_sad_analysis": mask_sad_analysis,
             "mask_hc_analysis": mask_hc_analysis,
             "feature_space": feature_space_12,
@@ -3166,6 +3204,10 @@ if cell_active(12):
             "rdms_hc_raw_pv": rdms_hc_raw_pv,
             "rdms_sad_z_pv": rdms_sad_z_pv,
             "rdms_hc_z_pv": rdms_hc_z_pv,
+            "subs_sad_rdm": subs_sad_rdm,
+            "subs_hc_rdm": subs_hc_rdm,
+            "subs_sad_rdm_z": subs_sad_rdm_z,
+            "subs_hc_rdm_z": subs_hc_rdm_z,
             "mask_sad_analysis": mask_sad_analysis,
             "mask_hc_analysis": mask_hc_analysis,
             "feature_space": feature_space_12,
@@ -4533,17 +4575,9 @@ if cell_active(24):
     vA_sad_pv, vB_sad_pv = extract_metrics_pv(results_12["rdms_sad_raw_pv"])
     vA_hc_pv, vB_hc_pv   = extract_metrics_pv(results_12["rdms_hc_raw_pv"])
 
-    # 2. Extract Subject IDs from the RDM source arrays
-    # If 'subs_sad_rdm' isn't in results_12, we derive them from the input variables 
-    # used in the original calculation loop.
-    try:
-        s_id_sad = results_12['subs_sad_rdm']
-        s_id_hc = results_12['subs_hc_rdm']
-    except KeyError:
-        # Fallback: Recover from the variables that were in scope during Cell 10 calculation
-        print("[INFO] IDs not in dictionary. Recovering from local scope variables...")
-        s_id_sad = np.unique(sub_sad_12)
-        s_id_hc = np.unique(sub_hc_12)
+    # 2. Extract subject IDs from saved Analysis 1.2 results, or reconstruct from raw trial labels.
+    s_id_sad = resolve_topology_subject_ids(results_12, "SAD", len(vA_sad_pv))
+    s_id_hc = resolve_topology_subject_ids(results_12, "HC", len(vA_hc_pv))
 
     # 3. Validation Check
     print(f"Lengths: SAD_IDs({len(s_id_sad)}) vs SAD_Dist({len(vA_sad_pv)})")
