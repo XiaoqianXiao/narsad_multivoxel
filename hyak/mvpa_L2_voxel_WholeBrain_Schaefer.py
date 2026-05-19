@@ -598,8 +598,20 @@ def resolve_trial_scr_path(project_root):
 def resolve_clinical_csv_path(clinical_dir, export_label, expected_filename):
     """Resolve dated REDCap clinical exports without hard-coding one timestamp."""
     env_key = f"CLINICAL_{export_label.upper().replace('-', '_')}_PATH"
-    candidates = [os.environ.get(env_key), os.path.join(clinical_dir, expected_filename)]
-    candidates.extend(glob.glob(os.path.join(clinical_dir, f"SocialSafetyLearning-{export_label}_DATA_*.csv")))
+    search_dirs = [
+        os.environ.get("CLINICAL_DIR"),
+        clinical_dir,
+        os.path.join(PROJECT_ROOT, "source_data", "behav"),
+        os.path.join(PROJECT_ROOT, "behav"),
+    ]
+    search_dirs = [path for path in dict.fromkeys(search_dirs) if path]
+    token = "LSAS" if export_label.upper().startswith("LSAS") else export_label
+    candidates = [os.environ.get(env_key)]
+    for search_dir in search_dirs:
+        candidates.append(os.path.join(search_dir, expected_filename))
+        candidates.extend(glob.glob(os.path.join(search_dir, f"SocialSafetyLearning-{export_label}_DATA_*.csv")))
+        candidates.extend(glob.glob(os.path.join(search_dir, f"SocialSafetyLearning-*{token}*_DATA_*.csv")))
+        candidates.extend(glob.glob(os.path.join(search_dir, f"*{token}*.csv")))
     existing = [path for path in candidates if path and os.path.exists(path)]
     if existing:
         resolved = max(existing, key=os.path.getmtime)
@@ -607,8 +619,8 @@ def resolve_clinical_csv_path(clinical_dir, export_label, expected_filename):
             print(f"[Clinical] Using {export_label} export: {resolved}")
         return resolved
     raise FileNotFoundError(
-        f"No {export_label} clinical CSV found. Checked {os.path.join(clinical_dir, expected_filename)} "
-        f"and pattern {os.path.join(clinical_dir, f'SocialSafetyLearning-{export_label}_DATA_*.csv')}. "
+        f"No {export_label} clinical CSV found. Checked directories {search_dirs} "
+        f"with patterns SocialSafetyLearning-{export_label}_DATA_*.csv, SocialSafetyLearning-*{token}*_DATA_*.csv, and *{token}*.csv. "
         f"You can also set {env_key}."
     )
 
