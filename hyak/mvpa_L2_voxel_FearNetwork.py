@@ -191,6 +191,24 @@ def resolve_trial_scr_path(project_root):
     return None
 
 
+def resolve_clinical_csv_path(clinical_dir, export_label, expected_filename):
+    """Resolve dated REDCap clinical exports without hard-coding one timestamp."""
+    env_key = f"CLINICAL_{export_label.upper().replace('-', '_')}_PATH"
+    candidates = [os.environ.get(env_key), os.path.join(clinical_dir, expected_filename)]
+    candidates.extend(glob.glob(os.path.join(clinical_dir, f"SocialSafetyLearning-{export_label}_DATA_*.csv")))
+    existing = [path for path in candidates if path and os.path.exists(path)]
+    if existing:
+        resolved = max(existing, key=os.path.getmtime)
+        if resolved != os.path.join(clinical_dir, expected_filename):
+            print(f"[Clinical] Using {export_label} export: {resolved}")
+        return resolved
+    raise FileNotFoundError(
+        f"No {export_label} clinical CSV found. Checked {os.path.join(clinical_dir, expected_filename)} "
+        f"and pattern {os.path.join(clinical_dir, f'SocialSafetyLearning-{export_label}_DATA_*.csv')}. "
+        f"You can also set {env_key}."
+    )
+
+
 def load_trialwise_scr(project_root):
     scr_path = resolve_trial_scr_path(project_root)
     if scr_path is None:
@@ -4443,9 +4461,9 @@ else:
 # %% [cell 23]
 if cell_active(23):
     clinical_dir = os.path.join(PROJECT_ROOT, "MRI/source_data/behav")
-    LSAS_path = os.path.join(clinical_dir, 'SocialSafetyLearning-LSASSubtotals_DATA_2026-04-25_2306.csv')
-    ECR_path = os.path.join(clinical_dir, 'SocialSafetyLearning-ECR_DATA_2026-04-25_2306.csv')
-    DASS_path = os.path.join(clinical_dir, 'SocialSafetyLearning-DASS_DATA_2026-04-25_2306.csv')
+    LSAS_path = resolve_clinical_csv_path(clinical_dir, "LSASSubtotals", "SocialSafetyLearning-LSASSubtotals_DATA_2026-04-25_2306.csv")
+    ECR_path = resolve_clinical_csv_path(clinical_dir, "ECR", "SocialSafetyLearning-ECR_DATA_2026-04-25_2306.csv")
+    DASS_path = resolve_clinical_csv_path(clinical_dir, "DASS", "SocialSafetyLearning-DASS_DATA_2026-04-25_2306.csv")
     #login_participantid; lsas_fear_total; lsas_avoid_total; lsas_total;
     df_lsas_raw = pd.read_csv(LSAS_path)
     df_lsas = pd.DataFrame()
