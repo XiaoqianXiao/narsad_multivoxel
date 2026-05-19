@@ -458,6 +458,47 @@ def reconstruct_cell6_state() -> None:
         globals()["mean_hc2sad"] = func_matrix[1, 0]
 
 
+def get_analysis11_model(group_name: str):
+    """Load the refit Analysis 1.1 model from current globals or saved checkpoints."""
+    group = group_name.upper()
+    lower = group.lower()
+    model_key = f"model_{lower}"
+
+    res_obj = globals().get(f"res_{lower}")
+    if isinstance(res_obj, dict):
+        for key in (model_key, "model"):
+            if res_obj.get(key) is not None:
+                return res_obj[key]
+
+    results_obj = globals().get("results_11")
+    if isinstance(results_obj, dict) and results_obj.get(model_key) is not None:
+        return results_obj[model_key]
+
+    candidate_paths = [
+        _script_ckpt_path(6),
+        os.path.join(CHECKPOINT_DIR, "results_11.joblib"),
+        os.path.join(CHECKPOINT_DIR, "results_analysis_11.joblib"),
+    ]
+    for path in candidate_paths:
+        if not os.path.exists(path):
+            continue
+        payload = joblib.load(path)
+        if isinstance(payload, dict) and "results_11" in payload:
+            payload = payload["results_11"]
+        if isinstance(payload, dict):
+            if payload.get(model_key) is not None:
+                print(f"  [LOAD] Retrieved {model_key} from {path}")
+                return payload[model_key]
+            nested_model = payload.get(group, {}).get("model") if isinstance(payload.get(group), dict) else None
+            if nested_model is not None:
+                print(f"  [LOAD] Retrieved nested {group} model from {path}")
+                return nested_model
+
+    raise FileNotFoundError(
+        f"Analysis 1.1 {group} model not found. Run stage 6 first, or check cell_06.joblib in {CHECKPOINT_DIR}."
+    )
+
+
 def maybe_load_cell_results(cell_id: int) -> None:
     if cell_active(cell_id):
         return
@@ -4211,23 +4252,7 @@ if cell_active(20):
     # =============================================================================
     # 0. Setup: Retrieve Correct Model from Cell 6 Results
     # =============================================================================
-    path_c6 = os.path.join(CHECKPOINT_DIR, "results_analysis_11.joblib")
-
-    if os.path.exists(path_c6):
-        print(f"  [LOAD] Loading SAD template from: {path_c6}")
-        res_11 = joblib.load(path_c6)
-    
-        # Extract the refitted HC model
-        if 'model_hc' in res_11:
-            gold_model = res_11['model_hc']
-            print(f"  > Successfully retrieved 'model_hc'.")
-        else:
-            # Fallback in case it's nested in a dict
-            gold_model = res_11.get('HC', {}).get('model')
-            if gold_model is None:
-                raise KeyError("Could not find 'model_hc' or 'HC' model in the joblib file.")
-    else:
-        raise FileNotFoundError(f"Analysis 1.1 results not found at {path_c6}. Please run Cell 6.")
+    gold_model = get_analysis11_model("HC")
 
     # Verify Classes
     print(f"  > Model Classes: {gold_model.classes_}")
@@ -4304,7 +4329,7 @@ if cell_active(20):
     # Save results for manuscript
     results_24 = {'acc_plc': acc_sad_plc, 'acc_oxt': acc_sad_oxt, 'p_val': p_val}
     joblib.dump(results_24, os.path.join(CHECKPOINT_DIR, "cell_17_realignment.joblib"))
-    save_cell_results(20, ['COND_SAFE', 'COND_THREAT', 'LABELS', 'X_sad_oxt', 'X_sad_plc', 'acc_sad_oxt', 'acc_sad_plc', 'annot_data', 'ax', 'data_subsets', 'fig', 'importance_mask_permutated', 'importance_scores_permutated', 'm_oxt', 'm_plc', 'matrix_data', 'meta', 'p_val', 'path_c6', 'results_11', 'results_12', 'results_13', 'results_13_2', 'results_14_self', 'results_21', 'results_21_pv', 'results_22', 'results_23', 'results_24', 'results_25', 'sig_label', 'strict_cross_phase_results', 'sub_sad_oxt', 'sub_sad_plc', 'sub_to_meta', 't_stat', 'y_sad_oxt', 'y_sad_plc'])
+    save_cell_results(20, ['COND_SAFE', 'COND_THREAT', 'LABELS', 'X_sad_oxt', 'X_sad_plc', 'acc_sad_oxt', 'acc_sad_plc', 'annot_data', 'ax', 'data_subsets', 'fig', 'importance_mask_permutated', 'importance_scores_permutated', 'm_oxt', 'm_plc', 'matrix_data', 'meta', 'p_val', 'results_11', 'results_12', 'results_13', 'results_13_2', 'results_14_self', 'results_21', 'results_21_pv', 'results_22', 'results_23', 'results_24', 'results_25', 'sig_label', 'strict_cross_phase_results', 'sub_sad_oxt', 'sub_sad_plc', 'sub_to_meta', 't_stat', 'y_sad_oxt', 'y_sad_plc'])
 
 
 else:
@@ -4331,23 +4356,7 @@ if cell_active(21):
     # =============================================================================
     # 0. Setup: Retrieve Correct Model from Cell 6 Results
     # =============================================================================
-    path_c6 = os.path.join(CHECKPOINT_DIR, "results_analysis_11.joblib")
-
-    if os.path.exists(path_c6):
-        print(f"  [LOAD] Loading SAD template from: {path_c6}")
-        res_11 = joblib.load(path_c6)
-    
-        # Extract the refitted SAD model
-        if 'model_sad' in res_11:
-            gold_model = res_11['model_sad']
-            print(f"  > Successfully retrieved 'model_sad'.")
-        else:
-            # Fallback in case it's nested in a dict
-            gold_model = res_11.get('SAD', {}).get('model')
-            if gold_model is None:
-                raise KeyError("Could not find 'model_sad' or 'SAD' model in the joblib file.")
-    else:
-        raise FileNotFoundError(f"Analysis 1.1 results not found at {path_c6}. Please run Cell 6.")
+    gold_model = get_analysis11_model("SAD")
 
     # Verify Classes
     print(f"  > Model Classes: {gold_model.classes_}")
@@ -4425,7 +4434,7 @@ if cell_active(21):
     results_25 = {'acc_plc': acc_hc_plc, 'acc_oxt': acc_hc_oxt, 'p_val': p_val}
     joblib.dump(results_25, os.path.join(CHECKPOINT_DIR, "cell_18_reverse_cross_decoding.joblib"))
     joblib.dump(results_25, os.path.join(CHECKPOINT_DIR, "cell_18_realignment.joblib"))  # Legacy filename.
-    save_cell_results(21, ['COND_SAFE', 'COND_THREAT', 'LABELS', 'X_hc_oxt', 'X_hc_plc', 'acc_hc_oxt', 'acc_hc_plc', 'annot_data', 'ax', 'data_subsets', 'fig', 'importance_mask_permutated', 'importance_scores_permutated', 'm_oxt', 'm_plc', 'matrix_data', 'meta', 'p_val', 'path_c6', 'results_11', 'results_12', 'results_13', 'results_13_2', 'results_14_self', 'results_21', 'results_21_pv', 'results_22', 'results_23', 'results_24', 'results_25', 'sig_label', 'strict_cross_phase_results', 'sub_hc_oxt', 'sub_hc_plc', 'sub_to_meta', 't_stat', 'y_hc_oxt', 'y_hc_plc'])
+    save_cell_results(21, ['COND_SAFE', 'COND_THREAT', 'LABELS', 'X_hc_oxt', 'X_hc_plc', 'acc_hc_oxt', 'acc_hc_plc', 'annot_data', 'ax', 'data_subsets', 'fig', 'importance_mask_permutated', 'importance_scores_permutated', 'm_oxt', 'm_plc', 'matrix_data', 'meta', 'p_val', 'results_11', 'results_12', 'results_13', 'results_13_2', 'results_14_self', 'results_21', 'results_21_pv', 'results_22', 'results_23', 'results_24', 'results_25', 'sig_label', 'strict_cross_phase_results', 'sub_hc_oxt', 'sub_hc_plc', 'sub_to_meta', 't_stat', 'y_hc_oxt', 'y_hc_plc'])
 
 
 else:
