@@ -218,6 +218,24 @@ def resolve_topology_subject_ids(results_12, group_name, distance_len=None):
     return sub_ids
 
 
+def partial_corr_residualized(df, x_col, y_col, covariates):
+    """Partial correlation via residualization; avoids requiring pingouin on the cluster."""
+    covars = [c for c in covariates if c in df.columns]
+    cols = [x_col, y_col] + covars
+    valid = df[cols].dropna().apply(pd.to_numeric, errors="coerce").dropna()
+    if len(valid) <= len(covars) + 2:
+        return np.nan, np.nan, len(valid)
+    if not covars:
+        r_val, p_val = pearsonr(valid[x_col], valid[y_col])
+        return r_val, p_val, len(valid)
+
+    design = sm.add_constant(valid[covars], has_constant="add")
+    x_resid = sm.OLS(valid[x_col], design).fit().resid
+    y_resid = sm.OLS(valid[y_col], design).fit().resid
+    r_val, p_val = pearsonr(x_resid, y_resid)
+    return r_val, p_val, len(valid)
+
+
 def resolve_trial_scr_path(project_root):
     candidates = [
         os.environ.get("TRIAL_SCR_PATH"),
@@ -4801,7 +4819,6 @@ if cell_active(28):
     import matplotlib.pyplot as plt
     import seaborn as sns
     from scipy.stats import pearsonr
-    import pingouin as pg # Preferred for partial correlations
 
     # 1. Config
     # Using the merged df_master_analysis
@@ -4833,23 +4850,16 @@ if cell_active(28):
             for c_i in clinical_indices:
                 if n_m not in df_grp.columns or c_i not in df_grp.columns:
                     continue
-                # Ensure we have all columns and drop NaNs for this specific test
-                cols_needed = [n_m, c_i] + covariates
-                valid_df = df_grp[cols_needed].dropna().apply(pd.to_numeric)
-            
-                # Partial correlation requires N > len(covariates) + 2
-                if len(valid_df) > (len(covariates) + 2):
-                    # Calculate Partial Correlation (controlling for Age and Gender)
-                    res = pg.partial_corr(data=valid_df, x=n_m, y=c_i, covar=covariates)
-                    r_adj = res['r'].values[0]
-                    p_val = res['p-val'].values[0]
+                r_adj, p_val, n_valid = partial_corr_residualized(df_grp, n_m, c_i, covariates)
+                if np.isfinite(r_adj) and np.isfinite(p_val):
                     sig = get_sig_star(p_val)
                 
                     print(f"{grp:<6} | {n_m:<28} | {c_i:<12} | {r_adj:<6.2f} | {p_val:<8.4f} | {sig}")
                 
                     group_results.append({
                         'Group': grp, 'Neural': n_m, 'Clinical': c_i, 
-                        'r': r_adj, 'p': p_val, 'sig': sig
+                        'r': r_adj, 'p': p_val, 'sig': sig, 'n': n_valid,
+                        'covariates': ",".join([c for c in covariates if c in df_grp.columns]),
                     })
 
     df_res_grp = pd.DataFrame(group_results)
