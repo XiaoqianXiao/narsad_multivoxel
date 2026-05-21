@@ -853,11 +853,24 @@ def calc_metrics_for_subject(X, y, sub_id, feature_mask, cond_threat, cond_safe)
             return None
         idx_threat = classes.index(cond_threat)
         probs_css = probs_all[y_bin == cond_safe, idx_threat]
+        probs_csr = probs_all[y_bin == cond_threat, idx_threat]
         if len(probs_css) == 0:
             return None
         p_clean = np.clip(probs_css, 1e-9, 1 - 1e-9)
         ents = [entropy([p, 1 - p], base=2) for p in p_clean]
-        return {'Entropy': np.mean(ents), 'Kurtosis': kurtosis(probs_css, fisher=True), 'Variance': np.var(probs_css)}
+        p_csr_css = float(np.mean(probs_css))
+        p_csr_csr = float(np.mean(probs_csr)) if len(probs_csr) else np.nan
+        boundary_separation = p_csr_csr - p_csr_css if np.isfinite(p_csr_csr) else np.nan
+        return {
+            'Entropy': np.mean(ents),
+            'Kurtosis': kurtosis(probs_css, fisher=True),
+            'Variance': np.var(probs_css),
+            'P_CSR_CSS': p_csr_css,
+            'P_CSR_CSR': p_csr_csr,
+            'Boundary_Separation': boundary_separation,
+            'Decision_Margin_CSS': float(np.mean(np.abs(probs_css - 0.5))),
+            'Decision_Margin_All': float(np.mean(np.abs(probs_all[:, idx_threat] - 0.5))),
+        }
     except Exception:
         return None
 
@@ -3447,12 +3460,17 @@ if stage_active(19):
     # Method: Cross-Validated Probability Extraction -> Metrics.
     # Stats: Linear Mixed Effects (Metric ~ Group * Drug).
     
-    print("--- Running Analysis 2.3: Probabilistic Opening (Entropy, Kurtosis, Variance) ---")
+    print("--- Running Analysis 2.3: Probabilistic Opening (Decision-Boundary Metric Set) ---")
     
     # Constants
     COND_CLASS_THREAT = "CSR"
     COND_CLASS_SAFE = "CSS"
     RANDOM_STATE = 42
+    metrics_list = [
+        "Entropy", "Kurtosis", "Variance",
+        "P_CSR_CSS", "P_CSR_CSR", "Boundary_Separation",
+        "Decision_Margin_CSS", "Decision_Margin_All"
+    ]
     
     # =============================================================================
     # 0. Setup: Masks & Data
@@ -3499,17 +3517,12 @@ if stage_active(19):
             mask_s = (sub_ext == sub)
             X_s, y_s = X_ext[mask_s], y_ext[mask_s]
             
-            c_val = subject_best_params.get(sub, 1.0)
-            
-            res = calc_metrics_for_subject(X_s, y_s, sub, curr_mask, c_val)
+            res = calc_metrics_for_subject(X_s, y_s, sub, curr_mask, COND_CLASS_THREAT, COND_CLASS_SAFE)
             
             if res is not None:
-                data_rows.append({
-                    "Subject": sub, "Group": group, "Drug": drug, 
-                    "Entropy": res['Entropy'], 
-                    "Kurtosis": res['Kurtosis'], 
-                    "Variance": res['Variance']
-                })
+                row = {"Subject": sub, "Group": group, "Drug": drug}
+                row.update({met: res.get(met, np.nan) for met in metrics_list})
+                data_rows.append(row)
     
     df_metrics = pd.DataFrame(data_rows)
     print(f"  > Computed metrics for {len(df_metrics)} subjects.")
@@ -3520,8 +3533,6 @@ if stage_active(19):
     print("\n[Step 2] Statistical Testing (LME for each metric)...")
     
     stats_results = {}
-    metrics_list = ["Entropy", "Kurtosis", "Variance"]
-    
     for met in metrics_list:
         print(f"\n--- Metric: {met} ---")
         try:
@@ -3545,17 +3556,20 @@ if stage_active(19):
     # 4. Visualization (Side-by-Side)
     # =============================================================================
     sns.set_context("poster", font_scale=0.8)
-    fig, axes = plt.subplots(1, 3, figsize=(24, 7))
+    n_cols = 3
+    n_rows = int(np.ceil(len(metrics_list) / n_cols))
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(24, 6 * n_rows))
+    axes = np.ravel(axes)
     pal_group = {'SAD': '#c44e52', 'HC': '#4c72b0'}
     
-    # Plot all 3
-    plot_metric(axes[0], "Entropy", stats_results["Entropy"])
-    plot_metric(axes[1], "Kurtosis", stats_results["Kurtosis"])
-    plot_metric(axes[2], "Variance", stats_results["Variance"])
-    
-    axes[1].get_legend().remove()
-    axes[2].get_legend().remove()
-    axes[0].legend(loc='lower left', fontsize=12)
+    for i, met in enumerate(metrics_list):
+        plot_metric(axes[i], met, stats_results.get(met, np.nan))
+        if i > 0 and axes[i].get_legend() is not None:
+            axes[i].get_legend().remove()
+    for ax in axes[len(metrics_list):]:
+        ax.axis('off')
+    if axes[0].get_legend() is not None:
+        axes[0].legend(loc='lower left', fontsize=12)
     
     plt.tight_layout()
     _save_fig("analysis_22")

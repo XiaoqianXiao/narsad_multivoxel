@@ -1595,10 +1595,12 @@ def calc_metrics_for_subject(X, y, sub_id, feature_mask, C_param=1.0):
         idx_threat = classes.index(COND_CLASS_THREAT)
         
         mask_css = (y_bin == COND_CLASS_SAFE)
+        mask_csr = (y_bin == COND_CLASS_THREAT)
         if np.sum(mask_css) == 0: return None
         
         # Prob(Threat | Safety Cue)
         probs_css = probs_all[mask_css, idx_threat]
+        probs_csr = probs_all[mask_csr, idx_threat]
         
         # --- Metrics ---
         # A. Entropy (Uncertainty)
@@ -1611,8 +1613,24 @@ def calc_metrics_for_subject(X, y, sub_id, feature_mask, C_param=1.0):
         
         # C. Variance (Spread)
         val_var = np.var(probs_css)
+
+        # D. Boundary geometry/probability measures used in Analysis 1.4
+        p_csr_css = float(np.mean(probs_css))
+        p_csr_csr = float(np.mean(probs_csr)) if len(probs_csr) else np.nan
+        boundary_separation = p_csr_csr - p_csr_css if np.isfinite(p_csr_csr) else np.nan
+        decision_margin_css = float(np.mean(np.abs(probs_css - 0.5)))
+        decision_margin_all = float(np.mean(np.abs(probs_all[:, idx_threat] - 0.5)))
         
-        return {'Entropy': val_ent, 'Kurtosis': val_kurt, 'Variance': val_var}
+        return {
+            'Entropy': val_ent,
+            'Kurtosis': val_kurt,
+            'Variance': val_var,
+            'P_CSR_CSS': p_csr_css,
+            'P_CSR_CSR': p_csr_csr,
+            'Boundary_Separation': boundary_separation,
+            'Decision_Margin_CSS': decision_margin_css,
+            'Decision_Margin_All': decision_margin_all,
+        }
         
     except Exception:
         return None
@@ -4221,12 +4239,27 @@ if cell_active(19):
     # =============================================================================
     cache_cell16 = os.path.join(CHECKPOINT_DIR, "cell_16_opening_test.joblib")
 
+    opening_metrics = [
+        "Entropy", "Kurtosis", "Variance",
+        "P_CSR_CSS", "P_CSR_CSR", "Boundary_Separation",
+        "Decision_Margin_CSS", "Decision_Margin_All"
+    ]
+
     if os.path.exists(cache_cell16):
         print(f"  [LOAD] Found existing metrics in {cache_cell16}. Skipping calculation...")
         results_23 = joblib.load(cache_cell16)
         df_metrics = results_23['df']
         stats_results = results_23['stats']
+        missing_opening_cols = [m for m in opening_metrics if m not in df_metrics.columns]
+        if missing_opening_cols:
+            print(f"  [RECALC] Cached opening metrics are missing {missing_opening_cols}; recomputing Analysis 2.3.")
+            results_23 = None
+            df_metrics = None
+            stats_results = None
     else:
+        results_23 = None
+
+    if results_23 is None:
         print(f"  [CALC] Executing Probability Extraction across Groups/Drugs...")
     
         # 1. Verification of Required Variables
@@ -4287,12 +4320,24 @@ if cell_active(19):
                 ent_val = entropy(hist + 1e-9)
                 kurt_val = kurtosis(probs, fisher=True)
                 var_val = np.var(probs)
+                probs_css = probs[y_sub == "CSS"]
+                probs_csr = probs[y_sub == "CSR"]
+                p_csr_css = float(np.mean(probs_css)) if len(probs_css) else np.nan
+                p_csr_csr = float(np.mean(probs_csr)) if len(probs_csr) else np.nan
+                boundary_separation = p_csr_csr - p_csr_css if np.isfinite(p_csr_csr) and np.isfinite(p_csr_css) else np.nan
+                decision_margin_css = float(np.mean(np.abs(probs_css - 0.5))) if len(probs_css) else np.nan
+                decision_margin_all = float(np.mean(np.abs(probs - 0.5)))
             
                 data_rows.append({
                     "Subject": sub, "Group": group, "Drug": drug, 
                     "Entropy": ent_val, 
                     "Kurtosis": kurt_val, 
-                    "Variance": var_val
+                    "Variance": var_val,
+                    "P_CSR_CSS": p_csr_css,
+                    "P_CSR_CSR": p_csr_csr,
+                    "Boundary_Separation": boundary_separation,
+                    "Decision_Margin_CSS": decision_margin_css,
+                    "Decision_Margin_All": decision_margin_all,
                 })
 
         df_metrics = pd.DataFrame(data_rows)
@@ -4300,7 +4345,7 @@ if cell_active(19):
         # 4. Statistical Testing (LME)
         print("\n[Step 2] Statistical Testing (Metric ~ Group * Drug)...")
         stats_results = {}
-        for met in ["Entropy", "Kurtosis", "Variance"]:
+        for met in opening_metrics:
             try:
                 formula = f"{met} ~ C(Group, Treatment(reference='HC')) * C(Drug, Treatment(reference='Placebo'))"
                 md = smf.mixedlm(formula, df_metrics, groups=df_metrics["Subject"])
@@ -4320,12 +4365,18 @@ if cell_active(19):
     # 5. VISUALIZATION
     # =============================================================================
     sns.set_context("poster", font_scale=0.8)
-    fig, axes = plt.subplots(1, 3, figsize=(24, 7))
+    n_cols = 3
+    n_rows = int(np.ceil(len(opening_metrics) / n_cols))
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(24, 6 * n_rows))
+    axes = np.ravel(axes)
 
-    for i, met in enumerate(["Entropy", "Kurtosis", "Variance"]):
+    for i, met in enumerate(opening_metrics):
         sns.boxplot(data=df_metrics, x='Group', y=met, hue='Drug', ax=axes[i])
-        axes[i].set_title(f"{met}\nInteraction p={stats_results[met]:.3f}")
-        if i > 0: axes[i].get_legend().remove()
+        axes[i].set_title(f"{met}\nInteraction p={stats_results.get(met, np.nan):.3f}")
+        if i > 0 and axes[i].get_legend() is not None:
+            axes[i].get_legend().remove()
+    for ax in axes[len(opening_metrics):]:
+        ax.axis('off')
 
     plt.tight_layout()
     plt.show()
