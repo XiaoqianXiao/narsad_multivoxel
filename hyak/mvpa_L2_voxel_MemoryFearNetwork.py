@@ -1227,6 +1227,60 @@ def get_phase_data(group, phase):
         return None, None, None
 
 
+
+# DEFAULT_SHOCK_TARGET_LABELS = [
+#     "Shock", "SHOCK", "shock", "US", "UCS", "unconditioned_stimulus",
+#     "Shock1", "Shock2", "Shock3", "US1", "US2", "US3",
+# ]
+DEFAULT_SHOCK_TARGET_LABELS = [
+     "Shock", "SHOCK", "shock"
+ ]
+SHOCK_TARGET_LABELS = [
+    item.strip()
+    for item in os.environ.get("SHOCK_TARGET_LABELS", ",".join(DEFAULT_SHOCK_TARGET_LABELS)).split(",")
+    if item.strip()
+]
+
+
+def _condition_mask(labels, condition):
+    if isinstance(condition, (list, tuple, set, np.ndarray)):
+        return np.isin(labels, list(condition))
+    return labels == condition
+
+
+def _subject_matches_group_key(sub, group_key):
+    if "sub_to_meta" not in globals() or not isinstance(sub_to_meta, dict):
+        return False
+    try:
+        group, drug = group_key.split("_", 1)
+    except ValueError:
+        return False
+    s = str(sub).strip()
+    info = sub_to_meta.get(s) or sub_to_meta.get(f"sub-{s}") or sub_to_meta.get(s.replace("sub-", ""))
+    if not isinstance(info, dict):
+        return False
+    return str(info.get("Group")) == group and str(info.get("Drug")) == drug
+
+
+def get_shock_target_data(group_key, labels=None):
+    labels = SHOCK_TARGET_LABELS if labels is None else labels
+    parts = []
+    for X_name, y_name, sub_name in [
+        ("X_ext_all", "y_ext_all", "sub_ext_all"),
+        ("X_reinst_all", "y_reinst_all", "sub_reinst_all"),
+    ]:
+        if not all(name in globals() for name in [X_name, y_name, sub_name]):
+            continue
+        X_all = globals()[X_name]
+        y_all = globals()[y_name]
+        sub_all = globals()[sub_name]
+        mask = _condition_mask(y_all, labels) & np.array([_subject_matches_group_key(s, group_key) for s in sub_all], dtype=bool)
+        if np.any(mask):
+            parts.append((X_all[mask], y_all[mask], sub_all[mask]))
+    if not parts:
+        return None, None, None
+    return np.vstack([p[0] for p in parts]), np.concatenate([p[1] for p in parts]), np.concatenate([p[2] for p in parts])
+
 def calculate_plasticity_vectors(X_learn, y_learn, sub_learn, X_targ, y_targ, sub_targ, mask, cond_l, cond_t):
     """
     Calculates representational drift between a learning state and a target state.
@@ -1236,9 +1290,9 @@ def calculate_plasticity_vectors(X_learn, y_learn, sub_learn, X_targ, y_targ, su
 
     for sub in unique_subs:
         # 1. Slice Learning Data (e.g., Extinction CSS)
-        mask_l = (sub_learn == sub) & (y_learn == cond_l)
+        mask_l = (sub_learn == sub) & _condition_mask(y_learn, cond_l)
         # 2. Slice Target Data (e.g., Extinction CS- or Reinstatement CSR)
-        mask_t = (sub_targ == sub) & (y_targ == cond_t)
+        mask_t = (sub_targ == sub) & _condition_mask(y_targ, cond_t)
         
         # Check if subject has data for both conditions
         if np.sum(mask_l) == 0 or np.sum(mask_t) == 0:
@@ -1283,8 +1337,8 @@ def calc_trajectory(X_learn, y_learn, sub_learn, X_targ, y_targ, sub_targ, mask,
 
     for sub in unique_subs:
         # 1. Get Subject Data
-        mask_sub_l = (sub_learn == sub) & (y_learn == cond_l)
-        mask_sub_t = (sub_targ == sub) & (y_targ == cond_t)
+        mask_sub_l = (sub_learn == sub) & _condition_mask(y_learn, cond_l)
+        mask_sub_t = (sub_targ == sub) & _condition_mask(y_targ, cond_t)
         
         if np.sum(mask_sub_l) < 2 or np.sum(mask_sub_t) == 0:
             continue
@@ -1522,12 +1576,12 @@ def calc_drift_metrics(X_start_phase, y_start_phase, X_tgt_phase, y_tgt_phase,
     X_t = X_tgt_phase[:, mask]
     
     # Target Centroid
-    mask_tgt = (y_tgt_phase == cond_target)
+    mask_tgt = (_condition_mask(y_tgt_phase, cond_target))
     if np.sum(mask_tgt) < 2: return None
     P_target = np.mean(X_t[mask_tgt], axis=0)
     
     # Trajectory
-    mask_lrn = (y_start_phase == cond_start)
+    mask_lrn = (_condition_mask(y_start_phase, cond_start))
     idx_lrn = np.where(mask_lrn)[0]
     if len(idx_lrn) < 4: return None
     
@@ -2161,6 +2215,9 @@ print(f"Original Extinction Shape: {X_ext_raw.shape}")
 # Apply ROI Filter
 X_ext, parcel_names_ext = filter_features_by_roi(X_ext_raw, roi_names_ext, roi_counts_ext, TARGET_ROIS)
 print(f"Filtered Extinction Shape: {X_ext.shape} (kept {len(TARGET_ROIS)} ROIs)")
+X_ext_all = X_ext.copy()
+y_ext_all = y_ext.copy()
+sub_ext_all = sub_ext.copy()
 
 
 # ---- Process Phase 3 (Reinstatement) ----
@@ -2173,6 +2230,9 @@ roi_counts_reinst = phase3_npz["roi_voxel_counts"]
 # Apply ROI Filter
 X_reinst, parcel_names_reinst = filter_features_by_roi(X_reinst_raw, roi_names_reinst, roi_counts_reinst, TARGET_ROIS)
 print(f"Filtered Reinstatement Shape: {X_reinst.shape}")
+X_reinst_all = X_reinst.copy()
+y_reinst_all = y_reinst.copy()
+sub_reinst_all = sub_reinst.copy()
 
 
 # ---- Filter for CS Trials Only ----
@@ -2195,7 +2255,7 @@ print("\nAfter CS filtering:")
 print("Phase2 (Ext):", X_ext.shape, np.unique(y_ext, return_counts=True))
 print("Phase3 (Reinst):", X_reinst.shape, np.unique(y_reinst, return_counts=True))
 print(f"Target ROIs included: {TARGET_ROIS}")
-save_cell_results(3, ['CHECKPOINT_DIR', 'INTERMEDIATE_DIR', 'OUT_DIR_MAIN', 'TARGET_ROIS', 'X_ext', 'X_ext_raw', 'X_reinst', 'X_reinst_raw', 'data_root', 'data_subsets', 'importance_mask_permutated', 'importance_scores_permutated', 'mask_ext', 'mask_reinst', 'meta', 'parcel_names_ext', 'parcel_names_reinst', 'phase2_npz', 'phase2_npz_path', 'phase3_npz', 'phase3_npz_path', 'project_root', 'results_11', 'results_12', 'results_13', 'results_13_2', 'results_14_self', 'results_21', 'results_21_pv', 'results_22', 'results_23', 'results_24', 'results_25', 'roi_counts_ext', 'roi_counts_reinst', 'roi_names_ext', 'roi_names_reinst', 'scripts_dir', 'strict_cross_phase_results', 'sub_ext', 'sub_reinst', 'sub_to_meta', 'y_ext', 'y_reinst'])
+save_cell_results(3, ['CHECKPOINT_DIR', 'INTERMEDIATE_DIR', 'OUT_DIR_MAIN', 'TARGET_ROIS', 'X_ext', 'X_ext_all', 'X_ext_raw', 'X_reinst', 'X_reinst_all', 'X_reinst_raw', 'data_root', 'data_subsets', 'importance_mask_permutated', 'importance_scores_permutated', 'mask_ext', 'mask_reinst', 'meta', 'parcel_names_ext', 'parcel_names_reinst', 'phase2_npz', 'phase2_npz_path', 'phase3_npz', 'phase3_npz_path', 'project_root', 'results_11', 'results_12', 'results_13', 'results_13_2', 'results_14_self', 'results_21', 'results_21_pv', 'results_22', 'results_23', 'results_24', 'results_25', 'roi_counts_ext', 'roi_counts_reinst', 'roi_names_ext', 'roi_names_reinst', 'scripts_dir', 'strict_cross_phase_results', 'sub_ext', 'sub_ext_all', 'sub_reinst', 'sub_reinst_all', 'sub_to_meta', 'y_ext', 'y_ext_all', 'y_reinst', 'y_reinst_all'])
 
 
 # %% [cell 4]
@@ -3384,9 +3444,12 @@ if cell_active(13):
             continue
         candidate_payload = joblib.load(candidate)
         if isinstance(candidate_payload, dict) and "df_plot" in candidate_payload:
-            cache_cell11_load = candidate_payload
-            print(f"  [LOAD] Found existing Drift results in {candidate}. Skipping calculation...")
-            break
+            candidate_results = candidate_payload.get("results_13", candidate_payload)
+            if "shock_target_labels" in candidate_results:
+                cache_cell11_load = candidate_payload
+                print(f"  [LOAD] Found existing Drift results in {candidate}. Skipping calculation...")
+                break
+            print(f"  [RECALC] Existing Drift cache in {candidate} lacks shock-target metric; recomputing.")
 
     if cache_cell11_load is not None:
         results_13 = cache_cell11_load.get("results_13", cache_cell11_load)
@@ -3426,12 +3489,28 @@ if cell_active(13):
         # Threat: CSR(Ext) -> CSR(Rst)
         df_threat_sad = calculate_plasticity_vectors(X_ext_sad, y_ext_sad, sub_ext_sad, X_rst_sad, y_rst_sad, sub_rst_sad, mask_sad, COND_THREAT_LEARN, COND_THREAT_LEARN)
         df_threat_hc = calculate_plasticity_vectors(X_ext_hc, y_ext_hc, sub_ext_hc, X_rst_hc, y_rst_hc, sub_rst_hc, mask_hc, COND_THREAT_LEARN, COND_THREAT_LEARN)
+        X_shock_sad, y_shock_sad, sub_shock_sad = get_shock_target_data("SAD_Placebo")
+        X_shock_hc, y_shock_hc, sub_shock_hc = get_shock_target_data("HC_Placebo")
+        if X_shock_sad is not None and X_shock_hc is not None:
+            print(f"  > Threat shock-target: using labels {SHOCK_TARGET_LABELS}")
+            df_threat_shock_sad = calculate_plasticity_vectors(X_ext_sad, y_ext_sad, sub_ext_sad, X_shock_sad, y_shock_sad, sub_shock_sad, mask_sad, COND_THREAT_LEARN, SHOCK_TARGET_LABELS)
+            df_threat_shock_hc = calculate_plasticity_vectors(X_ext_hc, y_ext_hc, sub_ext_hc, X_shock_hc, y_shock_hc, sub_shock_hc, mask_hc, COND_THREAT_LEARN, SHOCK_TARGET_LABELS)
+        else:
+            print(f"  ! Threat shock-target unavailable: no shock/US target trials found for labels {SHOCK_TARGET_LABELS}.")
+            df_threat_shock_sad = pd.DataFrame()
+            df_threat_shock_hc = pd.DataFrame()
 
         # Combine into unified dataset
-        df_plot = pd.concat([
+        plot_frames = [
             tag_df(df_safe_sad, 'SAD', 'Safety'), tag_df(df_safe_hc, 'HC', 'Safety'),
             tag_df(df_threat_sad, 'SAD', 'Threat'), tag_df(df_threat_hc, 'HC', 'Threat')
-        ])
+        ]
+        if not df_threat_shock_sad.empty or not df_threat_shock_hc.empty:
+            plot_frames.extend([
+                tag_df(df_threat_shock_sad, 'SAD', 'Threat Shock Target'),
+                tag_df(df_threat_shock_hc, 'HC', 'Threat Shock Target'),
+            ])
+        df_plot = pd.concat(plot_frames)
 
         # Store for next time
         drift_summary = (
@@ -3445,6 +3524,9 @@ if cell_active(13):
             'drift_summary': drift_summary,
             'primary_metric': 'projection',
             'feature_space': feature_space_13,
+            'shock_target_labels': SHOCK_TARGET_LABELS,
+            'threat_shock_sad': df_threat_shock_sad,
+            'threat_shock_hc': df_threat_shock_hc,
         }
         joblib.dump(results_13, cache_cell11)
         save_checkpoint(13, {"results_13": results_13, "df_plot": df_plot, "drift_summary": drift_summary, "feature_space": feature_space_13})
@@ -3488,7 +3570,7 @@ if cell_active(13):
         # FINAL STEP: Print Statistical Summaries (Independent of Cache)
         print("\n--- Statistical Summary (p-values) ---")
         for met in ['projection', 'cosine']:
-            for cond in ['Safety', 'Threat']:
+            for cond in df_plot['Condition'].dropna().unique():
                 d_s = df_plot[(df_plot['Condition']==cond) & (df_plot['Group']=='SAD')][met]
                 d_h = df_plot[(df_plot['Condition']==cond) & (df_plot['Group']=='HC')][met]
                 if len(d_s)>1 and len(d_h)>1:
@@ -3502,7 +3584,7 @@ if cell_active(13):
         plt.show()
 
     print("--- Cell 11 Complete: Visualization reorganized ---")
-    save_cell_results(13, ['COND_SAFETY_LEARN', 'COND_SAFETY_TARGET', 'COND_THREAT_LEARN', 'cache_cell11', 'data_subsets', 'importance_mask_permutated', 'importance_scores_permutated', 'meta', 'results_11', 'results_12', 'results_13', 'results_13_2', 'results_14_self', 'results_21', 'results_21_pv', 'results_22', 'results_23', 'results_24', 'results_25', 'strict_cross_phase_results', 'sub_to_meta'])
+    save_cell_results(13, ['COND_SAFETY_LEARN', 'COND_SAFETY_TARGET', 'COND_THREAT_LEARN', 'SHOCK_TARGET_LABELS', 'cache_cell11', 'data_subsets', 'df_threat_shock_hc', 'df_threat_shock_sad', 'importance_mask_permutated', 'importance_scores_permutated', 'meta', 'results_11', 'results_12', 'results_13', 'results_13_2', 'results_14_self', 'results_21', 'results_21_pv', 'results_22', 'results_23', 'results_24', 'results_25', 'strict_cross_phase_results', 'sub_to_meta'])
 
 
 else:
@@ -3532,13 +3614,23 @@ if cell_active(14):
     # =============================================================================
     cache_cell12_part2 = os.path.join(CHECKPOINT_DIR, "cell_12_trajectories.joblib")
 
+    cache_cell12_payload = None
     if os.path.exists(cache_cell12_part2):
-        print(f"  [LOAD] Found existing Trajectory results in {cache_cell12_part2}. Skipping calculation...")
-        results_13_2 = joblib.load(cache_cell12_part2)
+        loaded_trajectory = joblib.load(cache_cell12_part2)
+        if isinstance(loaded_trajectory, dict) and "data_threat_shock" in loaded_trajectory:
+            print(f"  [LOAD] Found existing Trajectory results in {cache_cell12_part2}. Skipping calculation...")
+            cache_cell12_payload = loaded_trajectory
+        else:
+            print(f"  [RECALC] Existing Trajectory cache lacks shock-target metric; recomputing.")
+
+    if cache_cell12_payload is not None:
+        results_13_2 = cache_cell12_payload
         stats_safe = results_13_2['stats_safe']
         stats_threat = results_13_2['stats_threat']
+        stats_threat_shock = results_13_2.get('stats_threat_shock', pd.DataFrame())
         df_safe = results_13_2['data_safe']
         df_threat = results_13_2['data_threat']
+        df_threat_shock = results_13_2.get('data_threat_shock', pd.DataFrame())
     else:
         print(f"\n[Step 0] Significance Mask Setup & Calculation...")
 
@@ -3565,15 +3657,27 @@ if cell_active(14):
         df_safe_hc = calc_trajectory(X_ext_hc, y_ext_hc, sub_ext_hc, X_glob, y_glob, sub_glob, mask_hc, COND_SAFETY_LEARN, COND_SAFETY_TARGET)
         df_threat_sad = calc_trajectory(X_ext_sad, y_ext_sad, sub_ext_sad, X_rst_sad, y_rst_sad, sub_rst_sad, mask_sad, COND_THREAT_LEARN, COND_THREAT_LEARN)
         df_threat_hc = calc_trajectory(X_ext_hc, y_ext_hc, sub_ext_hc, X_rst_hc, y_rst_hc, sub_rst_hc, mask_hc, COND_THREAT_LEARN, COND_THREAT_LEARN)
+        X_shock_sad, y_shock_sad, sub_shock_sad = get_shock_target_data("SAD_Placebo")
+        X_shock_hc, y_shock_hc, sub_shock_hc = get_shock_target_data("HC_Placebo")
+        if X_shock_sad is not None and X_shock_hc is not None:
+            print(f"  > Threat shock-target: CSR Trials projecting onto [Early CSR -> shock/US target], labels={SHOCK_TARGET_LABELS}")
+            df_threat_shock_sad = calc_trajectory(X_ext_sad, y_ext_sad, sub_ext_sad, X_shock_sad, y_shock_sad, sub_shock_sad, mask_sad, COND_THREAT_LEARN, SHOCK_TARGET_LABELS)
+            df_threat_shock_hc = calc_trajectory(X_ext_hc, y_ext_hc, sub_ext_hc, X_shock_hc, y_shock_hc, sub_shock_hc, mask_hc, COND_THREAT_LEARN, SHOCK_TARGET_LABELS)
+        else:
+            print(f"  ! Threat shock-target unavailable: no shock/US target trials found for labels {SHOCK_TARGET_LABELS}.")
+            df_threat_shock_sad = pd.DataFrame()
+            df_threat_shock_hc = pd.DataFrame()
 
         # 3. Calculate Statistics
         print("  Calculating Statistics...")
         stats_safe = run_detailed_stats(df_safe_sad, df_safe_hc, "Safety Learning")
         stats_threat = run_detailed_stats(df_threat_sad, df_threat_hc, "Threat Maintenance")
+        stats_threat_shock = run_detailed_stats(df_threat_shock_sad, df_threat_shock_hc, "Threat Shock Target")
 
         # 4. Prepare Plotting Data
         df_safe = prepare_plot(df_safe_sad, df_safe_hc, "Safety Learning")
         df_threat = prepare_plot(df_threat_sad, df_threat_hc, "Threat Maintenance")
+        df_threat_shock = prepare_plot(df_threat_shock_sad, df_threat_shock_hc, "Threat Shock Target")
 
         def subject_trajectory_slopes(df, domain):
             rows = []
@@ -3596,17 +3700,21 @@ if cell_active(14):
         trajectory_slopes = pd.concat([
             subject_trajectory_slopes(df_safe, "Safety Learning"),
             subject_trajectory_slopes(df_threat, "Threat Maintenance"),
+            subject_trajectory_slopes(df_threat_shock, "Threat Shock Target"),
         ], ignore_index=True)
 
         # Save to Cache
         results_13_2 = {
             'stats_safe': stats_safe, 
             'stats_threat': stats_threat,
+            'stats_threat_shock': stats_threat_shock,
             'data_safe': df_safe,
             'data_threat': df_threat,
+            'data_threat_shock': df_threat_shock,
             'trajectory_slopes': trajectory_slopes,
             'primary_metric': 'safety_trajectory_slope',
             'feature_space': feature_space_13b,
+            'shock_target_labels': SHOCK_TARGET_LABELS,
         }
         joblib.dump(results_13_2, cache_cell12_part2)
         save_checkpoint(14, {"results_13_2": results_13_2, "feature_space": feature_space_13b})
@@ -3615,11 +3723,11 @@ if cell_active(14):
     # =============================================================================
     # 4. VISUALIZATION (Always Runs)
     # =============================================================================
-    if df_safe.empty and df_threat.empty:
+    if df_safe.empty and df_threat.empty and df_threat_shock.empty:
         print("! No data to plot.")
     else:
         sns.set_context("poster")
-        fig, axes = plt.subplots(1, 2, figsize=(22, 9), sharey=True)
+        fig, axes = plt.subplots(1, 3, figsize=(30, 9), sharey=True)
     
         # 1. Safety Plot
         if not df_safe.empty:
@@ -3642,6 +3750,21 @@ if cell_active(14):
             axes[1].axhline(0, color='gray', ls='--', label='Start (Ext Early)')
             axes[1].axhline(1, color='#d62728', ls='-', lw=2, label='Target (Reinstated CSR)')
             axes[1].legend(loc='upper left')
+        else:
+            axes[1].axis('off')
+
+        # 3. Threat Shock-Target Plot
+        if not df_threat_shock.empty:
+            sns.lineplot(data=df_threat_shock, x='trial', y='score', hue='Group',
+                         palette={'SAD': '#c44e52', 'HC': '#4c72b0'},
+                         lw=3, marker="^", err_style="band", ax=axes[2])
+            axes[2].set_title("C. Threat Acquisition\n(Target = Shock/US)")
+            axes[2].set_xlabel(f"Trial (Block Size: {BLOCK_SIZE})")
+            axes[2].axhline(0, color='gray', ls='--', label='Start (Ext Early)')
+            axes[2].axhline(1, color='#8c1d40', ls='-', lw=2, label='Target (Shock/US)')
+            axes[2].legend(loc='upper left')
+        else:
+            axes[2].axis('off')
     
         plt.tight_layout()
         # Save high-res figure to global results
@@ -3649,7 +3772,7 @@ if cell_active(14):
         plt.show()
 
     print("--- Cell 12 Complete: Persistent Trajectories stored ---")
-    save_cell_results(14, ['BLOCK_SIZE', 'COND_SAFETY_LEARN', 'COND_SAFETY_TARGET', 'COND_THREAT_LEARN', 'cache_cell12_part2', 'data_subsets', 'importance_mask_permutated', 'importance_scores_permutated', 'meta', 'results_11', 'results_12', 'results_13', 'results_13_2', 'results_14_self', 'results_21', 'results_21_pv', 'results_22', 'results_23', 'results_24', 'results_25', 'strict_cross_phase_results', 'sub_to_meta'])
+    save_cell_results(14, ['BLOCK_SIZE', 'COND_SAFETY_LEARN', 'COND_SAFETY_TARGET', 'COND_THREAT_LEARN', 'SHOCK_TARGET_LABELS', 'cache_cell12_part2', 'data_subsets', 'df_threat_shock', 'importance_mask_permutated', 'importance_scores_permutated', 'meta', 'results_11', 'results_12', 'results_13', 'results_13_2', 'results_14_self', 'results_21', 'results_21_pv', 'results_22', 'results_23', 'results_24', 'results_25', 'stats_threat_shock', 'strict_cross_phase_results', 'sub_to_meta'])
 
 
 else:
@@ -4126,6 +4249,7 @@ if cell_active(18):
     COND_SAFE_LRN = "CSS"
     COND_THREAT_LRN = "CSR"
     PERCENTILE_THRESH = None  # Uses empirical permutation masks.
+    SHOCK_TARGET_DOMAIN = "Threat Shock Target"
 
     # =============================================================================
     # 0. Setup: Masks & Data Loading
@@ -4175,7 +4299,7 @@ if cell_active(18):
             if res_safe:
                 data_rows.append({"Subject": sub, "Group": group, "Drug": drug, "Domain": "Safety", **res_safe})
             
-            # 2. Threat
+            # 2. Threat Maintenance: CSR(Ext) -> CSR(Reinstatement)
             if X_rst_all is not None:
                 m_rst = (sub_rst_all == sub)
                 if np.sum(m_rst) > 0:
@@ -4183,6 +4307,18 @@ if cell_active(18):
                     res_threat = calc_drift_metrics(X_e, y_e, X_r, y_r, COND_THREAT_LRN, COND_THREAT_LRN, curr_mask, sub)
                     if res_threat:
                         data_rows.append({"Subject": sub, "Group": group, "Drug": drug, "Domain": "Threat", **res_threat})
+
+            # 3. Threat Shock Target: CSR(Ext) -> Shock/US target pattern
+            X_shock, y_shock, sub_shock = get_shock_target_data(key)
+            if X_shock is not None:
+                m_shock = (sub_shock == sub)
+                if np.sum(m_shock) > 0:
+                    res_threat_shock = calc_drift_metrics(
+                        X_e, y_e, X_shock[m_shock], y_shock[m_shock],
+                        COND_THREAT_LRN, SHOCK_TARGET_LABELS, curr_mask, sub
+                    )
+                    if res_threat_shock:
+                        data_rows.append({"Subject": sub, "Group": group, "Drug": drug, "Domain": SHOCK_TARGET_DOMAIN, **res_threat_shock})
 
     df_drift = pd.DataFrame(data_rows)
     print(f"  > Computed vectors for {len(df_drift['Subject'].unique())} subjects.")
@@ -4193,7 +4329,7 @@ if cell_active(18):
     print("\n[Step 2] Statistical Testing (LME)...")
     lme_results = {}
 
-    for domain in ["Safety", "Threat"]:
+    for domain in ["Safety", "Threat", SHOCK_TARGET_DOMAIN]:
         if domain not in df_drift['Domain'].values: continue
         df_sub = df_drift[df_drift["Domain"] == domain].copy()
         form_base = "~ C(Group, Treatment(reference='HC')) * C(Drug, Treatment(reference='Placebo'))"
@@ -4214,19 +4350,19 @@ if cell_active(18):
     # 3. Visualization (Lines Only, Error=SE)
     # =============================================================================
     sns.set_context("poster", font_scale=0.8)
-    fig, axes = plt.subplots(2, 2, figsize=(18, 12))
-    pal_group = {'SAD': '#c44e52', 'HC': '#4c72b0'}# Plot Grid
-    plot_interaction(axes[0,0], df_drift, "Safety", "Cosine", lme_results.get("Safety_Cosine", 1.0))
-    plot_interaction(axes[0,1], df_drift, "Safety", "Projection", lme_results.get("Safety_Projection", 1.0))
-    plot_interaction(axes[1,0], df_drift, "Threat", "Cosine", lme_results.get("Threat_Cosine", 1.0))
-    plot_interaction(axes[1,1], df_drift, "Threat", "Projection", lme_results.get("Threat_Projection", 1.0))
+    plot_domains = [d for d in ["Safety", "Threat", SHOCK_TARGET_DOMAIN] if d in df_drift.get("Domain", pd.Series(dtype=str)).values]
+    fig, axes = plt.subplots(max(len(plot_domains), 1), 2, figsize=(18, 6 * max(len(plot_domains), 1)), squeeze=False)
+    pal_group = {'SAD': '#c44e52', 'HC': '#4c72b0'}
+    for row, domain in enumerate(plot_domains):
+        plot_interaction(axes[row, 0], df_drift, domain, "Cosine", lme_results.get(f"{domain}_Cosine", 1.0))
+        plot_interaction(axes[row, 1], df_drift, domain, "Projection", lme_results.get(f"{domain}_Projection", 1.0))
 
     plt.tight_layout()
     plt.show()
 
     print("Note: Error bars represent Standard Error of the Mean (SEM).")
-    results_22 = {'df': df_drift, 'stats': lme_results}
-    save_cell_results(18, ['COND_SAFE_LRN', 'COND_SAFE_TGT', 'COND_THREAT_LRN', 'PERCENTILE_THRESH', 'X_rst_all', 'axes', 'data_rows', 'data_subsets', 'df_drift', 'domain', 'fig', 'importance_mask_permutated', 'importance_scores_permutated', 'key', 'lme_results', 'meta', 'pal_group', 'results_11', 'results_12', 'results_13', 'results_13_2', 'results_14_self', 'results_21', 'results_21_pv', 'results_22', 'results_23', 'results_24', 'results_25', 'strict_cross_phase_results', 'sub_rst_all', 'sub_to_meta', 'subject_list', 'y_rst_all'])
+    results_22 = {'df': df_drift, 'stats': lme_results, 'shock_target_labels': SHOCK_TARGET_LABELS}
+    save_cell_results(18, ['COND_SAFE_LRN', 'COND_SAFE_TGT', 'COND_THREAT_LRN', 'SHOCK_TARGET_LABELS', 'SHOCK_TARGET_DOMAIN', 'PERCENTILE_THRESH', 'X_rst_all', 'axes', 'data_rows', 'data_subsets', 'df_drift', 'domain', 'fig', 'importance_mask_permutated', 'importance_scores_permutated', 'key', 'lme_results', 'meta', 'pal_group', 'results_11', 'results_12', 'results_13', 'results_13_2', 'results_14_self', 'results_21', 'results_21_pv', 'results_22', 'results_23', 'results_24', 'results_25', 'strict_cross_phase_results', 'sub_rst_all', 'sub_to_meta', 'subject_list', 'y_rst_all'])
 
 
 else:

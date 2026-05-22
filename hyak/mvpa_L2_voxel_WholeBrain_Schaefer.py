@@ -704,13 +704,67 @@ def calculate_neural_scr_safety_coupling(df_safe, df_scr):
     return pd.DataFrame(rows)
 
 
+
+# DEFAULT_SHOCK_TARGET_LABELS = [
+#     "Shock", "SHOCK", "shock", "US", "UCS", "unconditioned_stimulus",
+#     "Shock1", "Shock2", "Shock3", "US1", "US2", "US3",
+# ]
+DEFAULT_SHOCK_TARGET_LABELS = [
+     "Shock", "SHOCK", "shock"
+ ]
+SHOCK_TARGET_LABELS = [
+    item.strip()
+    for item in os.environ.get("SHOCK_TARGET_LABELS", ",".join(DEFAULT_SHOCK_TARGET_LABELS)).split(",")
+    if item.strip()
+]
+
+
+def _condition_mask(labels, condition):
+    if isinstance(condition, (list, tuple, set, np.ndarray)):
+        return np.isin(labels, list(condition))
+    return labels == condition
+
+
+def _subject_matches_group_key(sub, group_key):
+    if "sub_to_meta" not in globals() or not isinstance(sub_to_meta, dict):
+        return False
+    try:
+        group, drug = group_key.split("_", 1)
+    except ValueError:
+        return False
+    s = str(sub).strip()
+    info = sub_to_meta.get(s) or sub_to_meta.get(f"sub-{s}") or sub_to_meta.get(s.replace("sub-", ""))
+    if not isinstance(info, dict):
+        return False
+    return str(info.get("Group")) == group and str(info.get("Drug")) == drug
+
+
+def get_shock_target_data(group_key, labels=None):
+    labels = SHOCK_TARGET_LABELS if labels is None else labels
+    parts = []
+    for X_name, y_name, sub_name in [
+        ("X_ext_all", "y_ext_all", "sub_ext_all"),
+        ("X_reinst_all", "y_reinst_all", "sub_reinst_all"),
+    ]:
+        if not all(name in globals() for name in [X_name, y_name, sub_name]):
+            continue
+        X_all = globals()[X_name]
+        y_all = globals()[y_name]
+        sub_all = globals()[sub_name]
+        mask = _condition_mask(y_all, labels) & np.array([_subject_matches_group_key(s, group_key) for s in sub_all], dtype=bool)
+        if np.any(mask):
+            parts.append((X_all[mask], y_all[mask], sub_all[mask]))
+    if not parts:
+        return None, None, None
+    return np.vstack([p[0] for p in parts]), np.concatenate([p[1] for p in parts]), np.concatenate([p[2] for p in parts])
+
 def calculate_plasticity_vectors(X_learn, y_learn, sub_learn, X_targ, y_targ, sub_targ, mask, cond_l, cond_t):
     """Calculate masked representational alignment between learning and target states."""
     unique_subs = np.intersect1d(np.unique(sub_learn), np.unique(sub_targ))
     res = {'sub': [], 'projection': [], 'cosine': [], 'init_dist': []}
     for sub in unique_subs:
-        mask_l = (sub_learn == sub) & (y_learn == cond_l)
-        mask_t = (sub_targ == sub) & (y_targ == cond_t)
+        mask_l = (sub_learn == sub) & _condition_mask(y_learn, cond_l)
+        mask_t = (sub_targ == sub) & _condition_mask(y_targ, cond_t)
         if np.sum(mask_l) == 0 or np.sum(mask_t) == 0:
             continue
 
@@ -813,11 +867,11 @@ def get_ext_data(group_key):
 def calc_drift_metrics(X_start_phase, y_start_phase, X_tgt_phase, y_tgt_phase, cond_start, cond_target, mask):
     X_s = X_start_phase[:, mask]
     X_t = X_tgt_phase[:, mask]
-    mask_tgt = y_tgt_phase == cond_target
+    mask_tgt = _condition_mask(y_tgt_phase, cond_target)
     if np.sum(mask_tgt) < 2:
         return None
     P_target = np.mean(X_t[mask_tgt], axis=0)
-    idx_lrn = np.where(y_start_phase == cond_start)[0]
+    idx_lrn = np.where(_condition_mask(y_start_phase, cond_start))[0]
     if len(idx_lrn) < 4:
         return None
     cutoff = len(idx_lrn) // 2
@@ -1319,8 +1373,8 @@ def calc_trajectory(X_learn, y_learn, sub_learn, X_targ, y_targ, sub_targ, mask,
     res = {'sub': [], 'trial': [], 'score': []}
     
     for sub in unique_subs:
-        mask_sub_l = (sub_learn == sub) & (y_learn == cond_l)
-        mask_sub_t = (sub_targ == sub) & (y_targ == cond_t)
+        mask_sub_l = (sub_learn == sub) & _condition_mask(y_learn, cond_l)
+        mask_sub_t = (sub_targ == sub) & _condition_mask(y_targ, cond_t)
         if np.sum(mask_sub_l) < 2 or np.sum(mask_sub_t) == 0:
             continue
         
@@ -1501,10 +1555,16 @@ print("Phase3 npz keys:", phase3_npz.files)
 X_ext = phase2_npz["X_ext"]         # (n_trials_phase2, n_parcels)
 y_ext = phase2_npz["y_ext"]         # (n_trials_phase2,)
 sub_ext = phase2_npz["subjects"]    # (n_trials_phase2,)
+X_ext_all = X_ext.copy()
+y_ext_all = y_ext.copy()
+sub_ext_all = sub_ext.copy()
 
 X_reinst = phase3_npz["X_reinst"]       # (n_trials_phase3, n_parcels)
 y_reinst = phase3_npz["y_reinst"]       # (n_trials_phase3,)
 sub_reinst = phase3_npz["subjects"]     # (n_trials_phase3,)
+X_reinst_all = X_reinst.copy()
+y_reinst_all = y_reinst.copy()
+sub_reinst_all = sub_reinst.copy()
 
 parcel_names_ext = list(phase2_npz["parcel_names"])
 parcel_names_reinst = list(phase3_npz["parcel_names"])
@@ -2595,6 +2655,7 @@ if stage_active(13):
     COND_SAFETY_TARGET = "CS-"
     COND_SAFETY_LEARN = "CSS"
     COND_THREAT_LEARN = "CSR"
+    SHOCK_TARGET_DOMAIN = "Threat Shock Target"
     
     # =============================================================================
     # 0. Feature Selection & Data Loading
@@ -2661,14 +2722,38 @@ if stage_active(13):
         X_rst_hc, y_rst_hc, sub_rst_hc, 
         mask_hc, COND_THREAT_LEARN, COND_THREAT_LEARN
     )
+
+    # C. Threat Shock Target (CSR -> Shock/US target pattern)
+    X_shock_sad, y_shock_sad, sub_shock_sad = get_shock_target_data("SAD_Placebo")
+    X_shock_hc, y_shock_hc, sub_shock_hc = get_shock_target_data("HC_Placebo")
+    if X_shock_sad is not None and X_shock_hc is not None:
+        print(f"  > Threat Shock Target: Start=CSR(Ext) -> Target=Shock/US labels={SHOCK_TARGET_LABELS}")
+        df_threat_shock_sad = calculate_plasticity_vectors(
+            X_ext_sad, y_ext_sad, sub_ext_sad, X_shock_sad, y_shock_sad, sub_shock_sad,
+            mask_sad, COND_THREAT_LEARN, SHOCK_TARGET_LABELS
+        )
+        df_threat_shock_hc = calculate_plasticity_vectors(
+            X_ext_hc, y_ext_hc, sub_ext_hc, X_shock_hc, y_shock_hc, sub_shock_hc,
+            mask_hc, COND_THREAT_LEARN, SHOCK_TARGET_LABELS
+        )
+    else:
+        print(f"  ! Threat Shock Target unavailable: no shock/US trials found for labels {SHOCK_TARGET_LABELS}.")
+        df_threat_shock_sad = pd.DataFrame()
+        df_threat_shock_hc = pd.DataFrame()
     
     # =============================================================================
     # 3. Statistics & Visualization
     # =============================================================================
-    df_plot = pd.concat([
+    plot_frames = [
         tag_df(df_safe_sad, 'SAD', 'Safety'), tag_df(df_safe_hc, 'HC', 'Safety'),
         tag_df(df_threat_sad, 'SAD', 'Threat'), tag_df(df_threat_hc, 'HC', 'Threat')
-    ])
+    ]
+    if not df_threat_shock_sad.empty or not df_threat_shock_hc.empty:
+        plot_frames.extend([
+            tag_df(df_threat_shock_sad, 'SAD', SHOCK_TARGET_DOMAIN),
+            tag_df(df_threat_shock_hc, 'HC', SHOCK_TARGET_DOMAIN),
+        ])
+    df_plot = pd.concat(plot_frames, ignore_index=True)
     
     if df_plot.empty:
         print("! No data generated. Check inputs.")
@@ -2694,7 +2779,7 @@ if stage_active(13):
         
         # 3. Stats (Printout)
         print("\n--- Statistical Summary (SAD vs HC) ---")
-        for cond in ['Safety', 'Threat']:
+        for cond in df_plot['Condition'].dropna().unique():
             print(f"\nCondition: {cond}")
             for met in ['projection', 'cosine']:
                 d_s = df_plot[(df_plot['Condition']==cond) & (df_plot['Group']=='SAD')][met]
@@ -2737,6 +2822,9 @@ if stage_active(13):
         'safe_hc': df_safe_hc,
         'threat_sad': df_threat_sad,
         'threat_hc': df_threat_hc,
+        'threat_shock_sad': df_threat_shock_sad,
+        'threat_shock_hc': df_threat_shock_hc,
+        'shock_target_labels': SHOCK_TARGET_LABELS,
         'df_plot': df_plot,
         'drift_summary': drift_summary,
         'primary_metric': 'projection',
@@ -2751,6 +2839,9 @@ if stage_active(13):
         "df_safe_hc": locals().get("df_safe_hc"),
         "df_threat_sad": locals().get("df_threat_sad"),
         "df_threat_hc": locals().get("df_threat_hc"),
+        "df_threat_shock_sad": locals().get("df_threat_shock_sad"),
+        "df_threat_shock_hc": locals().get("df_threat_shock_hc"),
+        "shock_target_labels": locals().get("SHOCK_TARGET_LABELS"),
         "feature_space": locals().get("feature_space_13"),
     })
     save_intermediate("stage13_drift", {
@@ -2761,6 +2852,9 @@ if stage_active(13):
         "df_safe_hc": locals().get("df_safe_hc"),
         "df_threat_sad": locals().get("df_threat_sad"),
         "df_threat_hc": locals().get("df_threat_hc"),
+        "df_threat_shock_sad": locals().get("df_threat_shock_sad"),
+        "df_threat_shock_hc": locals().get("df_threat_shock_hc"),
+        "shock_target_labels": locals().get("SHOCK_TARGET_LABELS"),
         "feature_space": locals().get("feature_space_13"),
     })
     
@@ -2784,6 +2878,7 @@ if stage_active(13):
     COND_SAFETY_TARGET = "CS-"
     COND_SAFETY_LEARN = "CSS"
     COND_THREAT_LEARN = "CSR"
+    SHOCK_TARGET_DOMAIN = "Threat Shock Target"
     BLOCK_SIZE = 1  # Group trials for smoother plotting (1 = Raw Single Trial)
     
     # =============================================================================
@@ -2831,6 +2926,18 @@ if stage_active(13):
     print("  > Threat: CSR Trials projecting onto [Early CSR -> Reinstated CSR]")
     df_threat_sad = calc_trajectory(X_ext_sad, y_ext_sad, sub_ext_sad, X_rst_sad, y_rst_sad, sub_rst_sad, mask_sad, COND_THREAT_LEARN, COND_THREAT_LEARN)
     df_threat_hc = calc_trajectory(X_ext_hc, y_ext_hc, sub_ext_hc, X_rst_hc, y_rst_hc, sub_rst_hc, mask_hc, COND_THREAT_LEARN, COND_THREAT_LEARN)
+
+    # C. Threat Shock Target
+    X_shock_sad, y_shock_sad, sub_shock_sad = get_shock_target_data("SAD_Placebo")
+    X_shock_hc, y_shock_hc, sub_shock_hc = get_shock_target_data("HC_Placebo")
+    if X_shock_sad is not None and X_shock_hc is not None:
+        print(f"  > Threat Shock Target: CSR Trials projecting onto [Early CSR -> shock/US target], labels={SHOCK_TARGET_LABELS}")
+        df_threat_shock_sad = calc_trajectory(X_ext_sad, y_ext_sad, sub_ext_sad, X_shock_sad, y_shock_sad, sub_shock_sad, mask_sad, COND_THREAT_LEARN, SHOCK_TARGET_LABELS)
+        df_threat_shock_hc = calc_trajectory(X_ext_hc, y_ext_hc, sub_ext_hc, X_shock_hc, y_shock_hc, sub_shock_hc, mask_hc, COND_THREAT_LEARN, SHOCK_TARGET_LABELS)
+    else:
+        print(f"  ! Threat Shock Target unavailable: no shock/US trials found for labels {SHOCK_TARGET_LABELS}.")
+        df_threat_shock_sad = pd.DataFrame()
+        df_threat_shock_hc = pd.DataFrame()
     
     # =============================================================================
     # Detailed Statistics
@@ -2838,17 +2945,19 @@ if stage_active(13):
     print("\n[Step 3] Calculating Statistics...")
     stats_safe = run_detailed_stats(df_safe_sad, df_safe_hc, "Safety Learning")
     stats_threat = run_detailed_stats(df_threat_sad, df_threat_hc, "Threat Maintenance")
+    stats_threat_shock = run_detailed_stats(df_threat_shock_sad, df_threat_shock_hc, SHOCK_TARGET_DOMAIN)
     # =============================================================================
     # 4. Visualization
     # =============================================================================    
     df_safe = prepare_plot(df_safe_sad, df_safe_hc, "Safety Learning")
     df_threat = prepare_plot(df_threat_sad, df_threat_hc, "Threat Maintenance")
+    df_threat_shock = prepare_plot(df_threat_shock_sad, df_threat_shock_hc, SHOCK_TARGET_DOMAIN)
     
-    if df_safe.empty and df_threat.empty:
+    if df_safe.empty and df_threat.empty and df_threat_shock.empty:
         print("! No data to plot.")
     else:
         sns.set_context("poster")
-        fig, axes = plt.subplots(1, 2, figsize=(22, 9), sharey=True)
+        fig, axes = plt.subplots(1, 3, figsize=(30, 9), sharey=True)
         
         # 1. Safety Plot
         if not df_safe.empty:
@@ -2871,6 +2980,19 @@ if stage_active(13):
             axes[1].axhline(0, color='gray', ls='--', label='Start (Ext Early)')
             axes[1].axhline(1, color='#d62728', ls='-', lw=2, label='Target (Early Half Reinstated CSR)')
             axes[1].legend(loc='upper left')
+
+        if not df_threat_shock.empty:
+            sns.lineplot(data=df_threat_shock, x='trial', y='score', hue='Group',
+                         palette={'SAD': '#c44e52', 'HC': '#4c72b0'},
+                         lw=3, marker="^", err_style="band", ax=axes[2])
+            axes[2].set_title("C. Threat Acquisition\n(Target = Shock/US)")
+            axes[2].set_xlabel(f"Trial (Block Size: {BLOCK_SIZE})")
+            axes[2].axhline(0, color='gray', ls='--', label='Start (Ext Early)')
+            axes[2].axhline(1, color='#9467bd', ls='-', lw=2, label='Target (Shock/US)')
+            axes[2].legend(loc='upper left')
+        else:
+            axes[2].axis('off')
+            axes[2].set_title("C. Threat Acquisition\n(Target = Shock/US unavailable)")
         
         plt.tight_layout()
     _save_fig("analysis_13_trajectories")
@@ -2898,13 +3020,17 @@ if stage_active(13):
     trajectory_slopes = pd.concat([
         subject_trajectory_slopes(df_safe, "Safety Learning"),
         subject_trajectory_slopes(df_threat, "Threat Maintenance"),
+        subject_trajectory_slopes(df_threat_shock, SHOCK_TARGET_DOMAIN),
     ], ignore_index=True)
 
     results_13 = {
         'stats_safe': stats_safe, 
         'stats_threat': stats_threat,
+        'stats_threat_shock': stats_threat_shock,
         'data_safe': df_safe,
         'data_threat': df_threat,
+        'data_threat_shock': df_threat_shock,
+        'shock_target_labels': SHOCK_TARGET_LABELS,
         'trajectory_slopes': trajectory_slopes,
         'primary_metric': 'safety_trajectory_slope',
         'feature_space': feature_space_13b,
@@ -2929,10 +3055,15 @@ if stage_active(13):
             "df_safe_hc": locals().get("df_safe_hc"),
             "df_threat_sad": locals().get("df_threat_sad"),
             "df_threat_hc": locals().get("df_threat_hc"),
+            "df_threat_shock_sad": locals().get("df_threat_shock_sad"),
+            "df_threat_shock_hc": locals().get("df_threat_shock_hc"),
             "stats_safe": locals().get("stats_safe"),
             "stats_threat": locals().get("stats_threat"),
+            "stats_threat_shock": locals().get("stats_threat_shock"),
             "df_safe": locals().get("df_safe"),
             "df_threat": locals().get("df_threat"),
+            "df_threat_shock": locals().get("df_threat_shock"),
+            "shock_target_labels": locals().get("SHOCK_TARGET_LABELS"),
             "feature_space": locals().get("feature_space_13b"),
         },
     )
@@ -3395,7 +3526,7 @@ if stage_active(18):
     print("\n[Step 2] Statistical Testing (LME)...")
     lme_results = {}
     
-    for domain in ["Safety", "Threat"]:
+    for domain in ["Safety", "Threat", SHOCK_TARGET_DOMAIN]:
         if domain not in df_drift['Domain'].values: continue
         df_sub = df_drift[df_drift["Domain"] == domain].copy()
         form_base = "~ C(Group, Treatment(reference='HC')) * C(Drug, Treatment(reference='Placebo'))"
@@ -3416,14 +3547,12 @@ if stage_active(18):
     # 3. Visualization (Lines Only, Error=SE)
     # =============================================================================
     sns.set_context("poster", font_scale=0.8)
-    fig, axes = plt.subplots(2, 2, figsize=(18, 12))
+    plot_domains = [d for d in ["Safety", "Threat", SHOCK_TARGET_DOMAIN] if d in df_drift.get("Domain", pd.Series(dtype=str)).values]
+    fig, axes = plt.subplots(max(len(plot_domains), 1), 2, figsize=(18, 6 * max(len(plot_domains), 1)), squeeze=False)
     pal_group = {'SAD': '#c44e52', 'HC': '#4c72b0'}
-    
-    # Plot Grid
-    plot_interaction(axes[0,0], df_drift, "Safety", "Cosine", lme_results.get("Safety_Cosine", 1.0))
-    plot_interaction(axes[0,1], df_drift, "Safety", "Projection", lme_results.get("Safety_Projection", 1.0))
-    plot_interaction(axes[1,0], df_drift, "Threat", "Cosine", lme_results.get("Threat_Cosine", 1.0))
-    plot_interaction(axes[1,1], df_drift, "Threat", "Projection", lme_results.get("Threat_Projection", 1.0))
+    for row, domain in enumerate(plot_domains):
+        plot_interaction(axes[row, 0], df_drift, domain, "Cosine", lme_results.get(f"{domain}_Cosine", 1.0))
+        plot_interaction(axes[row, 1], df_drift, domain, "Projection", lme_results.get(f"{domain}_Projection", 1.0))
     
     plt.tight_layout()
     _save_fig("analysis_21")
@@ -3431,7 +3560,7 @@ if stage_active(18):
     plt.show()
     
     print("Note: Error bars represent Standard Error of the Mean (SEM).")
-    results_22 = {'df': df_drift, 'stats': lme_results}
+    results_22 = {'df': df_drift, 'stats': lme_results, 'shock_target_labels': SHOCK_TARGET_LABELS}
     _save_result("results_22", results_22)
     _save_result("results_22", results_22)
     save_checkpoint(18, {
@@ -3447,6 +3576,7 @@ if stage_active(18):
         "stage18_DriftEfficiency",
         {
             "results_22": results_22,
+            "shock_target_labels": locals().get("SHOCK_TARGET_LABELS"),
             "df_drift": locals().get("df_drift"),
             "lme_results": locals().get("lme_results"),
         },

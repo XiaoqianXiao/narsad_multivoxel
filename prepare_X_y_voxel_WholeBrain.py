@@ -89,7 +89,7 @@ PHASE3_OUTPUT_FILE = os.path.join(
     OUTPUT_DIR, "phase3_X_reinst_y_reinst_voxels_schaefer_tian.npz"
 )
 
-CS_LABELS = ["CS-", "CSS", "CSR"]
+CS_LABELS = ["CS-", "CSS", "CSR", "SHOCK"]
 
 
 # =============================================================================

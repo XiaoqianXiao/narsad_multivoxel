@@ -56,7 +56,7 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 PHASE2_OUTPUT_FILE = os.path.join(OUTPUT_DIR, "phase2_X_ext_y_ext_roi_voxels.npz")
 PHASE3_OUTPUT_FILE = os.path.join(OUTPUT_DIR, "phase3_X_reinst_y_reinst_roi_voxels.npz")
 
-CS_LABELS = ["CS-", "CSS", "CSR"]
+CS_LABELS = ["CS-", "CSS", "CSR", "SHOCK"]
 
 # =============================================================================
 # LOGGING
