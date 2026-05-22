@@ -27,7 +27,7 @@ N_JOBS_CV="${N_JOBS_CV:-1}"
 N_PERMUTATION="${N_PERMUTATION:-5000}"
 N_NULL_PERMS="${N_NULL_PERMS:-5000}"
 STAGE11_ACTUAL_REPEATS="${STAGE11_ACTUAL_REPEATS:-${N_NULL_PERMS}}"
-STAGE11_CHUNKS="${STAGE11_CHUNKS:-100}"
+STAGE11_CHUNKS="${STAGE11_CHUNKS:-500}"
 STAGE11_ARRAY_MAX_RUNNING="${STAGE11_ARRAY_MAX_RUNNING:-20}"
 STAGE11_CHUNK_IDX="${STAGE11_CHUNK_IDX:-}"
 STAGE11_GROUPS=(SAD HC)
@@ -59,8 +59,8 @@ Usage:
 Examples:
   submit_mvpa_L2_schaefer_stage.sh all
   submit_mvpa_L2_schaefer_stage.sh 12 --resume
-  STAGE11_CHUNKS=100 submit_mvpa_L2_schaefer_stage.sh 11:SAD
-  STAGE11_CHUNKS=100 STAGE11_CHUNK_IDX=80 submit_mvpa_L2_schaefer_stage.sh 11:SAD
+  STAGE11_CHUNKS=500 submit_mvpa_L2_schaefer_stage.sh 11:SAD
+  STAGE11_CHUNKS=500 STAGE11_CHUNK_IDX=80 submit_mvpa_L2_schaefer_stage.sh 11:SAD
 
 Analysis structure:
   Main prerequisite chain:
