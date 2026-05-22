@@ -48,9 +48,7 @@ PROJECT = "NARSAD"
 
 DERIV_DIR = os.path.join(ROOT_DIR, PROJECT, "MRI", "derivatives")
 FMRIPREP_DIR = os.path.join(DERIV_DIR, "fmriprep")
-FIRSTLEVEL_DIR = os.path.join(
-    DERIV_DIR, "fMRI_analysis", "LSS", "firstLevel", "all_subjects"
-)
+FIRSTLEVEL_DIR = os.path.join(DERIV_DIR, "fMRI_analysis", "LSS", "firstLevel", "all_subjects", "subjects")
 BEHAV_DIR = os.path.join(ROOT_DIR, PROJECT, "MRI", "source_data", "behav")
 
 ROI_DIR = os.path.join(ROOT_DIR, PROJECT, "ROI")
@@ -77,9 +75,7 @@ TIAN_LABELS_PATH = os.path.join(
     "Tian_Subcortex_S4_3T_label.txt"
 )
 
-OUTPUT_DIR = os.path.join(
-    FIRSTLEVEL_DIR, "group_level"
-)
+OUTPUT_DIR = os.path.join(DERIV_DIR, "fMRI_analysis", "LSS", "firstLevel", "all_subjects", "group_level")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 PHASE2_OUTPUT_FILE = os.path.join(
