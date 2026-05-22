@@ -132,7 +132,7 @@ def get_reference_subject_geometry(logger):
     Finds the FIRST available LSS file to use as the geometric reference 
     (affine, shape) for resampling the atlases.
     """
-    pattern = os.path.join(FIRSTLEVEL_DIR, "subjects", "sub-*_task-*_contrast1.nii*")
+    pattern = os.path.join(FIRSTLEVEL_DIR, "sub-*_task-*_contrast1.nii*")
     files = sorted(glob.glob(pattern))
     if not files:
         raise RuntimeError(f"No LSS files found with pattern: {pattern}")
