@@ -2469,6 +2469,31 @@ if stage_active(12):
     rdms_hc, subs_hc_rdm = calculate_crossnobis_rdm(X_hc_12, y_hc_12, sub_hc_12, RDM_CONDITIONS)
     
     print(f"  > Computed RDMs: SAD (n={len(subs_sad_rdm)}), HC (n={len(subs_hc_rdm)})")
+
+    # Optional 4-condition RDM including shock/US target trials. This is saved for
+    # visualization; the original 3-condition topology metrics remain unchanged.
+    n_feat_sad = max(int(np.sum(mask_sad_analysis)), 1)
+    n_feat_hc = max(int(np.sum(mask_hc_analysis)), 1)
+    RDM_CONDITIONS_SHOCK = RDM_CONDITIONS + ["Shock"]
+    rdms_sad_shock = rdms_hc_shock = None
+    rdms_sad_shock_pv = rdms_hc_shock_pv = None
+    subs_sad_shock_rdm = subs_hc_shock_rdm = None
+    X_shock_sad, y_shock_sad, sub_shock_sad = get_shock_target_data("SAD_Placebo")
+    X_shock_hc, y_shock_hc, sub_shock_hc = get_shock_target_data("HC_Placebo")
+    if X_shock_sad is not None and X_shock_hc is not None:
+        X_sad_12_shock = np.vstack([X_sad_12, X_shock_sad[:, mask_sad_analysis]])
+        y_sad_12_shock = np.concatenate([y_sad_12, np.array(["Shock"] * len(y_shock_sad), dtype=object)])
+        sub_sad_12_shock = np.concatenate([sub_sad_12, sub_shock_sad])
+        X_hc_12_shock = np.vstack([X_hc_12, X_shock_hc[:, mask_hc_analysis]])
+        y_hc_12_shock = np.concatenate([y_hc_12, np.array(["Shock"] * len(y_shock_hc), dtype=object)])
+        sub_hc_12_shock = np.concatenate([sub_hc_12, sub_shock_hc])
+        print(f"  Calculating Shock-inclusive RDMs (Conditions: {RDM_CONDITIONS_SHOCK})...")
+        rdms_sad_shock, subs_sad_shock_rdm = calculate_crossnobis_rdm(X_sad_12_shock, y_sad_12_shock, sub_sad_12_shock, RDM_CONDITIONS_SHOCK)
+        rdms_hc_shock, subs_hc_shock_rdm = calculate_crossnobis_rdm(X_hc_12_shock, y_hc_12_shock, sub_hc_12_shock, RDM_CONDITIONS_SHOCK)
+        rdms_sad_shock_pv = rdms_sad_shock / n_feat_sad
+        rdms_hc_shock_pv = rdms_hc_shock / n_feat_hc
+    else:
+        print(f"  ! Shock-inclusive RDM unavailable: no shock/US target trials found for labels {SHOCK_TARGET_LABELS}.")
     
     # =============================================================================
     # 3. Metrics & Statistical Tests
@@ -2564,8 +2589,6 @@ if stage_active(12):
     plt.show()
     
     # Store Results
-    n_feat_sad = max(int(np.sum(mask_sad_analysis)), 1)
-    n_feat_hc = max(int(np.sum(mask_hc_analysis)), 1)
     rdms_sad_pv = rdms_sad / n_feat_sad
     rdms_hc_pv = rdms_hc / n_feat_hc
     vec_a_sad_pv, vec_b_sad_pv = extract_topology_metrics(rdms_sad_pv, idx_cs_minus, idx_css, idx_csr)
@@ -2585,6 +2608,16 @@ if stage_active(12):
         "rdms_sad": rdms_sad, "rdms_hc": rdms_hc,
         "rdms_sad_pv": rdms_sad_pv, "rdms_hc_pv": rdms_hc_pv,
         "rdms_sad_raw_pv": rdms_sad_pv, "rdms_hc_raw_pv": rdms_hc_pv,
+        "RDM_CONDITIONS_SHOCK": RDM_CONDITIONS_SHOCK,
+        "shock_target_labels": SHOCK_TARGET_LABELS,
+        "rdms_sad_shock": rdms_sad_shock,
+        "rdms_hc_shock": rdms_hc_shock,
+        "rdms_sad_shock_pv": rdms_sad_shock_pv,
+        "rdms_hc_shock_pv": rdms_hc_shock_pv,
+        "rdms_sad_shock_raw_pv": rdms_sad_shock_pv,
+        "rdms_hc_shock_raw_pv": rdms_hc_shock_pv,
+        "subs_sad_shock_rdm": subs_sad_shock_rdm,
+        "subs_hc_shock_rdm": subs_hc_shock_rdm,
         "subs_sad_rdm": subs_sad_rdm, "subs_hc_rdm": subs_hc_rdm,
         "metric_a_stats": (t_a, p_a), "metric_b_stats": (t_b, p_b),
         "safety_integration_index": {"SAD": safety_integration_sad, "HC": safety_integration_hc},

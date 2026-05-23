@@ -3040,6 +3040,10 @@ if cell_active(12):
             continue
         candidate_payload = joblib.load(candidate)
         if isinstance(candidate_payload, dict) and "results_12" in candidate_payload:
+            candidate_results = candidate_payload.get("results_12", {})
+            if "rdms_sad_shock_raw" not in candidate_results:
+                print(f"  [STALE] Found existing RDM results in {candidate}, but shock RDM is missing. Recomputing...")
+                continue
             cache_cell10_load = candidate_payload
             print(f"  [LOAD] Found existing RDM results in {candidate}. Skipping Crossnobis calculation...")
             break
@@ -3135,6 +3139,35 @@ if cell_active(12):
         rdms_hc_raw_pv = rdms_hc_raw / n_feat_hc
         rdms_sad_z_pv = rdms_sad_z / n_feat_sad
         rdms_hc_z_pv = rdms_hc_z / n_feat_hc
+
+        # Optional 4-condition RDM including shock/US target trials. This is saved for
+        # visualization, while the original 3-condition topology metrics stay unchanged.
+        RDM_CONDITIONS_SHOCK = RDM_CONDITIONS + ["Shock"]
+        rdms_sad_shock_raw = rdms_hc_shock_raw = None
+        rdms_sad_shock_z = rdms_hc_shock_z = None
+        rdms_sad_shock_raw_pv = rdms_hc_shock_raw_pv = None
+        rdms_sad_shock_z_pv = rdms_hc_shock_z_pv = None
+        subs_sad_shock_rdm = subs_hc_shock_rdm = None
+        X_shock_sad, y_shock_sad, sub_shock_sad = get_shock_target_data("SAD_Placebo")
+        X_shock_hc, y_shock_hc, sub_shock_hc = get_shock_target_data("HC_Placebo")
+        if X_shock_sad is not None and X_shock_hc is not None:
+            X_sad_12_shock = np.vstack([X_sad_12, X_shock_sad[:, mask_sad_analysis]])
+            y_sad_12_shock = np.concatenate([y_sad_12, np.array(["Shock"] * len(y_shock_sad), dtype=object)])
+            sub_sad_12_shock = np.concatenate([sub_sad_12, sub_shock_sad])
+            X_hc_12_shock = np.vstack([X_hc_12, X_shock_hc[:, mask_hc_analysis]])
+            y_hc_12_shock = np.concatenate([y_hc_12, np.array(["Shock"] * len(y_shock_hc), dtype=object)])
+            sub_hc_12_shock = np.concatenate([sub_hc_12, sub_shock_hc])
+            print(f"  Calculating Shock-inclusive RDMs (Conditions: {RDM_CONDITIONS_SHOCK})...")
+            rdms_sad_shock_raw, subs_sad_shock_rdm = calculate_crossnobis_rdm(X_sad_12_shock, y_sad_12_shock, sub_sad_12_shock, RDM_CONDITIONS_SHOCK, standardize=False)
+            rdms_hc_shock_raw, subs_hc_shock_rdm = calculate_crossnobis_rdm(X_hc_12_shock, y_hc_12_shock, sub_hc_12_shock, RDM_CONDITIONS_SHOCK, standardize=False)
+            rdms_sad_shock_z, _ = calculate_crossnobis_rdm(X_sad_12_shock, y_sad_12_shock, sub_sad_12_shock, RDM_CONDITIONS_SHOCK, standardize=True)
+            rdms_hc_shock_z, _ = calculate_crossnobis_rdm(X_hc_12_shock, y_hc_12_shock, sub_hc_12_shock, RDM_CONDITIONS_SHOCK, standardize=True)
+            rdms_sad_shock_raw_pv = rdms_sad_shock_raw / n_feat_sad
+            rdms_hc_shock_raw_pv = rdms_hc_shock_raw / n_feat_hc
+            rdms_sad_shock_z_pv = rdms_sad_shock_z / n_feat_sad
+            rdms_hc_shock_z_pv = rdms_hc_shock_z / n_feat_hc
+        else:
+            print(f"  ! Shock-inclusive RDM unavailable: no shock/US target trials found for labels {SHOCK_TARGET_LABELS}.")
 
         # =============================================================================
         # 3. Metrics & Statistical Tests
@@ -3251,6 +3284,18 @@ if cell_active(12):
             "rdms_hc_raw_pv": rdms_hc_raw_pv,
             "rdms_sad_z_pv": rdms_sad_z_pv,
             "rdms_hc_z_pv": rdms_hc_z_pv,
+            "RDM_CONDITIONS_SHOCK": RDM_CONDITIONS_SHOCK,
+            "shock_target_labels": SHOCK_TARGET_LABELS,
+            "rdms_sad_shock_raw": rdms_sad_shock_raw,
+            "rdms_hc_shock_raw": rdms_hc_shock_raw,
+            "rdms_sad_shock_z": rdms_sad_shock_z,
+            "rdms_hc_shock_z": rdms_hc_shock_z,
+            "rdms_sad_shock_raw_pv": rdms_sad_shock_raw_pv,
+            "rdms_hc_shock_raw_pv": rdms_hc_shock_raw_pv,
+            "rdms_sad_shock_z_pv": rdms_sad_shock_z_pv,
+            "rdms_hc_shock_z_pv": rdms_hc_shock_z_pv,
+            "subs_sad_shock_rdm": subs_sad_shock_rdm,
+            "subs_hc_shock_rdm": subs_hc_shock_rdm,
             "subs_sad_rdm": subs_sad_rdm,
             "subs_hc_rdm": subs_hc_rdm,
             "subs_sad_rdm_z": subs_sad_rdm_z,
@@ -3300,6 +3345,18 @@ if cell_active(12):
             "rdms_hc_raw_pv": rdms_hc_raw_pv,
             "rdms_sad_z_pv": rdms_sad_z_pv,
             "rdms_hc_z_pv": rdms_hc_z_pv,
+            "RDM_CONDITIONS_SHOCK": RDM_CONDITIONS_SHOCK,
+            "shock_target_labels": SHOCK_TARGET_LABELS,
+            "rdms_sad_shock_raw": rdms_sad_shock_raw,
+            "rdms_hc_shock_raw": rdms_hc_shock_raw,
+            "rdms_sad_shock_z": rdms_sad_shock_z,
+            "rdms_hc_shock_z": rdms_hc_shock_z,
+            "rdms_sad_shock_raw_pv": rdms_sad_shock_raw_pv,
+            "rdms_hc_shock_raw_pv": rdms_hc_shock_raw_pv,
+            "rdms_sad_shock_z_pv": rdms_sad_shock_z_pv,
+            "rdms_hc_shock_z_pv": rdms_hc_shock_z_pv,
+            "subs_sad_shock_rdm": subs_sad_shock_rdm,
+            "subs_hc_shock_rdm": subs_hc_shock_rdm,
             "subs_sad_rdm": subs_sad_rdm,
             "subs_hc_rdm": subs_hc_rdm,
             "subs_sad_rdm_z": subs_sad_rdm_z,
@@ -3314,6 +3371,48 @@ if cell_active(12):
         save_checkpoint(12, cache_payload_12)
         save_intermediate("stage12_topology_stats", cache_payload_12)
 
+    if 'vec_a_sad_raw' not in locals():
+        # Rehydrate plotting/reporting variables when stage 12 is loaded from cache.
+        RDM_CONDITIONS_SHOCK = results_12.get("RDM_CONDITIONS_SHOCK", RDM_CONDITIONS + ["Shock"])
+        rdms_sad_z_pv = results_12.get("rdms_sad_z_pv")
+        rdms_hc_z_pv = results_12.get("rdms_hc_z_pv")
+        vec_a_sad_raw, vec_b_sad_raw = extract_metrics(rdms_sad_raw)
+        vec_a_hc_raw, vec_b_hc_raw = extract_metrics(rdms_hc_raw)
+        vec_a_sad_z, vec_b_sad_z = extract_metrics(rdms_sad_z)
+        vec_a_hc_z, vec_b_hc_z = extract_metrics(rdms_hc_z)
+        vec_a_sad_raw_pv, vec_b_sad_raw_pv = extract_metrics(rdms_sad_raw_pv)
+        vec_a_hc_raw_pv, vec_b_hc_raw_pv = extract_metrics(rdms_hc_raw_pv)
+        def _cached_group_stat(key, sad_vec, hc_vec):
+            if key in results_12:
+                return results_12[key]
+            return perm_ttest_ind(sad_vec, hc_vec, n_perm=N_PERMUTATION)[:2]
+
+        def _cached_one_sample(one_dict, key, vec, label):
+            if key in one_dict:
+                return one_dict[key]
+            return one_sample_test(vec, label)
+
+        t_a_raw, p_a_raw = _cached_group_stat("metric_a_stats_raw", vec_a_sad_raw, vec_a_hc_raw)
+        t_b_raw, p_b_raw = _cached_group_stat("metric_b_stats_raw", vec_b_sad_raw, vec_b_hc_raw)
+        t_a_z, p_a_z = _cached_group_stat("metric_a_stats_z", vec_a_sad_z, vec_a_hc_z)
+        t_b_z, p_b_z = _cached_group_stat("metric_b_stats_z", vec_b_sad_z, vec_b_hc_z)
+        t_a_raw_pv, p_a_raw_pv = _cached_group_stat("metric_a_stats_raw_pv", vec_a_sad_raw_pv, vec_a_hc_raw_pv)
+        t_b_raw_pv, p_b_raw_pv = _cached_group_stat("metric_b_stats_raw_pv", vec_b_sad_raw_pv, vec_b_hc_raw_pv)
+        one_raw = results_12.get("one_sample_stats_raw", {})
+        one_z = results_12.get("one_sample_stats_z", {})
+        one_pv = results_12.get("one_sample_stats_raw_pv", {})
+        p_a_sad_0_raw = _cached_one_sample(one_raw, "p_a_sad", vec_a_sad_raw, "SAD (Dist > 0)")
+        p_a_hc_0_raw = _cached_one_sample(one_raw, "p_a_hc", vec_a_hc_raw, "HC  (Dist > 0)")
+        p_b_sad_0_raw = _cached_one_sample(one_raw, "p_b_sad", vec_b_sad_raw, "SAD (Dist > 0)")
+        p_b_hc_0_raw = _cached_one_sample(one_raw, "p_b_hc", vec_b_hc_raw, "HC  (Dist > 0)")
+        p_a_sad_0_z = _cached_one_sample(one_z, "p_a_sad", vec_a_sad_z, "SAD (Dist > 0)")
+        p_a_hc_0_z = _cached_one_sample(one_z, "p_a_hc", vec_a_hc_z, "HC  (Dist > 0)")
+        p_b_sad_0_z = _cached_one_sample(one_z, "p_b_sad", vec_b_sad_z, "SAD (Dist > 0)")
+        p_b_hc_0_z = _cached_one_sample(one_z, "p_b_hc", vec_b_hc_z, "HC  (Dist > 0)")
+        p_a_sad_0_raw_pv = _cached_one_sample(one_pv, "p_a_sad", vec_a_sad_raw_pv, "SAD (Dist > 0)")
+        p_a_hc_0_raw_pv = _cached_one_sample(one_pv, "p_a_hc", vec_a_hc_raw_pv, "HC  (Dist > 0)")
+        p_b_sad_0_raw_pv = _cached_one_sample(one_pv, "p_b_sad", vec_b_sad_raw_pv, "SAD (Dist > 0)")
+        p_b_hc_0_raw_pv = _cached_one_sample(one_pv, "p_b_hc", vec_b_hc_raw_pv, "HC  (Dist > 0)")
 
     # =============================================================================
     # 4. Visualization
