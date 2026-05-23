@@ -3414,6 +3414,47 @@ if cell_active(12):
         p_b_sad_0_raw_pv = _cached_one_sample(one_pv, "p_b_sad", vec_b_sad_raw_pv, "SAD (Dist > 0)")
         p_b_hc_0_raw_pv = _cached_one_sample(one_pv, "p_b_hc", vec_b_hc_raw_pv, "HC  (Dist > 0)")
 
+    if "shock_distance_stats_raw_pv" not in results_12:
+        results_12["shock_distance_stats_raw_pv"] = {}
+    rdms_sad_shock_raw_pv = results_12.get("rdms_sad_shock_raw_pv")
+    rdms_hc_shock_raw_pv = results_12.get("rdms_hc_shock_raw_pv")
+    RDM_CONDITIONS_SHOCK = results_12.get("RDM_CONDITIONS_SHOCK", RDM_CONDITIONS + ["Shock"])
+    if rdms_sad_shock_raw_pv is not None and rdms_hc_shock_raw_pv is not None:
+        print("\n[PER-VOXEL RAW] Shock-inclusive RDM distances")
+        shock_idx = RDM_CONDITIONS_SHOCK.index("Shock")
+        for cond in RDM_CONDITIONS:
+            cond_idx = RDM_CONDITIONS_SHOCK.index(cond)
+            sad_vec = rdms_sad_shock_raw_pv[:, shock_idx, cond_idx]
+            hc_vec = rdms_hc_shock_raw_pv[:, shock_idx, cond_idx]
+            if f"Shock_vs_{cond}" in results_12["shock_distance_stats_raw_pv"]:
+                stats = results_12["shock_distance_stats_raw_pv"][f"Shock_vs_{cond}"]
+                m_sad = stats.get("means", {}).get("SAD", float(np.nanmean(sad_vec)))
+                m_hc = stats.get("means", {}).get("HC", float(np.nanmean(hc_vec)))
+                t_val, p_val = stats.get("group_stats", perm_ttest_ind(sad_vec, hc_vec, n_perm=N_PERMUTATION)[:2])
+                sad_t, sad_p = stats.get("one_sample_stats", {}).get("SAD", ttest_1samp(sad_vec, 0, alternative="greater"))
+                hc_t, hc_p = stats.get("one_sample_stats", {}).get("HC", ttest_1samp(hc_vec, 0, alternative="greater"))
+            else:
+                t_val, p_val, m_sad, m_hc = perm_ttest_ind(sad_vec, hc_vec, n_perm=N_PERMUTATION)
+                sad_t, sad_p = ttest_1samp(sad_vec, 0, alternative="greater")
+                hc_t, hc_p = ttest_1samp(hc_vec, 0, alternative="greater")
+                results_12["shock_distance_stats_raw_pv"][f"Shock_vs_{cond}"] = {
+                    "SAD": sad_vec,
+                    "HC": hc_vec,
+                    "means": {"SAD": m_sad, "HC": m_hc},
+                    "group_stats": (t_val, p_val),
+                    "one_sample_stats": {
+                        "SAD": (float(sad_t), float(sad_p)),
+                        "HC": (float(hc_t), float(hc_p)),
+                    },
+                }
+            print(
+                f"  Shock vs {cond:<3}: SAD={m_sad:.6f}, HC={m_hc:.6f} | "
+                f"t(GroupDiff)={t_val:.3f}, p={p_val:.4f} | "
+                f"SAD>0 p={float(sad_p):.4f}, HC>0 p={float(hc_p):.4f}"
+            )
+    else:
+        print("\n[PER-VOXEL RAW] Shock-inclusive RDM distances unavailable.")
+
     # =============================================================================
     # 4. Visualization
     # =============================================================================

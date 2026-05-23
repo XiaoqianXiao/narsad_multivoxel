@@ -2537,6 +2537,35 @@ if stage_active(12):
     print("Secondary Topology Index: Threat Bias = dist(CSR,CS-) - dist(CSS,CS-)")
     t_tbi, p_tbi, m_tbi_sad, m_tbi_hc = perm_ttest_ind(threat_bias_sad, threat_bias_hc, n_perm=N_PERMUTATION)
     print(f"    Diff: SAD={m_tbi_sad:.3f}, HC={m_tbi_hc:.3f} | t={t_tbi:.3f}, p={p_tbi:.4f}")
+
+    shock_distance_stats_raw_pv = {}
+    if rdms_sad_shock_pv is not None and rdms_hc_shock_pv is not None:
+        print("\n[PER-VOXEL RAW] Shock-inclusive RDM distances")
+        shock_idx = RDM_CONDITIONS_SHOCK.index("Shock")
+        for cond in RDM_CONDITIONS:
+            cond_idx = RDM_CONDITIONS_SHOCK.index(cond)
+            sad_vec = rdms_sad_shock_pv[:, shock_idx, cond_idx]
+            hc_vec = rdms_hc_shock_pv[:, shock_idx, cond_idx]
+            t_val, p_val, m_sad, m_hc = perm_ttest_ind(sad_vec, hc_vec, n_perm=N_PERMUTATION)
+            sad_t, sad_p = ttest_1samp(sad_vec, 0, alternative="greater")
+            hc_t, hc_p = ttest_1samp(hc_vec, 0, alternative="greater")
+            shock_distance_stats_raw_pv[f"Shock_vs_{cond}"] = {
+                "SAD": sad_vec,
+                "HC": hc_vec,
+                "means": {"SAD": m_sad, "HC": m_hc},
+                "group_stats": (t_val, p_val),
+                "one_sample_stats": {
+                    "SAD": (float(sad_t), float(sad_p)),
+                    "HC": (float(hc_t), float(hc_p)),
+                },
+            }
+            print(
+                f"  Shock vs {cond:<3}: SAD={m_sad:.6f}, HC={m_hc:.6f} | "
+                f"t(GroupDiff)={t_val:.3f}, p={p_val:.4f} | "
+                f"SAD>0 p={sad_p:.4f}, HC>0 p={hc_p:.4f}"
+            )
+    else:
+        print("\n[PER-VOXEL RAW] Shock-inclusive RDM distances unavailable.")
     
     # =============================================================================
     # 4. Visualization
@@ -2616,6 +2645,7 @@ if stage_active(12):
         "rdms_hc_shock_pv": rdms_hc_shock_pv,
         "rdms_sad_shock_raw_pv": rdms_sad_shock_pv,
         "rdms_hc_shock_raw_pv": rdms_hc_shock_pv,
+        "shock_distance_stats_raw_pv": shock_distance_stats_raw_pv,
         "subs_sad_shock_rdm": subs_sad_shock_rdm,
         "subs_hc_shock_rdm": subs_hc_shock_rdm,
         "subs_sad_rdm": subs_sad_rdm, "subs_hc_rdm": subs_hc_rdm,
