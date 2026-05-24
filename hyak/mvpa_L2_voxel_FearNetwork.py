@@ -3031,6 +3031,7 @@ if cell_active(12):
 
     # Global Constants
     RDM_CONDITIONS = ["CS-", "CSS", "CSR"] 
+    idx_cs_minus, idx_css, idx_csr = 0, 1, 2
 
     cache_cell10 = os.path.join(CHECKPOINT_DIR, "analysis_12_topology.joblib")
     legacy_cache_cell10 = os.path.join(CHECKPOINT_DIR, "cell_10.joblib")
