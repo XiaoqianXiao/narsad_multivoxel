@@ -78,7 +78,16 @@ done
 for file in *.out; do
     if [[ -f "$file" ]]; then
         last_line=$(tail -n 1 "$file" 2>/dev/null)
-        if [[ "$last_line" != *"Done"* ]]; then
+        if [[ "$last_line" != *"complete"* ]]; then
+            echo "$file"
+        fi
+    fi
+done
+
+for file in *.out; do
+    if [[ -f "$file" ]]; then
+        last_line=$(tail -n 1 "$file" 2>/dev/null)
+        if [[ "$last_line" == *"complete"* ]]; then
             echo "$file"
         fi
     fi
@@ -87,11 +96,13 @@ done
 for file in *.err; do
     if [[ -f "$file" ]]; then
         last_line=$(tail -n 1 "$file" 2>/dev/null)
-        if [[ "$last_line" == *"error"* ]]; then
+        if [[ "$last_line" == *"CANCELLED"* ]]; then
             echo "$file"
         fi
     fi
 done
+
+
 
 for file in *.out; do
     if [[ -f "$file" ]]; then
