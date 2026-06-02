@@ -1281,6 +1281,108 @@ def get_shock_target_data(group_key, labels=None):
     return np.vstack([p[0] for p in parts]), np.concatenate([p[1] for p in parts]), np.concatenate([p[2] for p in parts])
 
 
+def calculate_residualized_shock_anchor_projection(X_cs, y_cs, sub_cs, X_shock, y_shock, sub_shock):
+    """Project CS patterns onto a subject-specific residualized Shock-minus-CS- axis."""
+    rows = []
+    if X_cs is None or X_shock is None or X_cs.shape[1] == 0:
+        return pd.DataFrame(rows)
+
+    X_cs_resid = X_cs - np.mean(X_cs, axis=1, keepdims=True)
+    X_shock_resid = X_shock - np.mean(X_shock, axis=1, keepdims=True)
+    shared_subjects = np.intersect1d(np.unique(sub_cs), np.unique(sub_shock))
+
+    for sub in shared_subjects:
+        m_base = (sub_cs == sub) & _condition_mask(y_cs, "CS-")
+        m_css = (sub_cs == sub) & _condition_mask(y_cs, "CSS")
+        m_csr = (sub_cs == sub) & _condition_mask(y_cs, "CSR")
+        m_shock = (sub_shock == sub)
+        if not (np.any(m_base) and np.any(m_css) and np.any(m_csr) and np.any(m_shock)):
+            continue
+
+        base = np.mean(X_cs_resid[m_base], axis=0)
+        css = np.mean(X_cs_resid[m_css], axis=0)
+        csr = np.mean(X_cs_resid[m_csr], axis=0)
+        shock = np.mean(X_shock_resid[m_shock], axis=0)
+        shock_axis = shock - base
+        axis_norm = np.linalg.norm(shock_axis)
+        if not np.isfinite(axis_norm) or axis_norm <= 0:
+            continue
+        shock_axis = shock_axis / axis_norm
+
+        def _projection_metrics(vec):
+            delta = vec - base
+            delta_norm = np.linalg.norm(delta)
+            projection = float(np.dot(delta, shock_axis))
+            cosine = np.nan if delta_norm <= 0 else float(projection / delta_norm)
+            return projection, cosine
+
+        proj_css, cos_css = _projection_metrics(css)
+        proj_csr, cos_csr = _projection_metrics(csr)
+        rows.append({
+            "Subject": sub,
+            "Projection_CSS": proj_css,
+            "Projection_CSR": proj_csr,
+            "Projection_CSR_minus_CSS": proj_csr - proj_css,
+            "Cosine_CSS": cos_css,
+            "Cosine_CSR": cos_csr,
+            "Cosine_CSR_minus_CSS": cos_csr - cos_css if np.isfinite(cos_css) and np.isfinite(cos_csr) else np.nan,
+            "Shock_Axis_Norm": float(axis_norm),
+            "n_shock_trials": int(np.sum(m_shock)),
+        })
+    return pd.DataFrame(rows)
+
+
+def summarize_shock_anchor_projection(df_sad, df_hc, n_perm=N_PERMUTATION):
+    metrics = [
+        "Projection_CSS",
+        "Projection_CSR",
+        "Projection_CSR_minus_CSS",
+        "Cosine_CSS",
+        "Cosine_CSR",
+        "Cosine_CSR_minus_CSS",
+        "Shock_Axis_Norm",
+    ]
+    stats = {}
+    for metric in metrics:
+        if metric not in df_sad.columns or metric not in df_hc.columns:
+            continue
+        sad_vals = pd.to_numeric(df_sad[metric], errors="coerce").dropna().to_numpy()
+        hc_vals = pd.to_numeric(df_hc[metric], errors="coerce").dropna().to_numpy()
+        if len(sad_vals) < 2 or len(hc_vals) < 2:
+            stats[metric] = {
+                "SAD": sad_vals,
+                "HC": hc_vals,
+                "means": {"SAD": np.nan, "HC": np.nan},
+                "group_stats": (np.nan, np.nan),
+            }
+            continue
+        t_val, p_val, m_sad, m_hc = perm_ttest_ind(sad_vals, hc_vals, n_perm=n_perm)
+        stats[metric] = {
+            "SAD": sad_vals,
+            "HC": hc_vals,
+            "means": {"SAD": m_sad, "HC": m_hc},
+            "group_stats": (t_val, p_val),
+        }
+    return stats
+
+
+def print_shock_anchor_summary(shock_anchor_stats):
+    if not isinstance(shock_anchor_stats, dict) or not shock_anchor_stats:
+        print("\n[Shock-anchor sensitivity] Unavailable.")
+        return
+    print("\n[Shock-anchor sensitivity] Residualized projection onto subject-specific Shock-minus-CS- axis")
+    for metric in ["Projection_CSS", "Projection_CSR", "Projection_CSR_minus_CSS", "Cosine_CSS", "Cosine_CSR", "Cosine_CSR_minus_CSS"]:
+        if metric not in shock_anchor_stats:
+            continue
+        info = shock_anchor_stats[metric]
+        means = info.get("means", {})
+        t_val, p_val = info.get("group_stats", (np.nan, np.nan))
+        print(
+            f"  {metric:<24}: SAD={means.get('SAD', np.nan):.6f}, "
+            f"HC={means.get('HC', np.nan):.6f} | t(GroupDiff)={t_val:.3f}, p={p_val:.4f}"
+        )
+
+
 def calculate_plasticity_vectors(X_learn, y_learn, sub_learn, X_targ, y_targ, sub_targ, mask, cond_l, cond_t):
     """
     Calculates representational drift between a learning state and a target state.
@@ -3042,8 +3144,8 @@ if cell_active(12):
         candidate_payload = joblib.load(candidate)
         if isinstance(candidate_payload, dict) and "results_12" in candidate_payload:
             candidate_results = candidate_payload.get("results_12", {})
-            if "rdms_sad_shock_raw" not in candidate_results:
-                print(f"  [STALE] Found existing RDM results in {candidate}, but shock RDM is missing. Recomputing...")
+            if "shock_anchor_results" not in candidate_results:
+                print(f"  [STALE] Found existing RDM results in {candidate}, but Shock-anchor sensitivity is missing. Recomputing...")
                 continue
             cache_cell10_load = candidate_payload
             print(f"  [LOAD] Found existing RDM results in {candidate}. Skipping Crossnobis calculation...")
@@ -3141,34 +3243,32 @@ if cell_active(12):
         rdms_sad_z_pv = rdms_sad_z / n_feat_sad
         rdms_hc_z_pv = rdms_hc_z / n_feat_hc
 
-        # Optional 4-condition RDM including shock/US target trials. This is saved for
-        # visualization, while the original 3-condition topology metrics stay unchanged.
-        RDM_CONDITIONS_SHOCK = RDM_CONDITIONS + ["Shock"]
-        rdms_sad_shock_raw = rdms_hc_shock_raw = None
-        rdms_sad_shock_z = rdms_hc_shock_z = None
-        rdms_sad_shock_raw_pv = rdms_hc_shock_raw_pv = None
-        rdms_sad_shock_z_pv = rdms_hc_shock_z_pv = None
-        subs_sad_shock_rdm = subs_hc_shock_rdm = None
+        # Secondary Shock-anchor sensitivity: residualize each trial across features,
+        # then project CS patterns onto each subject's Shock-minus-CS- axis. Shock is
+        # intentionally not added as a fourth RDM condition because its global evoked
+        # amplitude can dominate crossnobis distances.
+        shock_anchor_df_sad = pd.DataFrame()
+        shock_anchor_df_hc = pd.DataFrame()
+        shock_anchor_df = pd.DataFrame()
+        shock_anchor_stats = {}
         X_shock_sad, y_shock_sad, sub_shock_sad = get_shock_target_data("SAD_Placebo")
         X_shock_hc, y_shock_hc, sub_shock_hc = get_shock_target_data("HC_Placebo")
         if X_shock_sad is not None and X_shock_hc is not None:
-            X_sad_12_shock = np.vstack([X_sad_12, X_shock_sad[:, mask_sad_analysis]])
-            y_sad_12_shock = np.concatenate([y_sad_12, np.array(["Shock"] * len(y_shock_sad), dtype=object)])
-            sub_sad_12_shock = np.concatenate([sub_sad_12, sub_shock_sad])
-            X_hc_12_shock = np.vstack([X_hc_12, X_shock_hc[:, mask_hc_analysis]])
-            y_hc_12_shock = np.concatenate([y_hc_12, np.array(["Shock"] * len(y_shock_hc), dtype=object)])
-            sub_hc_12_shock = np.concatenate([sub_hc_12, sub_shock_hc])
-            print(f"  Calculating Shock-inclusive RDMs (Conditions: {RDM_CONDITIONS_SHOCK})...")
-            rdms_sad_shock_raw, subs_sad_shock_rdm = calculate_crossnobis_rdm(X_sad_12_shock, y_sad_12_shock, sub_sad_12_shock, RDM_CONDITIONS_SHOCK, standardize=False)
-            rdms_hc_shock_raw, subs_hc_shock_rdm = calculate_crossnobis_rdm(X_hc_12_shock, y_hc_12_shock, sub_hc_12_shock, RDM_CONDITIONS_SHOCK, standardize=False)
-            rdms_sad_shock_z, _ = calculate_crossnobis_rdm(X_sad_12_shock, y_sad_12_shock, sub_sad_12_shock, RDM_CONDITIONS_SHOCK, standardize=True)
-            rdms_hc_shock_z, _ = calculate_crossnobis_rdm(X_hc_12_shock, y_hc_12_shock, sub_hc_12_shock, RDM_CONDITIONS_SHOCK, standardize=True)
-            rdms_sad_shock_raw_pv = rdms_sad_shock_raw / n_feat_sad
-            rdms_hc_shock_raw_pv = rdms_hc_shock_raw / n_feat_hc
-            rdms_sad_shock_z_pv = rdms_sad_shock_z / n_feat_sad
-            rdms_hc_shock_z_pv = rdms_hc_shock_z / n_feat_hc
+            print("  Calculating residualized Shock-anchor projection sensitivity...")
+            shock_anchor_df_sad = calculate_residualized_shock_anchor_projection(
+                X_sad_12, y_sad_12, sub_sad_12, X_shock_sad[:, mask_sad_analysis], y_shock_sad, sub_shock_sad
+            )
+            shock_anchor_df_hc = calculate_residualized_shock_anchor_projection(
+                X_hc_12, y_hc_12, sub_hc_12, X_shock_hc[:, mask_hc_analysis], y_shock_hc, sub_shock_hc
+            )
+            if not shock_anchor_df_sad.empty:
+                shock_anchor_df_sad["Group"] = "SAD"
+            if not shock_anchor_df_hc.empty:
+                shock_anchor_df_hc["Group"] = "HC"
+            shock_anchor_df = pd.concat([shock_anchor_df_sad, shock_anchor_df_hc], ignore_index=True)
+            shock_anchor_stats = summarize_shock_anchor_projection(shock_anchor_df_sad, shock_anchor_df_hc, n_perm=N_PERMUTATION)
         else:
-            print(f"  ! Shock-inclusive RDM unavailable: no shock/US target trials found for labels {SHOCK_TARGET_LABELS}.")
+            print(f"  ! Shock-anchor sensitivity unavailable: no shock/US target trials found for labels {SHOCK_TARGET_LABELS}.")
 
         # =============================================================================
         # 3. Metrics & Statistical Tests
@@ -3285,18 +3385,16 @@ if cell_active(12):
             "rdms_hc_raw_pv": rdms_hc_raw_pv,
             "rdms_sad_z_pv": rdms_sad_z_pv,
             "rdms_hc_z_pv": rdms_hc_z_pv,
-            "RDM_CONDITIONS_SHOCK": RDM_CONDITIONS_SHOCK,
             "shock_target_labels": SHOCK_TARGET_LABELS,
-            "rdms_sad_shock_raw": rdms_sad_shock_raw,
-            "rdms_hc_shock_raw": rdms_hc_shock_raw,
-            "rdms_sad_shock_z": rdms_sad_shock_z,
-            "rdms_hc_shock_z": rdms_hc_shock_z,
-            "rdms_sad_shock_raw_pv": rdms_sad_shock_raw_pv,
-            "rdms_hc_shock_raw_pv": rdms_hc_shock_raw_pv,
-            "rdms_sad_shock_z_pv": rdms_sad_shock_z_pv,
-            "rdms_hc_shock_z_pv": rdms_hc_shock_z_pv,
-            "subs_sad_shock_rdm": subs_sad_shock_rdm,
-            "subs_hc_shock_rdm": subs_hc_shock_rdm,
+            "shock_anchor_description": "Trial-wise feature-mean residualized projection of CSS/CSR onto each subject's Shock-minus-CS- axis; Shock is not included in the primary RDM.",
+            "shock_anchor_df": shock_anchor_df,
+            "shock_anchor_stats": shock_anchor_stats,
+            "shock_anchor_results": {
+                "df": shock_anchor_df,
+                "SAD": shock_anchor_df_sad,
+                "HC": shock_anchor_df_hc,
+                "stats": shock_anchor_stats,
+            },
             "subs_sad_rdm": subs_sad_rdm,
             "subs_hc_rdm": subs_hc_rdm,
             "subs_sad_rdm_z": subs_sad_rdm_z,
@@ -3346,18 +3444,16 @@ if cell_active(12):
             "rdms_hc_raw_pv": rdms_hc_raw_pv,
             "rdms_sad_z_pv": rdms_sad_z_pv,
             "rdms_hc_z_pv": rdms_hc_z_pv,
-            "RDM_CONDITIONS_SHOCK": RDM_CONDITIONS_SHOCK,
             "shock_target_labels": SHOCK_TARGET_LABELS,
-            "rdms_sad_shock_raw": rdms_sad_shock_raw,
-            "rdms_hc_shock_raw": rdms_hc_shock_raw,
-            "rdms_sad_shock_z": rdms_sad_shock_z,
-            "rdms_hc_shock_z": rdms_hc_shock_z,
-            "rdms_sad_shock_raw_pv": rdms_sad_shock_raw_pv,
-            "rdms_hc_shock_raw_pv": rdms_hc_shock_raw_pv,
-            "rdms_sad_shock_z_pv": rdms_sad_shock_z_pv,
-            "rdms_hc_shock_z_pv": rdms_hc_shock_z_pv,
-            "subs_sad_shock_rdm": subs_sad_shock_rdm,
-            "subs_hc_shock_rdm": subs_hc_shock_rdm,
+            "shock_anchor_description": "Trial-wise feature-mean residualized projection of CSS/CSR onto each subject's Shock-minus-CS- axis; Shock is not included in the primary RDM.",
+            "shock_anchor_df": shock_anchor_df,
+            "shock_anchor_stats": shock_anchor_stats,
+            "shock_anchor_results": {
+                "df": shock_anchor_df,
+                "SAD": shock_anchor_df_sad,
+                "HC": shock_anchor_df_hc,
+                "stats": shock_anchor_stats,
+            },
             "subs_sad_rdm": subs_sad_rdm,
             "subs_hc_rdm": subs_hc_rdm,
             "subs_sad_rdm_z": subs_sad_rdm_z,
@@ -3374,7 +3470,6 @@ if cell_active(12):
 
     if 'vec_a_sad_raw' not in locals():
         # Rehydrate plotting/reporting variables when stage 12 is loaded from cache.
-        RDM_CONDITIONS_SHOCK = results_12.get("RDM_CONDITIONS_SHOCK", RDM_CONDITIONS + ["Shock"])
         rdms_sad_z_pv = results_12.get("rdms_sad_z_pv")
         rdms_hc_z_pv = results_12.get("rdms_hc_z_pv")
         vec_a_sad_raw, vec_b_sad_raw = extract_metrics(rdms_sad_raw)
@@ -3415,46 +3510,7 @@ if cell_active(12):
         p_b_sad_0_raw_pv = _cached_one_sample(one_pv, "p_b_sad", vec_b_sad_raw_pv, "SAD (Dist > 0)")
         p_b_hc_0_raw_pv = _cached_one_sample(one_pv, "p_b_hc", vec_b_hc_raw_pv, "HC  (Dist > 0)")
 
-    if "shock_distance_stats_raw_pv" not in results_12:
-        results_12["shock_distance_stats_raw_pv"] = {}
-    rdms_sad_shock_raw_pv = results_12.get("rdms_sad_shock_raw_pv")
-    rdms_hc_shock_raw_pv = results_12.get("rdms_hc_shock_raw_pv")
-    RDM_CONDITIONS_SHOCK = results_12.get("RDM_CONDITIONS_SHOCK", RDM_CONDITIONS + ["Shock"])
-    if rdms_sad_shock_raw_pv is not None and rdms_hc_shock_raw_pv is not None:
-        print("\n[PER-VOXEL RAW] Shock-inclusive RDM distances")
-        shock_idx = RDM_CONDITIONS_SHOCK.index("Shock")
-        for cond in RDM_CONDITIONS:
-            cond_idx = RDM_CONDITIONS_SHOCK.index(cond)
-            sad_vec = rdms_sad_shock_raw_pv[:, shock_idx, cond_idx]
-            hc_vec = rdms_hc_shock_raw_pv[:, shock_idx, cond_idx]
-            if f"Shock_vs_{cond}" in results_12["shock_distance_stats_raw_pv"]:
-                stats = results_12["shock_distance_stats_raw_pv"][f"Shock_vs_{cond}"]
-                m_sad = stats.get("means", {}).get("SAD", float(np.nanmean(sad_vec)))
-                m_hc = stats.get("means", {}).get("HC", float(np.nanmean(hc_vec)))
-                t_val, p_val = stats.get("group_stats", perm_ttest_ind(sad_vec, hc_vec, n_perm=N_PERMUTATION)[:2])
-                sad_t, sad_p = stats.get("one_sample_stats", {}).get("SAD", ttest_1samp(sad_vec, 0, alternative="greater"))
-                hc_t, hc_p = stats.get("one_sample_stats", {}).get("HC", ttest_1samp(hc_vec, 0, alternative="greater"))
-            else:
-                t_val, p_val, m_sad, m_hc = perm_ttest_ind(sad_vec, hc_vec, n_perm=N_PERMUTATION)
-                sad_t, sad_p = ttest_1samp(sad_vec, 0, alternative="greater")
-                hc_t, hc_p = ttest_1samp(hc_vec, 0, alternative="greater")
-                results_12["shock_distance_stats_raw_pv"][f"Shock_vs_{cond}"] = {
-                    "SAD": sad_vec,
-                    "HC": hc_vec,
-                    "means": {"SAD": m_sad, "HC": m_hc},
-                    "group_stats": (t_val, p_val),
-                    "one_sample_stats": {
-                        "SAD": (float(sad_t), float(sad_p)),
-                        "HC": (float(hc_t), float(hc_p)),
-                    },
-                }
-            print(
-                f"  Shock vs {cond:<3}: SAD={m_sad:.6f}, HC={m_hc:.6f} | "
-                f"t(GroupDiff)={t_val:.3f}, p={p_val:.4f} | "
-                f"SAD>0 p={float(sad_p):.4f}, HC>0 p={float(hc_p):.4f}"
-            )
-    else:
-        print("\n[PER-VOXEL RAW] Shock-inclusive RDM distances unavailable.")
+    print_shock_anchor_summary(results_12.get("shock_anchor_stats", {}))
 
     # =============================================================================
     # 4. Visualization

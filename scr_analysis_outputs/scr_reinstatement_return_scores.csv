@@ -1,0 +1,748 @@
+Subject,Group,Drug,Phase,Window,Contrast,Score,Score_ExtLate,Score_ReinEarly,AnalysisSet
+N101,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.026706004727937355,0.009712091752335367,0.03641809648027272,All subjects
+N101,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.010973161777311113,0.028693056947675127,0.03966621872498624,All subjects
+N101,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.04243884767856354,-0.009268873443004338,0.0331699742355592,All subjects
+N103,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.026541932995895884,-0.021322711092852636,0.005219221903043247,All subjects
+N103,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.0,0.0,0.0,All subjects
+N103,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.05308386599179188,-0.04264542218570527,0.010438443806086606,All subjects
+N104,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.012667480500008363,-0.04121136604799136,-0.028543885547982997,All subjects
+N104,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.004639693666804959,-0.0429171604134589,-0.04755685408026386,All subjects
+N104,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.029974654666821657,-0.039505571682523805,-0.009530917015702148,All subjects
+N105,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.030558581693724315,-0.0024142852686094424,-0.03297286696233376,All subjects
+N105,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.01995519211431339,-0.04112674498330916,-0.06108193709762255,All subjects
+N105,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.041161971273135256,0.03629817444609029,-0.004863796827044964,All subjects
+N106,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.01150477547221454,0.0013431876213751692,-0.010161587850839371,All subjects
+N106,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.003703178091400472,-0.006273721476436456,-0.009976899567836928,All subjects
+N106,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.019306372853028636,0.008960096719186794,-0.010346276133841842,All subjects
+N108,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.011932278436388069,0.05902859476558797,0.07096087320197604,All subjects
+N108,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.11570783118036265,0.11805718953117594,0.002349358350813291,All subjects
+N108,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.13957238805313882,0.0,0.13957238805313882,All subjects
+N109,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.05498855940274833,0.018645843388636618,0.07363440279138495,All subjects
+N109,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.1284017667839885,-0.05751084363470571,0.0708909231492828,All subjects
+N109,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.018424647978491804,0.09480253041197889,0.07637788243348709,All subjects
+N110,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.15092344547072878,0.0,0.15092344547072878,All subjects
+N110,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.08641260760726312,0.0,0.08641260760726312,All subjects
+N110,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.2154342833341944,0.0,0.2154342833341944,All subjects
+N111,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.13588707318250798,0.031229269940469304,0.1671163431229773,All subjects
+N111,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.049317874235510636,0.040288805738539726,0.08960667997405036,All subjects
+N111,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.22245627212950547,0.02216973414239888,0.24462600627190434,All subjects
+N112,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.04360882650873239,-0.045630029540356457,-0.0020212030316240637,All subjects
+N112,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.0028449244633813042,-0.006125787564787183,-0.0032808631014058787,All subjects
+N112,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.08437272855408344,-0.08513427151592572,-0.0007615429618422764,All subjects
+N113,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.09757585798995655,0.019795014342131795,-0.07778084364782475,All subjects
+N113,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.12167557059374853,0.01980221639652774,-0.1018733541972208,All subjects
+N113,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.07347614538616462,0.01978781228773588,-0.05368833309842874,All subjects
+N114,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.15354207565955869,0.0,0.15354207565955869,All subjects
+N114,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.1963310574429047,0.0,0.1963310574429047,All subjects
+N114,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.11075309387621267,0.0,0.11075309387621267,All subjects
+N115,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.0949925754830679,0.054749079072529364,-0.04024349641053854,All subjects
+N115,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.13112113663179403,0.07326971627958513,-0.05785142035220889,All subjects
+N115,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.058864014334341797,0.036228441865473596,-0.0226355724688682,All subjects
+N117,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.061608631135049344,0.0,-0.061608631135049344,All subjects
+N117,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.05714847558466008,0.0,-0.05714847558466008,All subjects
+N117,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.06606878668543861,0.0,-0.06606878668543861,All subjects
+N118,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.08102864636288379,-0.05188691272270449,0.0291417336401793,All subjects
+N118,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.10530409619349983,-0.07398069244603599,0.03132340374746384,All subjects
+N118,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.056753196532267874,-0.029793132999373,0.026960063532894873,All subjects
+N121,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.10120150069935155,-0.014815743152883646,0.0863857575464679,All subjects
+N121,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.11819219572520646,-0.035355339059327376,0.08283685666587909,All subjects
+N121,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.08421080567349662,0.005723852753560084,0.0899346584270567,All subjects
+N122,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.11873078434406331,0.04816568114344108,-0.07056510320062223,All subjects
+N122,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.24217836292171283,0.056449784586832225,-0.1857285783348806,All subjects
+N122,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.004716794233586147,0.03988157770004999,0.04459837193363614,All subjects
+N123,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.0743762166603857,-0.035355339059327376,0.039020877601058324,All subjects
+N123,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.03745562573244958,-0.035355339059327376,0.0021002866731222036,All subjects
+N123,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.11129680758832185,-0.035355339059327376,0.07594146852899447,All subjects
+N124,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.09526597621393387,-0.054728165440685754,0.040537810773248126,All subjects
+N124,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.08392144235076932,-0.03457252106993938,0.04934892128082993,All subjects
+N124,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.10661051007709844,-0.07488380981143213,0.03172670026566632,All subjects
+N125,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.004673109286002508,-0.0008628266880754687,0.0038102825979270394,All subjects
+N125,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.010165654990066372,0.0,-0.010165654990066372,All subjects
+N125,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.019511873562071347,-0.0017256533761509374,0.01778622018592041,All subjects
+N127,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.07559235352993472,0.037468242924572015,0.11306059645450674,All subjects
+N127,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.0958144371768981,0.0387477620050372,0.1345621991819353,All subjects
+N127,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.05537026988297132,0.03618872384410682,0.09155899372707814,All subjects
+N128,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.00160066914248818,-0.018550772335809908,-0.020151441478298088,All subjects
+N128,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.1502671418419529,-0.036228441865473596,-0.1864955837074265,All subjects
+N128,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.14706580355697657,-0.0008731028061462198,0.14619270075083035,All subjects
+N129,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.46305918195909684,-0.3982351950613441,0.06482398689775276,All subjects
+N129,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.5517222147308316,-0.4878524367060187,0.06386977802481286,All subjects
+N129,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.37439614918736225,-0.3086179534166695,0.06577819577069277,All subjects
+N130,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.0027545452547561855,0.0003835772197602061,0.0031381224745163916,All subjects
+N130,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.012356245860067727,-0.0007144593487018458,0.011641786511365881,All subjects
+N130,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.006847155350555356,0.001481613788222258,-0.005365541562333098,All subjects
+N131,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.13541455982995773,0.23183195430748207,0.09641739447752434,All subjects
+N131,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.2248126926408312,0.2580652776396265,0.0332525849987953,All subjects
+N131,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.046016427019084316,0.20559863097533765,0.15958220395625333,All subjects
+N132,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.032224766530731405,-0.036218165747402845,-0.003993399216671439,All subjects
+N132,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.07186860820161409,0.0,-0.07186860820161409,All subjects
+N132,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.13631814126307687,-0.07243633149480569,0.06388180976827118,All subjects
+N133,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.007735023733536184,-0.04939511825014686,-0.04166009451661068,All subjects
+N133,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.04740987316449083,-0.09261504546258445,-0.04520517229809362,All subjects
+N133,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.03193982569741838,-0.0061751910377093044,-0.03811501673512768,All subjects
+N134,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.04158053170388719,0.0,0.04158053170388719,All subjects
+N134,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.11683046711231757,0.0,0.11683046711231757,All subjects
+N134,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.033669403704543216,0.0,-0.033669403704543216,All subjects
+N135,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.1536084500592012,0.06621174690688278,-0.08739670315231843,All subjects
+N135,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.17543533494019314,0.08770213426376978,-0.08773320067642335,All subjects
+N135,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.1317815651782093,0.044721359549995794,-0.08706020562821351,All subjects
+N136,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.12335250238854731,0.003165678245078657,-0.12018682414346865,All subjects
+N136,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.07223692173606777,-0.039233886275875485,-0.11147080801194326,All subjects
+N136,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.1744680830410268,0.045565242766032785,-0.12890284027499402,All subjects
+N137,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.0917639415535999,0.005595405366656536,-0.08616853618694337,All subjects
+N137,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.1325634702011088,0.03348839410054702,-0.09907507610056179,All subjects
+N137,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.050964412906091036,-0.022297583367233934,-0.07326199627332497,All subjects
+N138,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.03829184207765704,0.04177385717717,0.08006569925482704,All subjects
+N138,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.0907037609727897,0.03593385618541811,0.12663761715820782,All subjects
+N138,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.014120076817475707,0.04761385816892186,0.03349378135144615,All subjects
+N141,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.16854203277571927,-0.02773708578179869,0.1408049469939206,All subjects
+N141,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.29163698300820295,-0.04541475531146238,0.2462222276967406,All subjects
+N141,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.04544708254323565,-0.010059416252135002,0.03538766629110065,All subjects
+N142,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.006441650814922789,-0.0023810009798236886,0.0040606498350991005,All subjects
+N142,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.0006439281607007741,0.003376252920381323,0.002732324759680549,All subjects
+N142,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.013527229790546408,-0.008138254880028728,0.00538897491051768,All subjects
+N143,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.11295625519207303,0.036836053433712,-0.07612020175836104,All subjects
+N143,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.004251984904743149,0.03453988281751096,0.030287897912767814,All subjects
+N143,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.2216605254794029,0.03913222404991302,-0.1825283014294899,All subjects
+N144,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.03387715734083141,-0.009309683817394554,-0.043186841158225964,All subjects
+N144,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.009579847940903802,-0.039376437506317474,-0.029796589565413673,All subjects
+N144,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.07733416262256657,0.020757069871528366,-0.0565770927510382,All subjects
+N145,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.021601142724199163,-0.004794693334159383,0.01680644939003978,All subjects
+N145,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.001026684070644962,-0.007643587317372913,-0.006616903246727951,All subjects
+N145,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.04217560137775339,-0.0019457993509458538,0.04022980202680754,All subjects
+N146,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.03427220927741911,-0.003004485685515035,0.03126772359190408,All subjects
+N146,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.03506063274133986,-0.00378689299469559,0.03127373974664427,All subjects
+N146,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.033483785813498396,-0.00222207837633448,0.031261707437163916,All subjects
+N147,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.0390040162365132,0.02390568083329761,0.06290969706981081,All subjects
+N147,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.07607849923191404,0.005723852753560084,0.08180235198547411,All subjects
+N147,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.001929533241112391,0.04208750891303513,0.04401704215414752,All subjects
+N148,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.035729697785980716,-0.017753170032629537,0.01797652775335118,All subjects
+N148,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.05789572083091318,-0.037118086763666625,0.02077763406724656,All subjects
+N148,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.013563674741048276,0.0016117466984075512,0.015175421439455827,All subjects
+N149,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.05353061922047758,-0.03429990016766238,0.019230719052815204,All subjects
+N149,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.008463209851257425,0.019726729937724674,0.011263520086467249,All subjects
+N149,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.11552444829221259,-0.08832653027304943,0.02719791801916316,All subjects
+N150,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.07532489596084917,0.09096955999206417,0.015644664031215005,All subjects
+N150,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.08620872855127826,0.07158378092480097,-0.014624947626477293,All subjects
+N150,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.06444106337042008,0.11035533905932737,0.0459142756889073,All subjects
+N151,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.033638456554771476,-0.034045684850108046,-0.00040722829533657023,All subjects
+N151,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.07069485881801219,-0.07071067811865475,-1.5819300642566647e-05,All subjects
+N151,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.0034179457084692333,0.0026193084184386595,-0.0007986372900305738,All subjects
+N153,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.02500497741896257,-0.017518662499516308,0.007486314919446263,All subjects
+N153,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.02598444031504593,0.003768070457891709,0.02975251077293764,All subjects
+N153,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.02402551452287921,-0.038805395456924296,-0.014779880934045087,All subjects
+N154,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.025216016449480072,-0.007071509916399488,-0.03228752636587956,All subjects
+N154,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.0025660283182227794,-0.0075528782433281205,-0.0101189065615509,All subjects
+N154,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.04786600458073734,-0.006590141589470855,-0.05445614617020819,All subjects
+N155,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.0002935816026363447,0.0013852561228441251,0.0016788377254804698,All subjects
+N155,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.0008378408605393406,-7.184182293717978e-05,0.0007659990376021608,All subjects
+N155,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.00025067765526662344,0.0028423540686254023,0.002591676413358779,All subjects
+N156,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.01054338814077635,-0.07207224015830146,-0.08261562829907781,All subjects
+N156,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.034325991147495405,-0.054394570628637784,-0.08872056177613319,All subjects
+N156,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.013239214865942733,-0.08974990968796515,-0.07651069482202241,All subjects
+N157,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.38699669249111046,-0.08384679440819959,0.3031498980829109,All subjects
+N157,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.39497598214560514,-0.05739324269978849,0.3375827394458167,All subjects
+N157,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.37901740283661584,-0.11030034611661067,0.2687170567200052,All subjects
+N158,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.1839820626963899,-0.055542514338868476,0.12843954835752142,All subjects
+N158,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.12017017659219387,-0.08003690737034025,0.04013326922185362,All subjects
+N158,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.24779394880058603,-0.031048121307396703,0.21674582749318932,All subjects
+N201,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.14750144681048785,0.12838375980443156,-0.01911768700605629,All subjects
+N201,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.11378994147979529,0.14391044877058118,0.030120507290785886,All subjects
+N201,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.18121295214118036,0.11285707083828192,-0.06835588130289844,All subjects
+N202,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.033528323236707874,-0.005948190667636077,0.027580132569071797,All subjects
+N202,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.11393173529170937,-0.07965445835029432,0.03427727694141505,All subjects
+N202,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.04687508881829365,0.06775807701502216,0.020882988196728514,All subjects
+N203,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.035791890462400486,-0.035791890462400486,0.0,All subjects
+N203,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.0,0.0,0.0,All subjects
+N203,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.07158378092480097,-0.07158378092480097,0.0,All subjects
+N204,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.0,0.0,0.0,All subjects
+N204,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.0,0.0,0.0,All subjects
+N204,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.0,0.0,0.0,All subjects
+N206,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.12461678951379204,0.07114722952172786,-0.053469559992064174,All subjects
+N206,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.10606601717798213,0.07071067811865475,-0.035355339059327376,All subjects
+N206,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.14316756184960194,0.07158378092480097,-0.07158378092480097,All subjects
+N207,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.017677669529663688,0.0,0.017677669529663688,All subjects
+N207,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.0,0.0,0.0,All subjects
+N207,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.035355339059327376,0.0,0.035355339059327376,All subjects
+N209,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.011244647137201344,0.017677669529663688,0.006433022392462344,All subjects
+N209,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.014155531398418623,0.035355339059327376,0.021199807660908752,All subjects
+N209,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.008333762875984065,0.0,-0.008333762875984065,All subjects
+N210,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.2024305688764557,-0.028884349254803016,0.17354621962165268,All subjects
+N210,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.15595093572664742,-0.028137212203838746,0.12781372352280868,All subjects
+N210,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.24891020202626396,-0.029631486305767292,0.21927871572049668,All subjects
+N211,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.024711185543897285,0.002245779439956297,-0.022465406103940988,All subjects
+N211,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.009105349008336122,0.008257054986774898,-0.0008482940215612245,All subjects
+N211,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.04031702207945839,-0.0037654961068623316,-0.044082518186320724,All subjects
+N212,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.002152509537231062,0.06939011479985069,0.07154262433708175,All subjects
+N212,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.0605087616451635,0.0122343472552911,0.0727431089004546,All subjects
+N212,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.056203742570701376,0.12654588234441028,0.0703421397737089,All subjects
+N213,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.07606596895268883,-0.07625707403405815,-0.00019110508136932491,All subjects
+N213,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.11917762013307961,-0.07455555737353955,0.04462206275954006,All subjects
+N213,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.03295431777229807,-0.07795859069457678,-0.04500427292227871,All subjects
+N214,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.16061459257982127,0.17826255607290506,0.017647963493083785,All subjects
+N214,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.181118088563798,0.2288673806105825,0.04774929204678452,All subjects
+N214,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.14011109659584456,0.1276577315352276,-0.01245336506061695,All subjects
+N215,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.018026894607264643,0.004762229506427185,-0.013264665100837458,All subjects
+N215,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.026056006302159984,0.005114388204351339,-0.020941618097808645,All subjects
+N215,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.009997782912369246,0.0044100708085030305,-0.005587712103866216,All subjects
+N216,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.06431951298996064,-0.03120016910805623,-0.09551968209801687,All subjects
+N216,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.09916143556390211,0.022206179661999448,-0.07695525590190266,All subjects
+N216,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.02947759041601916,-0.08460651787811191,-0.11408410829413107,All subjects
+N217,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.0006587192531488095,-0.018937329599445496,-0.019596048852594306,All subjects
+N217,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.02263127383170957,-0.037914377220257756,-0.015283103388548186,All subjects
+N217,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.023948712338007203,3.971802136677749e-05,-0.023908994316640425,All subjects
+N219,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.016751144323389394,0.01107714727939732,-0.005673997043992074,All subjects
+N219,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.00653433846875856,0.0033347763813800224,-0.003199562087378538,All subjects
+N219,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.026967950178020172,0.018819518177414618,-0.008148432000605554,All subjects
+N220,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.10468363119133825,0.014967953504201242,0.11965158469553949,All subjects
+N220,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.0681844441549599,-0.0031648145926296972,0.0650196295623302,All subjects
+N220,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.14118281822771658,0.033100721601032196,0.17428353982874878,All subjects
+N221,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.15226321569861556,-0.0354136042447883,0.11684961145382726,All subjects
+N221,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.19010071095520345,-0.07247604951617247,0.11762466143903098,All subjects
+N221,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.11442572044202767,0.0016488410265958625,0.11607456146862354,All subjects
+N222,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.040860135798236295,0.017677669529663688,-0.023182466268572607,All subjects
+N222,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.03357903045181784,0.0,-0.03357903045181784,All subjects
+N222,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.04814124114465475,0.035355339059327376,-0.012785902085327372,All subjects
+N224,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.09092870021528515,-0.015525047643052278,0.07540365257223287,All subjects
+N224,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.1077519525327663,-0.031923198092250776,0.07582875444051553,All subjects
+N224,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.074105447897804,0.0008731028061462198,0.07497855070395022,All subjects
+N225,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.03593987995542043,-0.10177646155305291,-0.13771634150847334,All subjects
+N225,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.012723342299327159,-0.12073365016318179,-0.13345699246250894,All subjects
+N225,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.05915641761151373,-0.08281927294292403,-0.14197569055443776,All subjects
+N226,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.09940648523951104,0.0,-0.09940648523951104,All subjects
+N226,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.1405066413558967,0.0,-0.1405066413558967,All subjects
+N226,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.05830632912312539,0.0,-0.05830632912312539,All subjects
+N227,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.2151801031253655,0.20185849178119664,-0.013321611344168871,All subjects
+N227,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.41804242957285165,0.35377966027568675,-0.0642627692971649,All subjects
+N227,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.012317776677879366,0.049937323286706525,0.03761954660882716,All subjects
+N228,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.02107671572632537,-0.0031367732370327223,0.01793994248929265,All subjects
+N228,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.0327455709799975,0.04014040720131706,0.007394836221319562,All subjects
+N228,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.07489900243264827,-0.04641395367538251,0.028485048757265763,All subjects
+N230,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.08444227250298683,-0.035355339059327376,0.049086933443659456,All subjects
+N230,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.12171654951560859,-0.035355339059327376,0.08636121045628121,All subjects
+N230,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.0471679954903651,-0.035355339059327376,0.011812656431037724,All subjects
+N231,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.20744330270136177,-0.011985257115765952,0.19545804558559582,All subjects
+N231,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.1897523538431032,-0.006460798861847222,0.183291554981256,All subjects
+N231,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.22513425155962008,-0.017509715369684653,0.20762453618993543,All subjects
+N232,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.035818444706941274,-0.02105216393241048,0.014766280774530793,All subjects
+N232,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.0297986894035809,-0.03872983346207417,-0.008931144058493268,All subjects
+N232,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.04183820001030159,-0.003374494402746793,0.0384637056075548,All subjects
+N233,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.1475955943247543,-0.015663091133295642,0.13193250319145866,All subjects
+N233,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.08856390306659984,0.06021916337933725,0.14878306644593708,All subjects
+N233,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.20662728558290877,-0.09154534564592852,0.11508193993698024,All subjects
+N234,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.017677669529663688,-0.017677669529663688,0.0,All subjects
+N234,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.035355339059327376,-0.035355339059327376,0.0,All subjects
+N234,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.0,0.0,0.0,All subjects
+N235,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.03535813616034593,0.0,-0.03535813616034593,All subjects
+N235,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.013707501065734963,0.0,-0.013707501065734963,All subjects
+N235,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.057008771254956896,0.0,-0.057008771254956896,All subjects
+N236,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.1358866799852084,0.0,-0.1358866799852084,All subjects
+N236,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.2026048717723728,0.0,-0.2026048717723728,All subjects
+N236,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.069168488198044,0.0,-0.069168488198044,All subjects
+N237,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.009549470261909693,-0.001178090021684064,-0.010727560283593757,All subjects
+N237,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.012479634096139142,4.564913662916115e-05,-0.01243398495950998,All subjects
+N237,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.006619306427680244,-0.0024018291799972613,-0.009021135607677505,All subjects
+N238,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.003300028886631147,0.0,-0.003300028886631147,All subjects
+N238,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.003300028886631147,0.0,-0.003300028886631147,All subjects
+N238,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.003300028886631147,0.0,-0.003300028886631147,All subjects
+N240,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.06438838904626179,-0.004309848078600631,0.06007854096766116,All subjects
+N240,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.09545506242005945,-0.024555331597051214,0.07089973082300824,All subjects
+N240,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.03332171567246402,0.01593563543984995,0.04925735111231397,All subjects
+N241,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.029053061491272653,0.019045606784709262,0.048098668275981915,All subjects
+N241,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.045123040326925754,0.0025916764133587927,0.047714716740284546,All subjects
+N241,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.012983082655619524,0.03549953715605973,0.048482619811679256,All subjects
+N242,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.07708076208540504,-0.019810432405591716,0.057270329679813325,All subjects
+N242,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.03706182665025304,1.9165785225275234e-05,0.03708099243547831,All subjects
+N242,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.11709969752055704,-0.03964003059640869,0.07745966692414835,All subjects
+N243,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.06814611109430554,0.026024523455622478,-0.04212158763868307,All subjects
+N243,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.044033106630647634,0.03929260281341013,-0.004740503817237507,All subjects
+N243,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.09225911555796343,0.01275644409783483,-0.0795026714601286,All subjects
+N244,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.1586793762337841,-0.01646969332049475,0.14220968291328934,All subjects
+N244,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.14551832795901717,-0.03876056768071004,0.10675776027830713,All subjects
+N244,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.17184042450855092,0.005821181039720569,0.17766160554827148,All subjects
+N246,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.013326727965328702,-0.06919750036111749,-0.0825242283264462,All subjects
+N246,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.03748205976236879,-0.0659586692274293,-0.10344072898979809,All subjects
+N246,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.01082860383171138,-0.07243633149480569,-0.06160772766309431,All subjects
+N247,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.01886571836605966,0.001329611188081864,0.020195329554141522,All subjects
+N247,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.03562368180483037,0.010884466726324399,-0.024739215078505974,All subjects
+N247,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.07335511853694966,-0.008225244350160657,0.065129874186789,All subjects
+N248,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.08126449047717157,-0.05618972175764706,0.02507476871952452,All subjects
+N248,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.10255464164652078,-0.03851205222798337,0.06404258941853741,All subjects
+N248,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.05997433930782241,-0.07386739128731075,-0.013893051979488341,All subjects
+N249,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.09975690252877367,-0.01767766952966368,0.08207923299910999,All subjects
+N249,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.1124918542737063,-0.035355339059327376,0.07713651521437892,All subjects
+N249,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.08702195078384109,0.0,0.08702195078384109,All subjects
+N250,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.015049351674815092,0.019364916731037084,0.034414268405852176,All subjects
+N250,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.005949087327354899,0.03872983346207417,0.04467892078942907,All subjects
+N250,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.024149616022275285,0.0,0.024149616022275285,All subjects
+N251,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.10711790682660899,0.005385891000760146,-0.10173201582584884,All subjects
+N251,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.2206918814882327,0.0075722199141417534,-0.21311966157409096,All subjects
+N251,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.006456067835014734,0.003199562087378538,0.009655629922393272,All subjects
+N252,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.04327370672083114,0.14585107448689544,0.1025773677660643,All subjects
+N252,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.048647960080887453,0.19235081348046756,0.1437028533995801,All subjects
+N252,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.037899453360774715,0.0993513354933232,0.061451882132548485,All subjects
+N253,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.06294013452506461,0.03878211373270704,-0.02415802079235757,All subjects
+N253,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.06929688915601617,0.05239253717230544,-0.016904351983710736,All subjects
+N253,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.05658337989411305,0.025171690293108645,-0.031411689601004406,All subjects
+N254,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.04114802419421332,-0.019170523352896873,-0.06031854754711019,All subjects
+N254,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.06131270159805796,-0.005095693506318277,0.056217008091739684,All subjects
+N254,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.14360874998648454,-0.03324535319947547,-0.17685410318596,All subjects
+N255,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.009768335836594477,0.017234762591430086,0.007466426754835609,All subjects
+N255,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.00705646673521218,0.011732156569955493,0.004675689834743313,All subjects
+N255,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.012480204937976774,0.02273736861290468,0.010257163674927905,All subjects
+N257,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.03369095135253247,0.016482753653515383,-0.01720819769901709,All subjects
+N257,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.01715473600369341,-0.00411548512844756,-0.02127022113214097,All subjects
+N257,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.05022716670137152,0.03708099243547831,-0.013146174265893207,All subjects
+N258,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.0002813953479260667,-0.0033054147941579404,-0.003586810142084007,All subjects
+N258,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.002229307137071007,-0.005806336466924161,-0.008035643603995168,All subjects
+N258,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.0016665164412187905,-0.0008044931213916917,0.0008620233198270988,All subjects
+N259,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.007099629802019891,-0.006446715323981056,0.0006529144780388352,All subjects
+N259,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.008984321212750584,-0.003303090492210531,-0.012287411704961115,All subjects
+N259,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.023183580816790367,-0.009590340155751609,0.013593240661038758,All subjects
+N260,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.11344482901800207,0.04669554082738556,-0.06674928819061651,All subjects
+N260,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.10522242840124123,0.07751166688430049,-0.02771076151694074,All subjects
+N260,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.12166722963476298,0.01587941477047062,-0.10578781486429237,All subjects
+N101,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.026706004727937355,0.009712091752335367,0.03641809648027272,Physiological responders
+N101,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.010973161777311113,0.028693056947675127,0.03966621872498624,Physiological responders
+N101,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.04243884767856354,-0.009268873443004338,0.0331699742355592,Physiological responders
+N103,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.026541932995895884,-0.021322711092852636,0.005219221903043247,Physiological responders
+N103,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.0,0.0,0.0,Physiological responders
+N103,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.05308386599179188,-0.04264542218570527,0.010438443806086606,Physiological responders
+N108,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.011932278436388069,0.05902859476558797,0.07096087320197604,Physiological responders
+N108,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.11570783118036265,0.11805718953117594,0.002349358350813291,Physiological responders
+N108,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.13957238805313882,0.0,0.13957238805313882,Physiological responders
+N109,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.05498855940274833,0.018645843388636618,0.07363440279138495,Physiological responders
+N109,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.1284017667839885,-0.05751084363470571,0.0708909231492828,Physiological responders
+N109,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.018424647978491804,0.09480253041197889,0.07637788243348709,Physiological responders
+N110,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.15092344547072878,0.0,0.15092344547072878,Physiological responders
+N110,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.08641260760726312,0.0,0.08641260760726312,Physiological responders
+N110,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.2154342833341944,0.0,0.2154342833341944,Physiological responders
+N111,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.13588707318250798,0.031229269940469304,0.1671163431229773,Physiological responders
+N111,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.049317874235510636,0.040288805738539726,0.08960667997405036,Physiological responders
+N111,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.22245627212950547,0.02216973414239888,0.24462600627190434,Physiological responders
+N113,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.09757585798995655,0.019795014342131795,-0.07778084364782475,Physiological responders
+N113,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.12167557059374853,0.01980221639652774,-0.1018733541972208,Physiological responders
+N113,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.07347614538616462,0.01978781228773588,-0.05368833309842874,Physiological responders
+N114,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.15354207565955869,0.0,0.15354207565955869,Physiological responders
+N114,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.1963310574429047,0.0,0.1963310574429047,Physiological responders
+N114,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.11075309387621267,0.0,0.11075309387621267,Physiological responders
+N115,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.0949925754830679,0.054749079072529364,-0.04024349641053854,Physiological responders
+N115,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.13112113663179403,0.07326971627958513,-0.05785142035220889,Physiological responders
+N115,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.058864014334341797,0.036228441865473596,-0.0226355724688682,Physiological responders
+N118,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.08102864636288379,-0.05188691272270449,0.0291417336401793,Physiological responders
+N118,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.10530409619349983,-0.07398069244603599,0.03132340374746384,Physiological responders
+N118,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.056753196532267874,-0.029793132999373,0.026960063532894873,Physiological responders
+N122,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.11873078434406331,0.04816568114344108,-0.07056510320062223,Physiological responders
+N122,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.24217836292171283,0.056449784586832225,-0.1857285783348806,Physiological responders
+N122,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.004716794233586147,0.03988157770004999,0.04459837193363614,Physiological responders
+N124,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.09526597621393387,-0.054728165440685754,0.040537810773248126,Physiological responders
+N124,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.08392144235076932,-0.03457252106993938,0.04934892128082993,Physiological responders
+N124,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.10661051007709844,-0.07488380981143213,0.03172670026566632,Physiological responders
+N129,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.46305918195909684,-0.3982351950613441,0.06482398689775276,Physiological responders
+N129,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.5517222147308316,-0.4878524367060187,0.06386977802481286,Physiological responders
+N129,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.37439614918736225,-0.3086179534166695,0.06577819577069277,Physiological responders
+N130,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.0027545452547561855,0.0003835772197602061,0.0031381224745163916,Physiological responders
+N130,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.012356245860067727,-0.0007144593487018458,0.011641786511365881,Physiological responders
+N130,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.006847155350555356,0.001481613788222258,-0.005365541562333098,Physiological responders
+N136,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.12335250238854731,0.003165678245078657,-0.12018682414346865,Physiological responders
+N136,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.07223692173606777,-0.039233886275875485,-0.11147080801194326,Physiological responders
+N136,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.1744680830410268,0.045565242766032785,-0.12890284027499402,Physiological responders
+N138,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.03829184207765704,0.04177385717717,0.08006569925482704,Physiological responders
+N138,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.0907037609727897,0.03593385618541811,0.12663761715820782,Physiological responders
+N138,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.014120076817475707,0.04761385816892186,0.03349378135144615,Physiological responders
+N141,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.16854203277571927,-0.02773708578179869,0.1408049469939206,Physiological responders
+N141,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.29163698300820295,-0.04541475531146238,0.2462222276967406,Physiological responders
+N141,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.04544708254323565,-0.010059416252135002,0.03538766629110065,Physiological responders
+N143,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.11295625519207303,0.036836053433712,-0.07612020175836104,Physiological responders
+N143,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.004251984904743149,0.03453988281751096,0.030287897912767814,Physiological responders
+N143,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.2216605254794029,0.03913222404991302,-0.1825283014294899,Physiological responders
+N144,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.03387715734083141,-0.009309683817394554,-0.043186841158225964,Physiological responders
+N144,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.009579847940903802,-0.039376437506317474,-0.029796589565413673,Physiological responders
+N144,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.07733416262256657,0.020757069871528366,-0.0565770927510382,Physiological responders
+N148,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.035729697785980716,-0.017753170032629537,0.01797652775335118,Physiological responders
+N148,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.05789572083091318,-0.037118086763666625,0.02077763406724656,Physiological responders
+N148,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.013563674741048276,0.0016117466984075512,0.015175421439455827,Physiological responders
+N150,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.07532489596084917,0.09096955999206417,0.015644664031215005,Physiological responders
+N150,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.08620872855127826,0.07158378092480097,-0.014624947626477293,Physiological responders
+N150,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.06444106337042008,0.11035533905932737,0.0459142756889073,Physiological responders
+N151,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.033638456554771476,-0.034045684850108046,-0.00040722829533657023,Physiological responders
+N151,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.07069485881801219,-0.07071067811865475,-1.5819300642566647e-05,Physiological responders
+N151,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.0034179457084692333,0.0026193084184386595,-0.0007986372900305738,Physiological responders
+N153,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.02500497741896257,-0.017518662499516308,0.007486314919446263,Physiological responders
+N153,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.02598444031504593,0.003768070457891709,0.02975251077293764,Physiological responders
+N153,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.02402551452287921,-0.038805395456924296,-0.014779880934045087,Physiological responders
+N156,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.01054338814077635,-0.07207224015830146,-0.08261562829907781,Physiological responders
+N156,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.034325991147495405,-0.054394570628637784,-0.08872056177613319,Physiological responders
+N156,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.013239214865942733,-0.08974990968796515,-0.07651069482202241,Physiological responders
+N157,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.38699669249111046,-0.08384679440819959,0.3031498980829109,Physiological responders
+N157,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.39497598214560514,-0.05739324269978849,0.3375827394458167,Physiological responders
+N157,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.37901740283661584,-0.11030034611661067,0.2687170567200052,Physiological responders
+N158,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.1839820626963899,-0.055542514338868476,0.12843954835752142,Physiological responders
+N158,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.12017017659219387,-0.08003690737034025,0.04013326922185362,Physiological responders
+N158,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.24779394880058603,-0.031048121307396703,0.21674582749318932,Physiological responders
+N201,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.14750144681048785,0.12838375980443156,-0.01911768700605629,Physiological responders
+N201,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.11378994147979529,0.14391044877058118,0.030120507290785886,Physiological responders
+N201,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.18121295214118036,0.11285707083828192,-0.06835588130289844,Physiological responders
+N202,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.033528323236707874,-0.005948190667636077,0.027580132569071797,Physiological responders
+N202,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.11393173529170937,-0.07965445835029432,0.03427727694141505,Physiological responders
+N202,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.04687508881829365,0.06775807701502216,0.020882988196728514,Physiological responders
+N209,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.011244647137201344,0.017677669529663688,0.006433022392462344,Physiological responders
+N209,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.014155531398418623,0.035355339059327376,0.021199807660908752,Physiological responders
+N209,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.008333762875984065,0.0,-0.008333762875984065,Physiological responders
+N210,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.2024305688764557,-0.028884349254803016,0.17354621962165268,Physiological responders
+N210,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.15595093572664742,-0.028137212203838746,0.12781372352280868,Physiological responders
+N210,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.24891020202626396,-0.029631486305767292,0.21927871572049668,Physiological responders
+N212,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.002152509537231062,0.06939011479985069,0.07154262433708175,Physiological responders
+N212,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.0605087616451635,0.0122343472552911,0.0727431089004546,Physiological responders
+N212,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.056203742570701376,0.12654588234441028,0.0703421397737089,Physiological responders
+N213,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.07606596895268883,-0.07625707403405815,-0.00019110508136932491,Physiological responders
+N213,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.11917762013307961,-0.07455555737353955,0.04462206275954006,Physiological responders
+N213,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.03295431777229807,-0.07795859069457678,-0.04500427292227871,Physiological responders
+N214,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.16061459257982127,0.17826255607290506,0.017647963493083785,Physiological responders
+N214,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.181118088563798,0.2288673806105825,0.04774929204678452,Physiological responders
+N214,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.14011109659584456,0.1276577315352276,-0.01245336506061695,Physiological responders
+N215,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.018026894607264643,0.004762229506427185,-0.013264665100837458,Physiological responders
+N215,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.026056006302159984,0.005114388204351339,-0.020941618097808645,Physiological responders
+N215,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.009997782912369246,0.0044100708085030305,-0.005587712103866216,Physiological responders
+N216,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.06431951298996064,-0.03120016910805623,-0.09551968209801687,Physiological responders
+N216,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.09916143556390211,0.022206179661999448,-0.07695525590190266,Physiological responders
+N216,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.02947759041601916,-0.08460651787811191,-0.11408410829413107,Physiological responders
+N217,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.0006587192531488095,-0.018937329599445496,-0.019596048852594306,Physiological responders
+N217,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.02263127383170957,-0.037914377220257756,-0.015283103388548186,Physiological responders
+N217,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.023948712338007203,3.971802136677749e-05,-0.023908994316640425,Physiological responders
+N222,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.040860135798236295,0.017677669529663688,-0.023182466268572607,Physiological responders
+N222,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.03357903045181784,0.0,-0.03357903045181784,Physiological responders
+N222,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.04814124114465475,0.035355339059327376,-0.012785902085327372,Physiological responders
+N225,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.03593987995542043,-0.10177646155305291,-0.13771634150847334,Physiological responders
+N225,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.012723342299327159,-0.12073365016318179,-0.13345699246250894,Physiological responders
+N225,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.05915641761151373,-0.08281927294292403,-0.14197569055443776,Physiological responders
+N227,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.2151801031253655,0.20185849178119664,-0.013321611344168871,Physiological responders
+N227,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.41804242957285165,0.35377966027568675,-0.0642627692971649,Physiological responders
+N227,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.012317776677879366,0.049937323286706525,0.03761954660882716,Physiological responders
+N230,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.08444227250298683,-0.035355339059327376,0.049086933443659456,Physiological responders
+N230,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.12171654951560859,-0.035355339059327376,0.08636121045628121,Physiological responders
+N230,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.0471679954903651,-0.035355339059327376,0.011812656431037724,Physiological responders
+N231,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.20744330270136177,-0.011985257115765952,0.19545804558559582,Physiological responders
+N231,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.1897523538431032,-0.006460798861847222,0.183291554981256,Physiological responders
+N231,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.22513425155962008,-0.017509715369684653,0.20762453618993543,Physiological responders
+N232,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.035818444706941274,-0.02105216393241048,0.014766280774530793,Physiological responders
+N232,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.0297986894035809,-0.03872983346207417,-0.008931144058493268,Physiological responders
+N232,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.04183820001030159,-0.003374494402746793,0.0384637056075548,Physiological responders
+N233,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.1475955943247543,-0.015663091133295642,0.13193250319145866,Physiological responders
+N233,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.08856390306659984,0.06021916337933725,0.14878306644593708,Physiological responders
+N233,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.20662728558290877,-0.09154534564592852,0.11508193993698024,Physiological responders
+N234,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.017677669529663688,-0.017677669529663688,0.0,Physiological responders
+N234,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.035355339059327376,-0.035355339059327376,0.0,Physiological responders
+N234,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.0,0.0,0.0,Physiological responders
+N236,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.1358866799852084,0.0,-0.1358866799852084,Physiological responders
+N236,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.2026048717723728,0.0,-0.2026048717723728,Physiological responders
+N236,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.069168488198044,0.0,-0.069168488198044,Physiological responders
+N240,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.06438838904626179,-0.004309848078600631,0.06007854096766116,Physiological responders
+N240,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.09545506242005945,-0.024555331597051214,0.07089973082300824,Physiological responders
+N240,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.03332171567246402,0.01593563543984995,0.04925735111231397,Physiological responders
+N243,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.06814611109430554,0.026024523455622478,-0.04212158763868307,Physiological responders
+N243,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.044033106630647634,0.03929260281341013,-0.004740503817237507,Physiological responders
+N243,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.09225911555796343,0.01275644409783483,-0.0795026714601286,Physiological responders
+N244,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.1586793762337841,-0.01646969332049475,0.14220968291328934,Physiological responders
+N244,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.14551832795901717,-0.03876056768071004,0.10675776027830713,Physiological responders
+N244,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.17184042450855092,0.005821181039720569,0.17766160554827148,Physiological responders
+N247,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.01886571836605966,0.001329611188081864,0.020195329554141522,Physiological responders
+N247,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.03562368180483037,0.010884466726324399,-0.024739215078505974,Physiological responders
+N247,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.07335511853694966,-0.008225244350160657,0.065129874186789,Physiological responders
+N248,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.08126449047717157,-0.05618972175764706,0.02507476871952452,Physiological responders
+N248,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.10255464164652078,-0.03851205222798337,0.06404258941853741,Physiological responders
+N248,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.05997433930782241,-0.07386739128731075,-0.013893051979488341,Physiological responders
+N251,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.10711790682660899,0.005385891000760146,-0.10173201582584884,Physiological responders
+N251,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.2206918814882327,0.0075722199141417534,-0.21311966157409096,Physiological responders
+N251,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.006456067835014734,0.003199562087378538,0.009655629922393272,Physiological responders
+N252,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.04327370672083114,0.14585107448689544,0.1025773677660643,Physiological responders
+N252,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.048647960080887453,0.19235081348046756,0.1437028533995801,Physiological responders
+N252,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.037899453360774715,0.0993513354933232,0.061451882132548485,Physiological responders
+N253,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.06294013452506461,0.03878211373270704,-0.02415802079235757,Physiological responders
+N253,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.06929688915601617,0.05239253717230544,-0.016904351983710736,Physiological responders
+N253,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.05658337989411305,0.025171690293108645,-0.031411689601004406,Physiological responders
+N254,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.04114802419421332,-0.019170523352896873,-0.06031854754711019,Physiological responders
+N254,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.06131270159805796,-0.005095693506318277,0.056217008091739684,Physiological responders
+N254,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.14360874998648454,-0.03324535319947547,-0.17685410318596,Physiological responders
+N257,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.03369095135253247,0.016482753653515383,-0.01720819769901709,Physiological responders
+N257,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.01715473600369341,-0.00411548512844756,-0.02127022113214097,Physiological responders
+N257,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.05022716670137152,0.03708099243547831,-0.013146174265893207,Physiological responders
+N258,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.0002813953479260667,-0.0033054147941579404,-0.003586810142084007,Physiological responders
+N258,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.002229307137071007,-0.005806336466924161,-0.008035643603995168,Physiological responders
+N258,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.0016665164412187905,-0.0008044931213916917,0.0008620233198270988,Physiological responders
+N260,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.11344482901800207,0.04669554082738556,-0.06674928819061651,Physiological responders
+N260,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.10522242840124123,0.07751166688430049,-0.02771076151694074,Physiological responders
+N260,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.12166722963476298,0.01587941477047062,-0.10578781486429237,Physiological responders
+N101,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.026706004727937355,0.009712091752335367,0.03641809648027272,Simple CS+ learners
+N101,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.010973161777311113,0.028693056947675127,0.03966621872498624,Simple CS+ learners
+N101,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.04243884767856354,-0.009268873443004338,0.0331699742355592,Simple CS+ learners
+N103,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.026541932995895884,-0.021322711092852636,0.005219221903043247,Simple CS+ learners
+N103,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.0,0.0,0.0,Simple CS+ learners
+N103,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.05308386599179188,-0.04264542218570527,0.010438443806086606,Simple CS+ learners
+N108,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.011932278436388069,0.05902859476558797,0.07096087320197604,Simple CS+ learners
+N108,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.11570783118036265,0.11805718953117594,0.002349358350813291,Simple CS+ learners
+N108,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.13957238805313882,0.0,0.13957238805313882,Simple CS+ learners
+N109,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.05498855940274833,0.018645843388636618,0.07363440279138495,Simple CS+ learners
+N109,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.1284017667839885,-0.05751084363470571,0.0708909231492828,Simple CS+ learners
+N109,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.018424647978491804,0.09480253041197889,0.07637788243348709,Simple CS+ learners
+N111,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.13588707318250798,0.031229269940469304,0.1671163431229773,Simple CS+ learners
+N111,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.049317874235510636,0.040288805738539726,0.08960667997405036,Simple CS+ learners
+N111,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.22245627212950547,0.02216973414239888,0.24462600627190434,Simple CS+ learners
+N113,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.09757585798995655,0.019795014342131795,-0.07778084364782475,Simple CS+ learners
+N113,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.12167557059374853,0.01980221639652774,-0.1018733541972208,Simple CS+ learners
+N113,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.07347614538616462,0.01978781228773588,-0.05368833309842874,Simple CS+ learners
+N114,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.15354207565955869,0.0,0.15354207565955869,Simple CS+ learners
+N114,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.1963310574429047,0.0,0.1963310574429047,Simple CS+ learners
+N114,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.11075309387621267,0.0,0.11075309387621267,Simple CS+ learners
+N115,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.0949925754830679,0.054749079072529364,-0.04024349641053854,Simple CS+ learners
+N115,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.13112113663179403,0.07326971627958513,-0.05785142035220889,Simple CS+ learners
+N115,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.058864014334341797,0.036228441865473596,-0.0226355724688682,Simple CS+ learners
+N118,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.08102864636288379,-0.05188691272270449,0.0291417336401793,Simple CS+ learners
+N118,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.10530409619349983,-0.07398069244603599,0.03132340374746384,Simple CS+ learners
+N118,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.056753196532267874,-0.029793132999373,0.026960063532894873,Simple CS+ learners
+N122,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.11873078434406331,0.04816568114344108,-0.07056510320062223,Simple CS+ learners
+N122,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.24217836292171283,0.056449784586832225,-0.1857285783348806,Simple CS+ learners
+N122,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.004716794233586147,0.03988157770004999,0.04459837193363614,Simple CS+ learners
+N124,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.09526597621393387,-0.054728165440685754,0.040537810773248126,Simple CS+ learners
+N124,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.08392144235076932,-0.03457252106993938,0.04934892128082993,Simple CS+ learners
+N124,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.10661051007709844,-0.07488380981143213,0.03172670026566632,Simple CS+ learners
+N129,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.46305918195909684,-0.3982351950613441,0.06482398689775276,Simple CS+ learners
+N129,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.5517222147308316,-0.4878524367060187,0.06386977802481286,Simple CS+ learners
+N129,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.37439614918736225,-0.3086179534166695,0.06577819577069277,Simple CS+ learners
+N130,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.0027545452547561855,0.0003835772197602061,0.0031381224745163916,Simple CS+ learners
+N130,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.012356245860067727,-0.0007144593487018458,0.011641786511365881,Simple CS+ learners
+N130,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.006847155350555356,0.001481613788222258,-0.005365541562333098,Simple CS+ learners
+N138,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.03829184207765704,0.04177385717717,0.08006569925482704,Simple CS+ learners
+N138,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.0907037609727897,0.03593385618541811,0.12663761715820782,Simple CS+ learners
+N138,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.014120076817475707,0.04761385816892186,0.03349378135144615,Simple CS+ learners
+N148,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.035729697785980716,-0.017753170032629537,0.01797652775335118,Simple CS+ learners
+N148,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.05789572083091318,-0.037118086763666625,0.02077763406724656,Simple CS+ learners
+N148,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.013563674741048276,0.0016117466984075512,0.015175421439455827,Simple CS+ learners
+N151,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.033638456554771476,-0.034045684850108046,-0.00040722829533657023,Simple CS+ learners
+N151,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.07069485881801219,-0.07071067811865475,-1.5819300642566647e-05,Simple CS+ learners
+N151,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.0034179457084692333,0.0026193084184386595,-0.0007986372900305738,Simple CS+ learners
+N156,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.01054338814077635,-0.07207224015830146,-0.08261562829907781,Simple CS+ learners
+N156,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.034325991147495405,-0.054394570628637784,-0.08872056177613319,Simple CS+ learners
+N156,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.013239214865942733,-0.08974990968796515,-0.07651069482202241,Simple CS+ learners
+N157,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.38699669249111046,-0.08384679440819959,0.3031498980829109,Simple CS+ learners
+N157,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.39497598214560514,-0.05739324269978849,0.3375827394458167,Simple CS+ learners
+N157,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.37901740283661584,-0.11030034611661067,0.2687170567200052,Simple CS+ learners
+N158,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.1839820626963899,-0.055542514338868476,0.12843954835752142,Simple CS+ learners
+N158,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.12017017659219387,-0.08003690737034025,0.04013326922185362,Simple CS+ learners
+N158,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.24779394880058603,-0.031048121307396703,0.21674582749318932,Simple CS+ learners
+N202,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.033528323236707874,-0.005948190667636077,0.027580132569071797,Simple CS+ learners
+N202,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.11393173529170937,-0.07965445835029432,0.03427727694141505,Simple CS+ learners
+N202,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.04687508881829365,0.06775807701502216,0.020882988196728514,Simple CS+ learners
+N209,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.011244647137201344,0.017677669529663688,0.006433022392462344,Simple CS+ learners
+N209,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.014155531398418623,0.035355339059327376,0.021199807660908752,Simple CS+ learners
+N209,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.008333762875984065,0.0,-0.008333762875984065,Simple CS+ learners
+N210,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.2024305688764557,-0.028884349254803016,0.17354621962165268,Simple CS+ learners
+N210,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.15595093572664742,-0.028137212203838746,0.12781372352280868,Simple CS+ learners
+N210,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.24891020202626396,-0.029631486305767292,0.21927871572049668,Simple CS+ learners
+N212,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.002152509537231062,0.06939011479985069,0.07154262433708175,Simple CS+ learners
+N212,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.0605087616451635,0.0122343472552911,0.0727431089004546,Simple CS+ learners
+N212,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.056203742570701376,0.12654588234441028,0.0703421397737089,Simple CS+ learners
+N214,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.16061459257982127,0.17826255607290506,0.017647963493083785,Simple CS+ learners
+N214,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.181118088563798,0.2288673806105825,0.04774929204678452,Simple CS+ learners
+N214,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.14011109659584456,0.1276577315352276,-0.01245336506061695,Simple CS+ learners
+N216,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.06431951298996064,-0.03120016910805623,-0.09551968209801687,Simple CS+ learners
+N216,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.09916143556390211,0.022206179661999448,-0.07695525590190266,Simple CS+ learners
+N216,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.02947759041601916,-0.08460651787811191,-0.11408410829413107,Simple CS+ learners
+N217,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.0006587192531488095,-0.018937329599445496,-0.019596048852594306,Simple CS+ learners
+N217,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.02263127383170957,-0.037914377220257756,-0.015283103388548186,Simple CS+ learners
+N217,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.023948712338007203,3.971802136677749e-05,-0.023908994316640425,Simple CS+ learners
+N227,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.2151801031253655,0.20185849178119664,-0.013321611344168871,Simple CS+ learners
+N227,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.41804242957285165,0.35377966027568675,-0.0642627692971649,Simple CS+ learners
+N227,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.012317776677879366,0.049937323286706525,0.03761954660882716,Simple CS+ learners
+N230,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.08444227250298683,-0.035355339059327376,0.049086933443659456,Simple CS+ learners
+N230,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.12171654951560859,-0.035355339059327376,0.08636121045628121,Simple CS+ learners
+N230,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.0471679954903651,-0.035355339059327376,0.011812656431037724,Simple CS+ learners
+N232,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.035818444706941274,-0.02105216393241048,0.014766280774530793,Simple CS+ learners
+N232,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.0297986894035809,-0.03872983346207417,-0.008931144058493268,Simple CS+ learners
+N232,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.04183820001030159,-0.003374494402746793,0.0384637056075548,Simple CS+ learners
+N233,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.1475955943247543,-0.015663091133295642,0.13193250319145866,Simple CS+ learners
+N233,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.08856390306659984,0.06021916337933725,0.14878306644593708,Simple CS+ learners
+N233,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.20662728558290877,-0.09154534564592852,0.11508193993698024,Simple CS+ learners
+N236,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.1358866799852084,0.0,-0.1358866799852084,Simple CS+ learners
+N236,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.2026048717723728,0.0,-0.2026048717723728,Simple CS+ learners
+N236,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.069168488198044,0.0,-0.069168488198044,Simple CS+ learners
+N240,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.06438838904626179,-0.004309848078600631,0.06007854096766116,Simple CS+ learners
+N240,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.09545506242005945,-0.024555331597051214,0.07089973082300824,Simple CS+ learners
+N240,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.03332171567246402,0.01593563543984995,0.04925735111231397,Simple CS+ learners
+N243,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.06814611109430554,0.026024523455622478,-0.04212158763868307,Simple CS+ learners
+N243,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.044033106630647634,0.03929260281341013,-0.004740503817237507,Simple CS+ learners
+N243,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.09225911555796343,0.01275644409783483,-0.0795026714601286,Simple CS+ learners
+N244,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.1586793762337841,-0.01646969332049475,0.14220968291328934,Simple CS+ learners
+N244,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.14551832795901717,-0.03876056768071004,0.10675776027830713,Simple CS+ learners
+N244,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.17184042450855092,0.005821181039720569,0.17766160554827148,Simple CS+ learners
+N248,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.08126449047717157,-0.05618972175764706,0.02507476871952452,Simple CS+ learners
+N248,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.10255464164652078,-0.03851205222798337,0.06404258941853741,Simple CS+ learners
+N248,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.05997433930782241,-0.07386739128731075,-0.013893051979488341,Simple CS+ learners
+N252,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.04327370672083114,0.14585107448689544,0.1025773677660643,Simple CS+ learners
+N252,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.048647960080887453,0.19235081348046756,0.1437028533995801,Simple CS+ learners
+N252,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.037899453360774715,0.0993513354933232,0.061451882132548485,Simple CS+ learners
+N253,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.06294013452506461,0.03878211373270704,-0.02415802079235757,Simple CS+ learners
+N253,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.06929688915601617,0.05239253717230544,-0.016904351983710736,Simple CS+ learners
+N253,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.05658337989411305,0.025171690293108645,-0.031411689601004406,Simple CS+ learners
+N257,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.03369095135253247,0.016482753653515383,-0.01720819769901709,Simple CS+ learners
+N257,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.01715473600369341,-0.00411548512844756,-0.02127022113214097,Simple CS+ learners
+N257,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.05022716670137152,0.03708099243547831,-0.013146174265893207,Simple CS+ learners
+N260,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.11344482901800207,0.04669554082738556,-0.06674928819061651,Simple CS+ learners
+N260,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.10522242840124123,0.07751166688430049,-0.02771076151694074,Simple CS+ learners
+N260,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.12166722963476298,0.01587941477047062,-0.10578781486429237,Simple CS+ learners
+N101,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.026706004727937355,0.009712091752335367,0.03641809648027272,Habituation-adjusted CS+ learners
+N101,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.010973161777311113,0.028693056947675127,0.03966621872498624,Habituation-adjusted CS+ learners
+N101,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.04243884767856354,-0.009268873443004338,0.0331699742355592,Habituation-adjusted CS+ learners
+N108,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.011932278436388069,0.05902859476558797,0.07096087320197604,Habituation-adjusted CS+ learners
+N108,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.11570783118036265,0.11805718953117594,0.002349358350813291,Habituation-adjusted CS+ learners
+N108,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.13957238805313882,0.0,0.13957238805313882,Habituation-adjusted CS+ learners
+N109,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.05498855940274833,0.018645843388636618,0.07363440279138495,Habituation-adjusted CS+ learners
+N109,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.1284017667839885,-0.05751084363470571,0.0708909231492828,Habituation-adjusted CS+ learners
+N109,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.018424647978491804,0.09480253041197889,0.07637788243348709,Habituation-adjusted CS+ learners
+N111,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.13588707318250798,0.031229269940469304,0.1671163431229773,Habituation-adjusted CS+ learners
+N111,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.049317874235510636,0.040288805738539726,0.08960667997405036,Habituation-adjusted CS+ learners
+N111,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.22245627212950547,0.02216973414239888,0.24462600627190434,Habituation-adjusted CS+ learners
+N113,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.09757585798995655,0.019795014342131795,-0.07778084364782475,Habituation-adjusted CS+ learners
+N113,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.12167557059374853,0.01980221639652774,-0.1018733541972208,Habituation-adjusted CS+ learners
+N113,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.07347614538616462,0.01978781228773588,-0.05368833309842874,Habituation-adjusted CS+ learners
+N114,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.15354207565955869,0.0,0.15354207565955869,Habituation-adjusted CS+ learners
+N114,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.1963310574429047,0.0,0.1963310574429047,Habituation-adjusted CS+ learners
+N114,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.11075309387621267,0.0,0.11075309387621267,Habituation-adjusted CS+ learners
+N115,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.0949925754830679,0.054749079072529364,-0.04024349641053854,Habituation-adjusted CS+ learners
+N115,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.13112113663179403,0.07326971627958513,-0.05785142035220889,Habituation-adjusted CS+ learners
+N115,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.058864014334341797,0.036228441865473596,-0.0226355724688682,Habituation-adjusted CS+ learners
+N118,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.08102864636288379,-0.05188691272270449,0.0291417336401793,Habituation-adjusted CS+ learners
+N118,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.10530409619349983,-0.07398069244603599,0.03132340374746384,Habituation-adjusted CS+ learners
+N118,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.056753196532267874,-0.029793132999373,0.026960063532894873,Habituation-adjusted CS+ learners
+N122,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.11873078434406331,0.04816568114344108,-0.07056510320062223,Habituation-adjusted CS+ learners
+N122,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.24217836292171283,0.056449784586832225,-0.1857285783348806,Habituation-adjusted CS+ learners
+N122,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.004716794233586147,0.03988157770004999,0.04459837193363614,Habituation-adjusted CS+ learners
+N129,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.46305918195909684,-0.3982351950613441,0.06482398689775276,Habituation-adjusted CS+ learners
+N129,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.5517222147308316,-0.4878524367060187,0.06386977802481286,Habituation-adjusted CS+ learners
+N129,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.37439614918736225,-0.3086179534166695,0.06577819577069277,Habituation-adjusted CS+ learners
+N130,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.0027545452547561855,0.0003835772197602061,0.0031381224745163916,Habituation-adjusted CS+ learners
+N130,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.012356245860067727,-0.0007144593487018458,0.011641786511365881,Habituation-adjusted CS+ learners
+N130,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.006847155350555356,0.001481613788222258,-0.005365541562333098,Habituation-adjusted CS+ learners
+N138,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.03829184207765704,0.04177385717717,0.08006569925482704,Habituation-adjusted CS+ learners
+N138,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.0907037609727897,0.03593385618541811,0.12663761715820782,Habituation-adjusted CS+ learners
+N138,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.014120076817475707,0.04761385816892186,0.03349378135144615,Habituation-adjusted CS+ learners
+N148,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.035729697785980716,-0.017753170032629537,0.01797652775335118,Habituation-adjusted CS+ learners
+N148,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.05789572083091318,-0.037118086763666625,0.02077763406724656,Habituation-adjusted CS+ learners
+N148,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.013563674741048276,0.0016117466984075512,0.015175421439455827,Habituation-adjusted CS+ learners
+N151,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.033638456554771476,-0.034045684850108046,-0.00040722829533657023,Habituation-adjusted CS+ learners
+N151,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.07069485881801219,-0.07071067811865475,-1.5819300642566647e-05,Habituation-adjusted CS+ learners
+N151,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.0034179457084692333,0.0026193084184386595,-0.0007986372900305738,Habituation-adjusted CS+ learners
+N156,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.01054338814077635,-0.07207224015830146,-0.08261562829907781,Habituation-adjusted CS+ learners
+N156,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.034325991147495405,-0.054394570628637784,-0.08872056177613319,Habituation-adjusted CS+ learners
+N156,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.013239214865942733,-0.08974990968796515,-0.07651069482202241,Habituation-adjusted CS+ learners
+N157,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.38699669249111046,-0.08384679440819959,0.3031498980829109,Habituation-adjusted CS+ learners
+N157,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.39497598214560514,-0.05739324269978849,0.3375827394458167,Habituation-adjusted CS+ learners
+N157,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.37901740283661584,-0.11030034611661067,0.2687170567200052,Habituation-adjusted CS+ learners
+N209,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.011244647137201344,0.017677669529663688,0.006433022392462344,Habituation-adjusted CS+ learners
+N209,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.014155531398418623,0.035355339059327376,0.021199807660908752,Habituation-adjusted CS+ learners
+N209,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.008333762875984065,0.0,-0.008333762875984065,Habituation-adjusted CS+ learners
+N210,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.2024305688764557,-0.028884349254803016,0.17354621962165268,Habituation-adjusted CS+ learners
+N210,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.15595093572664742,-0.028137212203838746,0.12781372352280868,Habituation-adjusted CS+ learners
+N210,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.24891020202626396,-0.029631486305767292,0.21927871572049668,Habituation-adjusted CS+ learners
+N212,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.002152509537231062,0.06939011479985069,0.07154262433708175,Habituation-adjusted CS+ learners
+N212,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.0605087616451635,0.0122343472552911,0.0727431089004546,Habituation-adjusted CS+ learners
+N212,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.056203742570701376,0.12654588234441028,0.0703421397737089,Habituation-adjusted CS+ learners
+N214,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.16061459257982127,0.17826255607290506,0.017647963493083785,Habituation-adjusted CS+ learners
+N214,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.181118088563798,0.2288673806105825,0.04774929204678452,Habituation-adjusted CS+ learners
+N214,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.14011109659584456,0.1276577315352276,-0.01245336506061695,Habituation-adjusted CS+ learners
+N227,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.2151801031253655,0.20185849178119664,-0.013321611344168871,Habituation-adjusted CS+ learners
+N227,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.41804242957285165,0.35377966027568675,-0.0642627692971649,Habituation-adjusted CS+ learners
+N227,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.012317776677879366,0.049937323286706525,0.03761954660882716,Habituation-adjusted CS+ learners
+N230,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.08444227250298683,-0.035355339059327376,0.049086933443659456,Habituation-adjusted CS+ learners
+N230,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.12171654951560859,-0.035355339059327376,0.08636121045628121,Habituation-adjusted CS+ learners
+N230,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.0471679954903651,-0.035355339059327376,0.011812656431037724,Habituation-adjusted CS+ learners
+N232,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.035818444706941274,-0.02105216393241048,0.014766280774530793,Habituation-adjusted CS+ learners
+N232,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.0297986894035809,-0.03872983346207417,-0.008931144058493268,Habituation-adjusted CS+ learners
+N232,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.04183820001030159,-0.003374494402746793,0.0384637056075548,Habituation-adjusted CS+ learners
+N236,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.1358866799852084,0.0,-0.1358866799852084,Habituation-adjusted CS+ learners
+N236,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.2026048717723728,0.0,-0.2026048717723728,Habituation-adjusted CS+ learners
+N236,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.069168488198044,0.0,-0.069168488198044,Habituation-adjusted CS+ learners
+N240,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.06438838904626179,-0.004309848078600631,0.06007854096766116,Habituation-adjusted CS+ learners
+N240,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.09545506242005945,-0.024555331597051214,0.07089973082300824,Habituation-adjusted CS+ learners
+N240,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.03332171567246402,0.01593563543984995,0.04925735111231397,Habituation-adjusted CS+ learners
+N243,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.06814611109430554,0.026024523455622478,-0.04212158763868307,Habituation-adjusted CS+ learners
+N243,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.044033106630647634,0.03929260281341013,-0.004740503817237507,Habituation-adjusted CS+ learners
+N243,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.09225911555796343,0.01275644409783483,-0.0795026714601286,Habituation-adjusted CS+ learners
+N244,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.1586793762337841,-0.01646969332049475,0.14220968291328934,Habituation-adjusted CS+ learners
+N244,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.14551832795901717,-0.03876056768071004,0.10675776027830713,Habituation-adjusted CS+ learners
+N244,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.17184042450855092,0.005821181039720569,0.17766160554827148,Habituation-adjusted CS+ learners
+N252,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.04327370672083114,0.14585107448689544,0.1025773677660643,Habituation-adjusted CS+ learners
+N252,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.048647960080887453,0.19235081348046756,0.1437028533995801,Habituation-adjusted CS+ learners
+N252,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.037899453360774715,0.0993513354933232,0.061451882132548485,Habituation-adjusted CS+ learners
+N253,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.06294013452506461,0.03878211373270704,-0.02415802079235757,Habituation-adjusted CS+ learners
+N253,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.06929688915601617,0.05239253717230544,-0.016904351983710736,Habituation-adjusted CS+ learners
+N253,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.05658337989411305,0.025171690293108645,-0.031411689601004406,Habituation-adjusted CS+ learners
+N260,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.11344482901800207,0.04669554082738556,-0.06674928819061651,Habituation-adjusted CS+ learners
+N260,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.10522242840124123,0.07751166688430049,-0.02771076151694074,Habituation-adjusted CS+ learners
+N260,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.12166722963476298,0.01587941477047062,-0.10578781486429237,Habituation-adjusted CS+ learners
+N103,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.026541932995895884,-0.021322711092852636,0.005219221903043247,Late-phase sensitivity CS+ learners
+N103,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.0,0.0,0.0,Late-phase sensitivity CS+ learners
+N103,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.05308386599179188,-0.04264542218570527,0.010438443806086606,Late-phase sensitivity CS+ learners
+N110,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.15092344547072878,0.0,0.15092344547072878,Late-phase sensitivity CS+ learners
+N110,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.08641260760726312,0.0,0.08641260760726312,Late-phase sensitivity CS+ learners
+N110,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.2154342833341944,0.0,0.2154342833341944,Late-phase sensitivity CS+ learners
+N121,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.10120150069935155,-0.014815743152883646,0.0863857575464679,Late-phase sensitivity CS+ learners
+N121,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.11819219572520646,-0.035355339059327376,0.08283685666587909,Late-phase sensitivity CS+ learners
+N121,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.08421080567349662,0.005723852753560084,0.0899346584270567,Late-phase sensitivity CS+ learners
+N124,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.09526597621393387,-0.054728165440685754,0.040537810773248126,Late-phase sensitivity CS+ learners
+N124,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.08392144235076932,-0.03457252106993938,0.04934892128082993,Late-phase sensitivity CS+ learners
+N124,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.10661051007709844,-0.07488380981143213,0.03172670026566632,Late-phase sensitivity CS+ learners
+N129,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.46305918195909684,-0.3982351950613441,0.06482398689775276,Late-phase sensitivity CS+ learners
+N129,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.5517222147308316,-0.4878524367060187,0.06386977802481286,Late-phase sensitivity CS+ learners
+N129,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.37439614918736225,-0.3086179534166695,0.06577819577069277,Late-phase sensitivity CS+ learners
+N130,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.0027545452547561855,0.0003835772197602061,0.0031381224745163916,Late-phase sensitivity CS+ learners
+N130,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.012356245860067727,-0.0007144593487018458,0.011641786511365881,Late-phase sensitivity CS+ learners
+N130,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.006847155350555356,0.001481613788222258,-0.005365541562333098,Late-phase sensitivity CS+ learners
+N133,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.007735023733536184,-0.04939511825014686,-0.04166009451661068,Late-phase sensitivity CS+ learners
+N133,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.04740987316449083,-0.09261504546258445,-0.04520517229809362,Late-phase sensitivity CS+ learners
+N133,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.03193982569741838,-0.0061751910377093044,-0.03811501673512768,Late-phase sensitivity CS+ learners
+N146,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.03427220927741911,-0.003004485685515035,0.03126772359190408,Late-phase sensitivity CS+ learners
+N146,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.03506063274133986,-0.00378689299469559,0.03127373974664427,Late-phase sensitivity CS+ learners
+N146,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.033483785813498396,-0.00222207837633448,0.031261707437163916,Late-phase sensitivity CS+ learners
+N147,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.0390040162365132,0.02390568083329761,0.06290969706981081,Late-phase sensitivity CS+ learners
+N147,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.07607849923191404,0.005723852753560084,0.08180235198547411,Late-phase sensitivity CS+ learners
+N147,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.001929533241112391,0.04208750891303513,0.04401704215414752,Late-phase sensitivity CS+ learners
+N148,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.035729697785980716,-0.017753170032629537,0.01797652775335118,Late-phase sensitivity CS+ learners
+N148,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.05789572083091318,-0.037118086763666625,0.02077763406724656,Late-phase sensitivity CS+ learners
+N148,SAD,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.013563674741048276,0.0016117466984075512,0.015175421439455827,Late-phase sensitivity CS+ learners
+N155,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.0002935816026363447,0.0013852561228441251,0.0016788377254804698,Late-phase sensitivity CS+ learners
+N155,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.0008378408605393406,-7.184182293717978e-05,0.0007659990376021608,Late-phase sensitivity CS+ learners
+N155,SAD,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.00025067765526662344,0.0028423540686254023,0.002591676413358779,Late-phase sensitivity CS+ learners
+N202,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.033528323236707874,-0.005948190667636077,0.027580132569071797,Late-phase sensitivity CS+ learners
+N202,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.11393173529170937,-0.07965445835029432,0.03427727694141505,Late-phase sensitivity CS+ learners
+N202,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.04687508881829365,0.06775807701502216,0.020882988196728514,Late-phase sensitivity CS+ learners
+N210,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.2024305688764557,-0.028884349254803016,0.17354621962165268,Late-phase sensitivity CS+ learners
+N210,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.15595093572664742,-0.028137212203838746,0.12781372352280868,Late-phase sensitivity CS+ learners
+N210,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.24891020202626396,-0.029631486305767292,0.21927871572049668,Late-phase sensitivity CS+ learners
+N214,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.16061459257982127,0.17826255607290506,0.017647963493083785,Late-phase sensitivity CS+ learners
+N214,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.181118088563798,0.2288673806105825,0.04774929204678452,Late-phase sensitivity CS+ learners
+N214,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.14011109659584456,0.1276577315352276,-0.01245336506061695,Late-phase sensitivity CS+ learners
+N216,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.06431951298996064,-0.03120016910805623,-0.09551968209801687,Late-phase sensitivity CS+ learners
+N216,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.09916143556390211,0.022206179661999448,-0.07695525590190266,Late-phase sensitivity CS+ learners
+N216,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.02947759041601916,-0.08460651787811191,-0.11408410829413107,Late-phase sensitivity CS+ learners
+N230,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.08444227250298683,-0.035355339059327376,0.049086933443659456,Late-phase sensitivity CS+ learners
+N230,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.12171654951560859,-0.035355339059327376,0.08636121045628121,Late-phase sensitivity CS+ learners
+N230,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.0471679954903651,-0.035355339059327376,0.011812656431037724,Late-phase sensitivity CS+ learners
+N233,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.1475955943247543,-0.015663091133295642,0.13193250319145866,Late-phase sensitivity CS+ learners
+N233,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.08856390306659984,0.06021916337933725,0.14878306644593708,Late-phase sensitivity CS+ learners
+N233,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.20662728558290877,-0.09154534564592852,0.11508193993698024,Late-phase sensitivity CS+ learners
+N234,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,0.017677669529663688,-0.017677669529663688,0.0,Late-phase sensitivity CS+ learners
+N234,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.035355339059327376,-0.035355339059327376,0.0,Late-phase sensitivity CS+ learners
+N234,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.0,0.0,0.0,Late-phase sensitivity CS+ learners
+N251,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.10711790682660899,0.005385891000760146,-0.10173201582584884,Late-phase sensitivity CS+ learners
+N251,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.2206918814882327,0.0075722199141417534,-0.21311966157409096,Late-phase sensitivity CS+ learners
+N251,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,0.006456067835014734,0.003199562087378538,0.009655629922393272,Late-phase sensitivity CS+ learners
+N253,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.06294013452506461,0.03878211373270704,-0.02415802079235757,Late-phase sensitivity CS+ learners
+N253,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.06929688915601617,0.05239253717230544,-0.016904351983710736,Late-phase sensitivity CS+ learners
+N253,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.05658337989411305,0.025171690293108645,-0.031411689601004406,Late-phase sensitivity CS+ learners
+N254,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.04114802419421332,-0.019170523352896873,-0.06031854754711019,Late-phase sensitivity CS+ learners
+N254,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,0.06131270159805796,-0.005095693506318277,0.056217008091739684,Late-phase sensitivity CS+ learners
+N254,HC,Oxytocin,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.14360874998648454,-0.03324535319947547,-0.17685410318596,Late-phase sensitivity CS+ learners
+N260,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CS+ - CS-,-0.11344482901800207,0.04669554082738556,-0.06674928819061651,Late-phase sensitivity CS+ learners
+N260,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSS - CS-,-0.10522242840124123,0.07751166688430049,-0.02771076151694074,Late-phase sensitivity CS+ learners
+N260,HC,Placebo,Reinstatement return,Reinstatement Early - Extinction Late,CSR - CS-,-0.12166722963476298,0.01587941477047062,-0.10578781486429237,Late-phase sensitivity CS+ learners

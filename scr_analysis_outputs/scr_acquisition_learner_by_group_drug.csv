@@ -1,0 +1,17 @@
+Group,Drug,Definition,N,Total,Percent_of_total
+HC,Oxytocin,Physiological SCR responder,13,24,54.166666666666664
+HC,Oxytocin,Simple acquisition differential: pooled CS+ > CS-,8,24,33.333333333333336
+HC,Oxytocin,Habituation-adjusted beta: pooled CS+ > CS-,5,24,20.833333333333332
+HC,Oxytocin,Late-phase sensitivity: pooled CS+,7,24,29.166666666666668
+HC,Placebo,Physiological SCR responder,19,29,65.51724137931035
+HC,Placebo,Simple acquisition differential: pooled CS+ > CS-,13,29,44.827586206896555
+HC,Placebo,Habituation-adjusted beta: pooled CS+ > CS-,10,29,34.48275862068966
+HC,Placebo,Late-phase sensitivity: pooled CS+,4,29,13.793103448275861
+SAD,Oxytocin,Physiological SCR responder,14,28,50.0
+SAD,Oxytocin,Simple acquisition differential: pooled CS+ > CS-,12,28,42.857142857142854
+SAD,Oxytocin,Habituation-adjusted beta: pooled CS+ > CS-,10,28,35.714285714285715
+SAD,Oxytocin,Late-phase sensitivity: pooled CS+,7,28,25.0
+SAD,Placebo,Physiological SCR responder,13,23,56.52173913043478
+SAD,Placebo,Simple acquisition differential: pooled CS+ > CS-,8,23,34.78260869565217
+SAD,Placebo,Habituation-adjusted beta: pooled CS+ > CS-,7,23,30.434782608695652
+SAD,Placebo,Late-phase sensitivity: pooled CS+,4,23,17.391304347826086

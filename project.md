@@ -676,3 +676,8 @@ Do not rerun all chunks unless multiple chunks failed or the chunk configuration
 - Keep output names consistent across FearNetwork, MemoryFearNetwork, and Schaefer when analyses refer to the same concept.
 - For sensitivity notebooks, recompute downstream analyses from the active mask rather than loading cached p < .05 downstream payloads.
 
+## Editing Requirement
+- for figures
+  - use seaborn if possible
+  - use same theme consistently
+  - if doing group comparison, alwasy add standard error as error bars
