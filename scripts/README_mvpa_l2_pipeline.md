@@ -11,11 +11,32 @@ This folder contains the lightweight project layer for executing the analysis pl
 
 ## One-Command Workflow
 
+On Hyak, submit the whole currently executable workflow without whole-brain/parcellation sensitivity:
+
+```bash
+hyak/submit_mvpa_L2_needed_no_wholebrain.sh
+```
+
+This submits the FearNetwork chain, the MemoryFearNetwork sensitivity chain, and then a dependent post-Hyak harmonization/statistics job. All three parts run inside:
+
+```text
+/gscratch/fang/images/jupyter.sif
+```
+
+The post-Hyak job can also be submitted by itself after feature-space jobs finish:
+
+```bash
+hyak/submit_mvpa_L2_posthyak.sh --dependency FEAR_FINAL_JOB_ID:MEMORY_FINAL_JOB_ID
+```
+
+Use `SCR_DIR=/path/to/scr_analysis_outputs` if the SCR notebook outputs are not under the default project SCR folder.
+
 Run this after the Hyak jobs are complete:
 
 ```bash
-FEAR_DIR=/path/to/FearNetwork/output \
-MEMORY_DIR=/path/to/MemoryFearNetwork/output \
+salloc -A psych -p cpu-g2-mem2x --mem=60G --time=12:00:00
+FEAR_DIR='/gscratch/scrubbed/fanglab/xiaoqian/NARSAD/LSS/results/FearNetwork/' \
+MEMORY_DIR='/gscratch/scrubbed/fanglab/xiaoqian/NARSAD/LSS/results/MemoryFearNetwork/ \
 bash scripts/run_mvpa_l2_posthyak.sh
 ```
 
