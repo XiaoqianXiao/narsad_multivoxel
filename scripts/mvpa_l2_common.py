@@ -154,13 +154,32 @@ def merge_on_subject(left: pd.DataFrame | None, right: pd.DataFrame | None) -> p
 
 def coalesce_duplicate_columns(df: pd.DataFrame) -> pd.DataFrame:
     out = df.copy()
+    if out.columns.duplicated().any():
+        collapsed = pd.DataFrame(index=out.index)
+        for col in pd.unique(out.columns):
+            same_name = out.loc[:, out.columns == col]
+            if isinstance(same_name, pd.Series):
+                collapsed[col] = same_name
+            elif same_name.shape[1] == 1:
+                collapsed[col] = same_name.iloc[:, 0]
+            else:
+                collapsed[col] = same_name.bfill(axis=1).iloc[:, 0]
+        out = collapsed
+
     dup_cols = [c for c in out.columns if c.endswith("_dup")]
     for dup in dup_cols:
         base = dup[:-4]
         if base in out.columns:
-            out[base] = out[base].combine_first(out[dup])
+            base_values = out.loc[:, base]
+            dup_values = out.loc[:, dup]
+            if isinstance(base_values, pd.DataFrame):
+                base_values = base_values.bfill(axis=1).iloc[:, 0]
+            if isinstance(dup_values, pd.DataFrame):
+                dup_values = dup_values.bfill(axis=1).iloc[:, 0]
+            out[base] = base_values.combine_first(dup_values)
         else:
-            out[base] = out[dup]
+            dup_values = out.loc[:, dup]
+            out[base] = dup_values.bfill(axis=1).iloc[:, 0] if isinstance(dup_values, pd.DataFrame) else dup_values
         out = out.drop(columns=[dup])
     return out
 

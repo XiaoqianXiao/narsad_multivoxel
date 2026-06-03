@@ -37,6 +37,9 @@ def read_subject_txt(path: Path) -> set[str]:
 
 
 def build_flags(scr_dir: Path) -> pd.DataFrame:
+    if not scr_dir.exists():
+        print(f"[WARN] SCR directory does not exist: {scr_dir}")
+
     subject_sets = {flag: read_subject_txt(scr_dir / filename) for flag, filename in FLAG_FILES.items()}
     all_subjects = sorted(set().union(*subject_sets.values()))
 
@@ -61,6 +64,10 @@ def build_flags(scr_dir: Path) -> pd.DataFrame:
         extra = learner_df[keep_cols].drop_duplicates("sub_ID")
         out = out.merge(extra, on="sub_ID", how="left", suffixes=("", "_raw"))
 
+    if out.empty:
+        expected = ", ".join(list(FLAG_FILES.values()) + ["scr_acquisition_learner_subjects.csv"])
+        print(f"[WARN] No SCR sensitivity subjects found in {scr_dir}. Expected one or more of: {expected}")
+
     return out.sort_values("sub_ID").reset_index(drop=True)
 
 
@@ -83,4 +90,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

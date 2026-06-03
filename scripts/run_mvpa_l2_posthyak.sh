@@ -21,10 +21,24 @@ SCHAEFER_DIR="${SCHAEFER_DIR:-}"
 SCR_DIR="${SCR_DIR:-scr_analysis_outputs}"
 OUT_ROOT="${OUT_ROOT:-outputs/mvpa_l2}"
 PYTHON_BIN="${PYTHON_BIN:-python3}"
+SCR_FLAGS="${SCR_FLAGS:-}"
+SCR_FLAGS_OUT="$OUT_ROOT/harmonized/scr_sensitivity_groups.csv"
 
-"$PYTHON_BIN" scripts/build_scr_sensitivity_groups.py \
-  --scr-dir "$SCR_DIR" \
-  --out "$OUT_ROOT/harmonized/scr_sensitivity_groups.csv"
+mkdir -p "$(dirname "$SCR_FLAGS_OUT")"
+if [[ -n "$SCR_FLAGS" && -f "$SCR_FLAGS" ]]; then
+  if [[ "$SCR_FLAGS" != "$SCR_FLAGS_OUT" ]]; then
+    cp "$SCR_FLAGS" "$SCR_FLAGS_OUT"
+  fi
+  echo "Using prebuilt SCR sensitivity flags -> $SCR_FLAGS_OUT"
+elif [[ -n "$SCR_FLAGS" ]]; then
+  echo "ERROR: SCR_FLAGS was set but the file does not exist: $SCR_FLAGS" >&2
+  echo "Expected a prebuilt CSV such as /app/outputs/mvpa_l2/harmonized/scr_sensitivity_groups.csv" >&2
+  exit 1
+else
+  "$PYTHON_BIN" scripts/build_scr_sensitivity_groups.py \
+    --scr-dir "$SCR_DIR" \
+    --out "$SCR_FLAGS_OUT"
+fi
 
 FEATURE_ARGS=(
   --feature-dir "FearNetwork=$FEAR_DIR"
@@ -37,7 +51,7 @@ fi
 
 "$PYTHON_BIN" scripts/export_mvpa_l2_metrics.py \
   "${FEATURE_ARGS[@]}" \
-  --scr-flags "$OUT_ROOT/harmonized/scr_sensitivity_groups.csv" \
+  --scr-flags "$SCR_FLAGS_OUT" \
   --out "$OUT_ROOT/harmonized/mvpa_l2_subject_metrics.csv"
 
 "$PYTHON_BIN" scripts/run_mvpa_l2_primary_models.py \

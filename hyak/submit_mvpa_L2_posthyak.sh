@@ -19,7 +19,8 @@ OUT_BASE="${OUT_BASE:-/gscratch/scrubbed/fanglab/xiaoqian/NARSAD/LSS/results}"
 FEAR_DIR="${FEAR_DIR:-/output_dir/FearNetwork}"
 MEMORY_DIR="${MEMORY_DIR:-/output_dir/MemoryFearNetwork}"
 SCHAEFER_DIR="${SCHAEFER_DIR:-}"
-SCR_DIR="${SCR_DIR:-${PROJECT_ROOT}/scr_analysis_outputs}"
+SCR_FLAGS="${SCR_FLAGS:-/app/outputs/mvpa_l2/harmonized/scr_sensitivity_groups.csv}"
+SCR_DIR="${SCR_DIR:-/app/scr_analysis_outputs}"
 OUT_ROOT="${OUT_ROOT:-/output_dir/mvpa_l2}"
 
 LOG_DIR="${LOG_DIR:-${PROJECT_ROOT}/logs/mvpa_l2_posthyak}"
@@ -37,14 +38,16 @@ Usage:
 
 Environment overrides:
   PROJECT_ROOT, CONTAINER_SIF, REPO_ROOT, OUT_BASE
-  FEAR_DIR, MEMORY_DIR, SCHAEFER_DIR, SCR_DIR, OUT_ROOT
+  FEAR_DIR, MEMORY_DIR, SCHAEFER_DIR, SCR_FLAGS, SCR_DIR, OUT_ROOT
   LOG_DIR, PARTITION, ACCOUNT, TIME, MEM, CPUS
 
 Defaults:
   CONTAINER_SIF=/gscratch/fang/images/jupyter.sif
   FEAR_DIR=/output_dir/FearNetwork
   MEMORY_DIR=/output_dir/MemoryFearNetwork
+  SCR_FLAGS=/app/outputs/mvpa_l2/harmonized/scr_sensitivity_groups.csv
   SCHAEFER_DIR is empty, so whole-brain/parcellation sensitivity is skipped.
+  SCR_DIR is only used as a fallback when SCR_FLAGS is missing.
 EOF
 }
 
@@ -81,6 +84,7 @@ cd /app
 export FEAR_DIR='${FEAR_DIR}'
 export MEMORY_DIR='${MEMORY_DIR}'
 export SCHAEFER_DIR='${SCHAEFER_DIR}'
+export SCR_FLAGS='${SCR_FLAGS}'
 export SCR_DIR='${SCR_DIR}'
 export OUT_ROOT='${OUT_ROOT}'
 export PYTHON_BIN='python3'
