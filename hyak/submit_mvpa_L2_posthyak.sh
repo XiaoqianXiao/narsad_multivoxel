@@ -83,6 +83,7 @@ export MEMORY_DIR='${MEMORY_DIR}'
 export SCHAEFER_DIR='${SCHAEFER_DIR}'
 export SCR_DIR='${SCR_DIR}'
 export OUT_ROOT='${OUT_ROOT}'
+export PYTHON_BIN='python3'
 bash scripts/run_mvpa_l2_posthyak.sh
 EOF
 )

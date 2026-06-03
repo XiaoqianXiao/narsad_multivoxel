@@ -20,8 +20,9 @@ MEMORY_DIR="${MEMORY_DIR:-outputs/mvpa_l2/MemoryFearNetwork}"
 SCHAEFER_DIR="${SCHAEFER_DIR:-}"
 SCR_DIR="${SCR_DIR:-scr_analysis_outputs}"
 OUT_ROOT="${OUT_ROOT:-outputs/mvpa_l2}"
+PYTHON_BIN="${PYTHON_BIN:-python3}"
 
-python scripts/build_scr_sensitivity_groups.py \
+"$PYTHON_BIN" scripts/build_scr_sensitivity_groups.py \
   --scr-dir "$SCR_DIR" \
   --out "$OUT_ROOT/harmonized/scr_sensitivity_groups.csv"
 
@@ -34,19 +35,19 @@ if [[ -n "$SCHAEFER_DIR" ]]; then
   FEATURE_ARGS+=(--feature-dir "Schaefer=$SCHAEFER_DIR")
 fi
 
-python scripts/export_mvpa_l2_metrics.py \
+"$PYTHON_BIN" scripts/export_mvpa_l2_metrics.py \
   "${FEATURE_ARGS[@]}" \
   --scr-flags "$OUT_ROOT/harmonized/scr_sensitivity_groups.csv" \
   --out "$OUT_ROOT/harmonized/mvpa_l2_subject_metrics.csv"
 
-python scripts/run_mvpa_l2_primary_models.py \
+"$PYTHON_BIN" scripts/run_mvpa_l2_primary_models.py \
   --input "$OUT_ROOT/harmonized/mvpa_l2_subject_metrics.csv" \
   --out-dir "$OUT_ROOT/stats"
 
-python scripts/run_mvpa_l2_sensitivity_models.py \
+"$PYTHON_BIN" scripts/run_mvpa_l2_sensitivity_models.py \
   --input "$OUT_ROOT/harmonized/mvpa_l2_subject_metrics.csv" \
   --out "$OUT_ROOT/stats/sensitivity_models_all.csv"
 
-python scripts/summarize_mvpa_l2_results.py \
+"$PYTHON_BIN" scripts/summarize_mvpa_l2_results.py \
   --stats-dir "$OUT_ROOT/stats" \
   --out "$OUT_ROOT/stats/mvpa_l2_results_summary.md"
