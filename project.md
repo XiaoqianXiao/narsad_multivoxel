@@ -681,3 +681,4 @@ Do not rerun all chunks unless multiple chunks failed or the chunk configuration
   - use seaborn if possible
   - use same theme consistently
   - if doing group comparison, alwasy add standard error as error bars
+- keep clear note for analysis, include aims, methods, and source for decisions
