@@ -43,7 +43,9 @@ def format_table(df: pd.DataFrame, n: int = 20) -> str:
             "analysis",
             "sensitivity",
             "feature_space",
+            "Group",
             "metric",
+            "metric_z",
             "clinical_score",
             "clinical_score_z",
             "scr_index",
@@ -55,6 +57,7 @@ def format_table(df: pd.DataFrame, n: int = 20) -> str:
             "q",
             "n",
             "n_clinical_outliers_removed",
+            "n_metric_outliers_removed",
             "status",
         ]
         if c in df.columns

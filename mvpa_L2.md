@@ -208,7 +208,7 @@ This matrix defines the executable core of the plan. Companion metrics and secon
 | --- | --- | --- | --- | --- |
 | Aim 1: pattern identification | SAD-placebo and HC-placebo, separately | `CSR` versus `CSS` decoding accuracy | Subject-aware cross-validated L2 logistic regression with permutation testing | Decoding tests |
 | Aim 2: SAD-HC neural profile | SAD-placebo versus HC-placebo | `Neural_Dist_Safety_Background`, `Neural_ThreatLike_Safety`, `Neural_SafetyLike_Safety`, `Neural_Boundary_Separation`, `Neural_Decision_Margin_CSS`, `Neural_Safety_Trajectory_Slope`, `Neural_Threat_Trajectory_Slope` | `neural_metric ~ Group + covariates` | Primary neural profile metrics |
-| Aim 3: clinical relevance | Primary: placebo sample; sensitivity: all-drug sample with drug covariate | Core neural metrics with z-scored `lsas_total`, `lsas_fear`, `lsas_avoid`, `dass_anxiety` | `z(clinical_score) ~ neural_metric + Group + Drug + covariates`; within-group follow-ups when powered | Primary clinical-neural associations |
+| Aim 3: clinical relevance | SAD and HC modeled separately, matching the FearNetwork z-scored OLS visualization, with covariate adjustment | Z-scored core neural metrics with z-scored `lsas_total`, `lsas_fear`, `lsas_avoid`, `dass_anxiety` | Within each group: `z(clinical_score) ~ z(neural_metric) + covariates` | Primary clinical-neural associations |
 | Aim 4: physiological convergence | Primary: participants with SCR and fMRI; sensitivity: SCR responder/learner cohorts | Core neural metrics with `SCR_SafetyMinusBackground`, `SCR_ThreatMinusSafety`, `SCR_Safety_Trajectory_Slope`, `SCR_Threat_Trajectory_Slope` | `scr_index ~ neural_metric + Group + Drug + covariates`; trial-wise mixed models when using trial-level SCR | Primary SCR-neural associations |
 | Aim 5: oxytocin modulation | Full factorial sample: SAD-placebo, SAD-oxytocin, HC-placebo, HC-oxytocin | Same core neural metrics as Aim 2 | `neural_metric ~ Group * Drug + covariates` | Drug-modulation tests |
 
@@ -671,24 +671,24 @@ Create a subject-level table containing:
 
 ### 15.1 Clinical Symptom Associations
 
-Primary clinical model:
+Primary clinical model, run separately within SAD and HC:
 
 ```text
-z(clinical_score) ~ neural_metric + Group + Drug + covariates
+z(clinical_score) ~ z(neural_metric) + covariates
 ```
 
-Before z-scoring, remove clinical-score outliers separately for each primary clinical score. The default rule is absolute MAD-based robust z score greater than 3.5, with an SD-based z-score fallback when MAD is zero. Z-scoring is then performed within the retained analysis sample for that clinical score.
+Before final z-scoring, remove clinical-score and neural-metric outliers separately using the same rule as the FearNetwork stage-29 visualization audit: compute an initial ordinary z score with population SD (`scipy.stats.zscore`, equivalent to `ddof=0`), set values with `abs(z) > 3.0` to missing, then recompute the final z-scored variable with the same z-score rule in the retained analysis sample. Numeric covariates are treated with the same z-score/outlier rule; categorical covariates are included as categorical terms.
 
-Group moderation model:
+Optional secondary group moderation model:
 
 ```text
-z(clinical_score) ~ neural_metric * Group + Drug + covariates
+z(clinical_score) ~ z(neural_metric) * Group + covariates
 ```
 
-Drug moderation model:
+Optional secondary drug moderation model:
 
 ```text
-z(clinical_score) ~ neural_metric * Group * Drug + covariates
+z(clinical_score) ~ z(neural_metric) * Group * Drug + covariates
 ```
 
 Primary clinical family:

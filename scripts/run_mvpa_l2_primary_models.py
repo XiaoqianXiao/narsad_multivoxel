@@ -24,44 +24,49 @@ GROUP_TERM = "C(Group, Treatment(reference='HC'))[T.SAD]"
 DRUG_INTERACTION_TERM = "C(Group, Treatment(reference='HC'))[T.SAD]:C(Drug, Treatment(reference='Placebo'))[T.Oxytocin]"
 
 
-def remove_clinical_outliers(df: pd.DataFrame, column: str, threshold: float) -> tuple[pd.DataFrame, int, str | None]:
-    """Remove clinical-score outliers using robust z scores with an SD fallback."""
+def apply_stage29_zscore(df: pd.DataFrame, column: str, threshold: float) -> tuple[pd.DataFrame, str | None, int, str | None]:
+    """Apply the FearNetwork stage-29 outlier rule and add a final z column."""
     if column not in df.columns:
-        return df, 0, None
+        return df, None, 0, None
     out = df.copy()
     values = pd.to_numeric(out[column], errors="coerce")
     non_missing = values.notna()
     if non_missing.sum() < 4:
-        return out, 0, "too_few_nonmissing"
+        return out, None, 0, "too_few_nonmissing"
 
-    median = values.median(skipna=True)
-    mad = (values - median).abs().median(skipna=True)
-    if pd.notna(mad) and mad > 0:
-        scores = 0.6745 * (values - median) / mad
-        method = "mad_robust_z"
-    else:
-        sd = values.std(skipna=True, ddof=1)
-        if pd.isna(sd) or sd == 0:
-            return out, 0, "constant"
-        scores = (values - values.mean(skipna=True)) / sd
-        method = "sd_z_fallback"
-
-    outlier_mask = non_missing & (scores.abs() > threshold)
-    return out.loc[~outlier_mask].copy(), int(outlier_mask.sum()), method
-
-
-def add_zscore(df: pd.DataFrame, column: str) -> tuple[pd.DataFrame, str | None]:
-    """Add a sample-level z-scored copy of a continuous column."""
-    if column not in df.columns:
-        return df, None
-    out = df.copy()
-    values = pd.to_numeric(out[column], errors="coerce")
-    sd = values.std(skipna=True, ddof=1)
+    sd = values.std(skipna=True, ddof=0)
     if pd.isna(sd) or sd == 0:
-        return out, None
+        return out, None, 0, "constant"
+
+    scores = (values - values.mean(skipna=True)) / sd
+    outlier_mask = non_missing & (scores.abs() > threshold)
+    out.loc[outlier_mask, column] = pd.NA
+    values_clean = pd.to_numeric(out[column], errors="coerce")
+    sd_clean = values_clean.std(skipna=True, ddof=0)
+    if pd.isna(sd_clean) or sd_clean == 0:
+        return out, None, int(outlier_mask.sum()), "constant_after_outlier_removal"
     z_col = f"z_{column}"
-    out[z_col] = (values - values.mean(skipna=True)) / sd
-    return out, z_col
+    out[z_col] = (values_clean - values_clean.mean(skipna=True)) / sd_clean
+    return out, z_col, int(outlier_mask.sum()), "fearnetwork_stage29_zscore"
+
+
+def zscore_numeric_covariates(df: pd.DataFrame, covariates: list[str], threshold: float) -> tuple[pd.DataFrame, list[str], dict[str, int]]:
+    """Z-score numeric covariates with the same outlier rule; keep categorical covariates unchanged."""
+    out = df.copy()
+    model_covariates = []
+    removed = {}
+    for cov in covariates:
+        if cov not in out.columns:
+            continue
+        numeric = pd.to_numeric(out[cov], errors="coerce")
+        if numeric.notna().sum() >= max(4, len(out[cov].dropna()) // 2):
+            out, z_cov, n_out, _ = apply_stage29_zscore(out, cov, threshold)
+            removed[cov] = n_out
+            if z_cov is not None:
+                model_covariates.append(z_cov)
+        else:
+            model_covariates.append(cov)
+    return out, model_covariates, removed
 
 
 def run_aim2(df: pd.DataFrame, feature_space: str, covariates: list[str]) -> pd.DataFrame:
@@ -83,47 +88,78 @@ def run_aim2(df: pd.DataFrame, feature_space: str, covariates: list[str]) -> pd.
 def run_aim3(df: pd.DataFrame, feature_space: str, covariates: list[str], clinical_outlier_z: float) -> pd.DataFrame:
     rows = []
     sub = df[df["FeatureSpace"] == feature_space].copy()
-    for clinical in PRIMARY_CLINICAL_SCORES:
-        sub_clean, n_outliers, outlier_method = remove_clinical_outliers(sub, clinical, clinical_outlier_z)
-        sub_z, clinical_z = add_zscore(sub_clean, clinical)
-        if clinical_z is None:
-            row = {"status": "missing_or_constant_clinical_score", "n": 0, "outcome": clinical}
-            row.update(
-                {
-                    "analysis": "Aim3_Clinical_Relevance",
-                    "clinical_score": clinical,
-                    "clinical_score_z": None,
-                    "clinical_outlier_method": outlier_method,
-                    "clinical_outlier_threshold": clinical_outlier_z,
-                    "n_clinical_outliers_removed": n_outliers,
-                    "feature_space": feature_space,
-                }
-            )
-            rows.append(row)
-            continue
-        for metric in CORE_NEURAL_METRICS:
-            if metric not in sub_z.columns:
+    groups = [g for g in ["SAD", "HC"] if g in set(sub["Group"].dropna())]
+    for group in groups:
+        group_df = sub[sub["Group"] == group].copy()
+        group_df, model_covariates, covariate_outliers = zscore_numeric_covariates(group_df, covariates, clinical_outlier_z)
+        for clinical in PRIMARY_CLINICAL_SCORES:
+            clinical_df, clinical_z, n_clinical_outliers, clinical_method = apply_stage29_zscore(group_df, clinical, clinical_outlier_z)
+            if clinical_z is None:
+                row = {"status": "missing_or_constant_clinical_score", "n": 0, "outcome": clinical}
+                row.update(
+                    {
+                        "analysis": "Aim3_Clinical_Relevance_Groupwise_ZOLS",
+                        "Group": group,
+                        "clinical_score": clinical,
+                        "clinical_score_z": None,
+                        "clinical_outlier_method": clinical_method,
+                        "clinical_outlier_threshold": clinical_outlier_z,
+                        "n_clinical_outliers_removed": n_clinical_outliers,
+                        "feature_space": feature_space,
+                    }
+                )
+                rows.append(row)
                 continue
-            row = fit_lm(
-                sub_z,
-                outcome=clinical_z,
-                predictor_terms=[f"Q('{metric}')", "C(Group, Treatment(reference='HC'))", "C(Drug, Treatment(reference='Placebo'))"],
-                covariates=covariates,
-                term_of_interest=f"Q('{metric}')",
-            )
-            row.update(
-                {
-                    "analysis": "Aim3_Clinical_Relevance",
-                    "metric": metric,
-                    "clinical_score": clinical,
-                    "clinical_score_z": clinical_z,
-                    "clinical_outlier_method": outlier_method,
-                    "clinical_outlier_threshold": clinical_outlier_z,
-                    "n_clinical_outliers_removed": n_outliers,
-                    "feature_space": feature_space,
-                }
-            )
-            rows.append(row)
+            for metric in CORE_NEURAL_METRICS:
+                if metric not in clinical_df.columns:
+                    continue
+                model_df, metric_z, n_metric_outliers, metric_method = apply_stage29_zscore(clinical_df, metric, clinical_outlier_z)
+                if metric_z is None:
+                    row = {"status": "missing_or_constant_neural_metric", "n": 0, "outcome": clinical_z}
+                    row.update(
+                        {
+                            "analysis": "Aim3_Clinical_Relevance_Groupwise_ZOLS",
+                            "Group": group,
+                            "metric": metric,
+                            "metric_z": None,
+                            "clinical_score": clinical,
+                            "clinical_score_z": clinical_z,
+                            "clinical_outlier_method": clinical_method,
+                            "metric_outlier_method": metric_method,
+                            "clinical_outlier_threshold": clinical_outlier_z,
+                            "n_clinical_outliers_removed": n_clinical_outliers,
+                            "n_metric_outliers_removed": n_metric_outliers,
+                            "feature_space": feature_space,
+                        }
+                    )
+                    rows.append(row)
+                    continue
+                row = fit_lm(
+                    model_df,
+                    outcome=clinical_z,
+                    predictor_terms=[f"Q('{metric_z}')"],
+                    covariates=model_covariates,
+                    term_of_interest=f"Q('{metric_z}')",
+                )
+                row.update(
+                    {
+                        "analysis": "Aim3_Clinical_Relevance_Groupwise_ZOLS",
+                        "Group": group,
+                        "metric": metric,
+                        "metric_z": metric_z,
+                        "clinical_score": clinical,
+                        "clinical_score_z": clinical_z,
+                        "clinical_outlier_method": clinical_method,
+                        "metric_outlier_method": metric_method,
+                        "clinical_outlier_threshold": clinical_outlier_z,
+                        "n_clinical_outliers_removed": n_clinical_outliers,
+                        "n_metric_outliers_removed": n_metric_outliers,
+                        "covariates_used": ",".join(model_covariates),
+                        "covariate_outliers_removed": ";".join(f"{k}:{v}" for k, v in covariate_outliers.items()),
+                        "feature_space": feature_space,
+                    }
+                )
+                rows.append(row)
     return pd.DataFrame(rows)
 
 
@@ -171,7 +207,7 @@ def main() -> None:
     )
     parser.add_argument("--primary-feature-space", default="FearNetwork")
     parser.add_argument("--covariates", nargs="*", default=None)
-    parser.add_argument("--clinical-outlier-z", type=float, default=3.5)
+    parser.add_argument("--clinical-outlier-z", type=float, default=3.0)
     parser.add_argument("--out-dir", type=Path, default=Path("outputs/mvpa_l2/stats"))
     args = parser.parse_args()
 
