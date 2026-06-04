@@ -74,10 +74,10 @@ inner_cmd=$(
   cat <<EOF
 set -euo pipefail
 cd /app
-python3 scripts/export_aim1_scr_sensitivity.py \\
-  --feature-dir '${FEATURE_DIR}' \\
-  --out '${OUT_CSV}' \\
-  --feature-space '${FEATURE_SPACE}'
+export FEATURE_DIR='${FEATURE_DIR}'
+export OUT_CSV='${OUT_CSV}'
+export FEATURE_SPACE='${FEATURE_SPACE}'
+python3 scripts/export_aim1_scr_sensitivity.py --feature-dir "\${FEATURE_DIR}" --out "\${OUT_CSV}" --feature-space "\${FEATURE_SPACE}"
 EOF
 )
 printf -v inner_cmd_q "%q" "$inner_cmd"
