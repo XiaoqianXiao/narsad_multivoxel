@@ -23,6 +23,7 @@ OUT_ROOT="${OUT_ROOT:-outputs/mvpa_l2}"
 PYTHON_BIN="${PYTHON_BIN:-python3}"
 SCR_FLAGS="${SCR_FLAGS:-}"
 SCR_FLAGS_OUT="$OUT_ROOT/harmonized/scr_sensitivity_groups.csv"
+CLINICAL_OUTLIER_Z="${CLINICAL_OUTLIER_Z:-3.5}"
 
 mkdir -p "$(dirname "$SCR_FLAGS_OUT")"
 if [[ -n "$SCR_FLAGS" && -f "$SCR_FLAGS" ]]; then
@@ -56,6 +57,7 @@ fi
 
 "$PYTHON_BIN" scripts/run_mvpa_l2_primary_models.py \
   --input "$OUT_ROOT/harmonized/mvpa_l2_subject_metrics.csv" \
+  --clinical-outlier-z "$CLINICAL_OUTLIER_Z" \
   --out-dir "$OUT_ROOT/stats"
 
 "$PYTHON_BIN" scripts/run_mvpa_l2_sensitivity_models.py \

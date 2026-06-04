@@ -37,7 +37,28 @@ def read_tables(stats_dir: Path) -> dict[str, pd.DataFrame]:
 def format_table(df: pd.DataFrame, n: int = 20) -> str:
     if df.empty:
         return "_No rows._"
-    cols = [c for c in ["analysis", "sensitivity", "feature_space", "metric", "clinical_score", "scr_index", "term", "estimate", "ci_low", "ci_high", "p", "q", "n", "status"] if c in df.columns]
+    cols = [
+        c
+        for c in [
+            "analysis",
+            "sensitivity",
+            "feature_space",
+            "metric",
+            "clinical_score",
+            "clinical_score_z",
+            "scr_index",
+            "term",
+            "estimate",
+            "ci_low",
+            "ci_high",
+            "p",
+            "q",
+            "n",
+            "n_clinical_outliers_removed",
+            "status",
+        ]
+        if c in df.columns
+    ]
     view = df[cols].copy()
     if "p" in view.columns:
         view = view.sort_values(["p"], na_position="last")
