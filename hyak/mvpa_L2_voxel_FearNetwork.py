@@ -811,6 +811,52 @@ def get_cv(y, groups=None, n_splits=SUBJECT_CV_SPLITS, shuffle=True, random_stat
     return StratifiedGroupKFold(n_splits=n_splits, shuffle=shuffle, random_state=(random_state if shuffle else None))
 
 
+def effective_cv_splits(y, groups=None, requested_splits=SUBJECT_CV_SPLITS):
+    """Choose a CV split count that is valid for small subject-filtered cohorts."""
+    y_arr = np.asarray(y)
+    if len(np.unique(y_arr)) < 2:
+        raise ValueError("CV requires at least two classes.")
+    class_counts = [int(np.sum(y_arr == cls)) for cls in np.unique(y_arr)]
+    max_by_class = min(class_counts)
+    if groups is None or len(np.unique(groups)) < 2:
+        max_splits = min(int(requested_splits), max_by_class)
+    else:
+        groups_arr = np.asarray(groups)
+        class_group_counts = [
+            len(np.unique(groups_arr[y_arr == cls]))
+            for cls in np.unique(y_arr)
+        ]
+        max_splits = min(int(requested_splits), len(np.unique(groups_arr)), min(class_group_counts), max_by_class)
+    if max_splits < 2:
+        raise ValueError(
+            "CV requires at least two valid splits after filtering. "
+            f"Class counts={dict(zip(np.unique(y_arr), class_counts))}."
+        )
+    return max_splits
+
+
+def make_valid_cv_splits(X, y, groups=None, requested_splits=SUBJECT_CV_SPLITS, shuffle=True, random_state=RANDOM_STATE, label="CV"):
+    """Return checked split indices, dropping empty folds from sparse subgroup CV."""
+    y_arr = np.asarray(y)
+    groups_arr = None if groups is None else np.asarray(groups)
+    n_splits = effective_cv_splits(y_arr, groups_arr, requested_splits)
+    cv = get_cv(y_arr, groups_arr, n_splits=n_splits, shuffle=shuffle, random_state=random_state)
+    split_iter = cv.split(X, y_arr, groups=groups_arr) if groups_arr is not None else cv.split(X, y_arr)
+    valid = []
+    for train_idx, test_idx in split_iter:
+        if len(train_idx) == 0 or len(test_idx) == 0:
+            continue
+        if len(np.unique(y_arr[train_idx])) < 2:
+            continue
+        valid.append((train_idx, test_idx))
+    if len(valid) < 2:
+        raise ValueError(
+            f"{label} produced fewer than two usable folds after filtering "
+            f"(requested={requested_splits}, effective={n_splits}, usable={len(valid)})."
+        )
+    return valid
+
+
 def _force_choice_scores_to_2d(scores: np.ndarray) -> np.ndarray:
     """Ensure decision scores are 2D (n_samples, n_classes)."""
     scores_arr = np.asarray(scores)
@@ -857,6 +903,8 @@ def compute_subject_forced_choice_accs(
 
 def forced_choice_scorer(estimator, X, y) -> float:
     """Scorer wrapper for GridSearchCV/cross_val_score."""
+    if len(X) == 0:
+        return np.nan
     scores = estimator.decision_function(X)
     return compute_forced_choice_accuracy(y, scores, estimator.classes_)
 
@@ -899,7 +947,13 @@ def run_perm_simple(X, y, groups, n_iters):
     y_shuffled = y.copy()
 
     pipe = build_binary_pipeline()
-    cv = get_cv(y, groups, n_splits=N_SPLITS, shuffle=False)
+    cv_splits = make_valid_cv_splits(
+        X, y, groups,
+        requested_splits=N_SPLITS,
+        shuffle=False,
+        random_state=RANDOM_STATE,
+        label="Permutation CV",
+    )
 
     for _ in range(n_iters):
         np.random.shuffle(y_shuffled)
@@ -908,11 +962,14 @@ def run_perm_simple(X, y, groups, n_iters):
             X,
             y_shuffled,
             groups=groups,
-            cv=cv,
+            cv=cv_splits,
             scoring=forced_choice_scorer,
-            n_jobs=N_JOBS
+            n_jobs=N_JOBS,
+            error_score=np.nan,
         )
-        scores.append(float(np.mean(cv_scores)))
+        mean_score = float(np.nanmean(cv_scores))
+        if np.isfinite(mean_score):
+            scores.append(mean_score)
 
     return scores
 
@@ -959,15 +1016,27 @@ def run_pairwise_decoding_analysis(X, y, subjects, n_repeats=10):
         for r in range(n_repeats):
             # Use a different random_state for each repeat to get different splits
             # Important: shuffle=True is required for the seed to change the split
-            gkf_outer = get_cv(y_pair, sub_pair, n_splits=N_SPLITS, shuffle=True, random_state=RANDOM_STATE + r)
+            outer_splits = make_valid_cv_splits(
+                X_pair, y_pair, sub_pair,
+                requested_splits=N_SPLITS,
+                shuffle=True,
+                random_state=RANDOM_STATE + r,
+                label=f"{pair_name} outer CV repeat {r + 1}",
+            )
             
             repeat_scores = []
             print(f"  > Repeat {r+1}/{n_repeats}...")
             
-            for i, (train_idx, test_idx) in enumerate(gkf_outer.split(X_pair, y_pair, groups=sub_pair), 1):
-                cv_inner = get_cv(y_pair[train_idx], sub_pair[train_idx], n_splits=INNER_CV_SPLITS, shuffle=True, random_state=RANDOM_STATE + r)
+            for i, (train_idx, test_idx) in enumerate(outer_splits, 1):
+                cv_inner = make_valid_cv_splits(
+                    X_pair[train_idx], y_pair[train_idx], sub_pair[train_idx],
+                    requested_splits=INNER_CV_SPLITS,
+                    shuffle=True,
+                    random_state=RANDOM_STATE + r,
+                    label=f"{pair_name} inner CV repeat {r + 1} fold {i}",
+                )
                 # Inner loop for hyperparameter tuning
-                gs = GridSearchCV(build_binary_pipeline(), param_grid, cv=cv_inner, scoring=forced_choice_scorer, n_jobs=N_JOBS)
+                gs = GridSearchCV(build_binary_pipeline(), param_grid, cv=cv_inner, scoring=forced_choice_scorer, n_jobs=N_JOBS, error_score="raise")
                 gs.fit(X_pair[train_idx], y_pair[train_idx], groups=sub_pair[train_idx])
                 
                 best_model = gs.best_estimator_
@@ -992,6 +1061,8 @@ def run_pairwise_decoding_analysis(X, y, subjects, n_repeats=10):
             
         avg_cv_acc = np.mean(all_repeat_scores)
         std_cv_acc = np.std(all_repeat_scores) # Total variance across all repeats/folds
+        if not np.isfinite(avg_cv_acc):
+            raise ValueError(f"{pair_name} produced no finite cross-validation accuracy values.")
         print(f"  > Final Mean Forced-Choice Accuracy ({n_repeats} repeats): {avg_cv_acc:.4f} (+/- {std_cv_acc:.4f})")
 
         # ---------------------------------------------------------------------
@@ -999,8 +1070,14 @@ def run_pairwise_decoding_analysis(X, y, subjects, n_repeats=10):
         # ---------------------------------------------------------------------
         # For the final model, we still refit once using a stable inner CV
         print("  > Generating final model (Refit on full data for Haufe patterns)...")
-        cv_inner_final = get_cv(y_pair, sub_pair, n_splits=INNER_CV_SPLITS, shuffle=True, random_state=RANDOM_STATE)
-        gs_final = GridSearchCV(build_binary_pipeline(), param_grid, cv=cv_inner_final, scoring=forced_choice_scorer, n_jobs=N_JOBS)
+        cv_inner_final = make_valid_cv_splits(
+            X_pair, y_pair, sub_pair,
+            requested_splits=INNER_CV_SPLITS,
+            shuffle=True,
+            random_state=RANDOM_STATE,
+            label=f"{pair_name} final-model CV",
+        )
+        gs_final = GridSearchCV(build_binary_pipeline(), param_grid, cv=cv_inner_final, scoring=forced_choice_scorer, n_jobs=N_JOBS, error_score="raise")
         gs_final.fit(X_pair, y_pair, groups=sub_pair)
         
         final_model = gs_final.best_estimator_
