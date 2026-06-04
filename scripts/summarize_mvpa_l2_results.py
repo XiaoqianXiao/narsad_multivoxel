@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 """Create a compact Markdown summary of MVPA L2 model outputs."""
 
-from __future__ import annotations
-
 import argparse
 from pathlib import Path
+from typing import Dict
 
 import pandas as pd
 
@@ -24,7 +23,7 @@ def _markdown_table(df: pd.DataFrame) -> str:
     return "\n".join(lines)
 
 
-def read_tables(stats_dir: Path) -> dict[str, pd.DataFrame]:
+def read_tables(stats_dir: Path) -> Dict[str, pd.DataFrame]:
     tables = {}
     for path in sorted(stats_dir.glob("*.csv")):
         try:

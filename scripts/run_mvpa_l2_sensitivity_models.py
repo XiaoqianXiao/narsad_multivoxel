@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 """Run feature-space and SCR-cohort sensitivity models for MVPA L2."""
 
-from __future__ import annotations
-
 import argparse
 from pathlib import Path
+from typing import Dict, List
 
 import pandas as pd
 
@@ -24,7 +23,7 @@ GROUP_TERM = "C(Group, Treatment(reference='HC'))[T.SAD]"
 DRUG_INTERACTION_TERM = "C(Group, Treatment(reference='HC'))[T.SAD]:C(Drug, Treatment(reference='Placebo'))[T.Oxytocin]"
 
 
-def run_group_model(df: pd.DataFrame, label: str, feature_space: str, covariates: list[str]) -> list[dict]:
+def run_group_model(df: pd.DataFrame, label: str, feature_space: str, covariates: List[str]) -> List[Dict]:
     rows = []
     sub = df[(df["FeatureSpace"] == feature_space) & (df["Drug"] == "Placebo")].copy()
     for metric in CORE_NEURAL_METRICS:
@@ -41,7 +40,7 @@ def run_group_model(df: pd.DataFrame, label: str, feature_space: str, covariates
     return rows
 
 
-def run_scr_model(df: pd.DataFrame, label: str, feature_space: str, covariates: list[str]) -> list[dict]:
+def run_scr_model(df: pd.DataFrame, label: str, feature_space: str, covariates: List[str]) -> List[Dict]:
     rows = []
     sub = df[df["FeatureSpace"] == feature_space].copy()
     for scr in PRIMARY_SCR_INDICES:
@@ -59,7 +58,7 @@ def run_scr_model(df: pd.DataFrame, label: str, feature_space: str, covariates: 
     return rows
 
 
-def run_drug_model(df: pd.DataFrame, label: str, feature_space: str, covariates: list[str]) -> list[dict]:
+def run_drug_model(df: pd.DataFrame, label: str, feature_space: str, covariates: List[str]) -> List[Dict]:
     rows = []
     sub = df[df["FeatureSpace"] == feature_space].copy()
     for metric in CORE_NEURAL_METRICS:

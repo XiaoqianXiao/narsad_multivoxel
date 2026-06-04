@@ -6,10 +6,9 @@ identify_fear_learning_subjects_scr.ipynb into one subject-level CSV. The MVPA
 models can then filter rows without rerunning expensive decoding.
 """
 
-from __future__ import annotations
-
 import argparse
 from pathlib import Path
+from typing import Set
 
 import pandas as pd
 
@@ -24,7 +23,7 @@ FLAG_FILES = {
 }
 
 
-def read_subject_txt(path: Path) -> set[str]:
+def read_subject_txt(path: Path) -> Set[str]:
     if not path.exists():
         return set()
     subjects = set()

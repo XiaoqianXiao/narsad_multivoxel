@@ -6,10 +6,9 @@ script reads their cached joblib outputs and writes a stable CSV with the metric
 names used in mvpa_L2.md.
 """
 
-from __future__ import annotations
-
 import argparse
 from pathlib import Path
+from typing import Dict, List, Optional
 
 import numpy as np
 import pandas as pd
@@ -34,7 +33,7 @@ DEFAULT_FEATURE_DIRS = {
 }
 
 
-def parse_feature_dir(values: list[str] | None) -> dict[str, Path]:
+def parse_feature_dir(values: Optional[List[str]]) -> Dict[str, Path]:
     if not values:
         return DEFAULT_FEATURE_DIRS.copy()
     out = {}
@@ -46,14 +45,14 @@ def parse_feature_dir(values: list[str] | None) -> dict[str, Path]:
     return out
 
 
-def load_payload(base_dir: Path, names: list[str]):
+def load_payload(base_dir: Path, names: List[str]):
     path = find_existing(base_dir, names)
     if path is None:
         return None
     return maybe_read_joblib(path)
 
 
-def load_master(base_dir: Path) -> pd.DataFrame | None:
+def load_master(base_dir: Path) -> Optional[pd.DataFrame]:
     payload = load_payload(
         base_dir,
         [
@@ -70,7 +69,7 @@ def load_master(base_dir: Path) -> pd.DataFrame | None:
     return None
 
 
-def topology_from_results12(payload) -> pd.DataFrame | None:
+def topology_from_results12(payload) -> Optional[pd.DataFrame]:
     results = payload_value(payload, "results_12") or payload
     if not isinstance(results, dict):
         return None
@@ -112,7 +111,7 @@ def topology_from_results12(payload) -> pd.DataFrame | None:
     return pd.DataFrame(rows(rdms_sad, subs_sad, "SAD") + rows(rdms_hc, subs_hc, "HC"))
 
 
-def load_topology(base_dir: Path) -> pd.DataFrame | None:
+def load_topology(base_dir: Path) -> Optional[pd.DataFrame]:
     payload17 = load_payload(base_dir, ["cell_17.joblib", "checkpoints/cell_17.joblib"])
     df = payload_value(payload17, "df_topo")
     if isinstance(df, pd.DataFrame) and not df.empty:
@@ -132,7 +131,7 @@ def load_topology(base_dir: Path) -> pd.DataFrame | None:
     return topology_from_results12(payload12)
 
 
-def load_decision(base_dir: Path) -> pd.DataFrame | None:
+def load_decision(base_dir: Path) -> Optional[pd.DataFrame]:
     payload19 = load_payload(
         base_dir,
         [
@@ -192,7 +191,7 @@ def _trajectory_slopes(df: pd.DataFrame, condition: str, metric_name: str) -> pd
     return pd.DataFrame(rows)
 
 
-def load_trajectories(base_dir: Path) -> pd.DataFrame | None:
+def load_trajectories(base_dir: Path) -> Optional[pd.DataFrame]:
     payload14 = load_payload(
         base_dir,
         [
@@ -251,7 +250,7 @@ def load_trajectories(base_dir: Path) -> pd.DataFrame | None:
     return coalesce_duplicate_columns(out)
 
 
-def load_clinical(base_dir: Path) -> pd.DataFrame | None:
+def load_clinical(base_dir: Path) -> Optional[pd.DataFrame]:
     payload23 = load_payload(base_dir, ["cell_23.joblib", "checkpoints/cell_23.joblib"])
     df = payload_value(payload23, "df_scored_clinical")
     if isinstance(df, pd.DataFrame):

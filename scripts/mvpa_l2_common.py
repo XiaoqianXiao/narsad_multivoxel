@@ -6,12 +6,10 @@ analysis should work from a stable subject-level table, so this module keeps
 the names, model families, and light statistical helpers in one place.
 """
 
-from __future__ import annotations
-
 import math
 import re
 from pathlib import Path
-from typing import Iterable
+from typing import Dict, Iterable, List, Optional
 
 import joblib
 import numpy as np
@@ -130,7 +128,7 @@ def payload_value(payload, *keys):
     return None
 
 
-def find_existing(base_dir: Path, names: Iterable[str]) -> Path | None:
+def find_existing(base_dir: Path, names: Iterable[str]) -> Optional[Path]:
     for name in names:
         path = base_dir / name
         if path.exists():
@@ -138,7 +136,7 @@ def find_existing(base_dir: Path, names: Iterable[str]) -> Path | None:
     return None
 
 
-def merge_on_subject(left: pd.DataFrame | None, right: pd.DataFrame | None) -> pd.DataFrame | None:
+def merge_on_subject(left: Optional[pd.DataFrame], right: Optional[pd.DataFrame]) -> Optional[pd.DataFrame]:
     if left is None or left.empty:
         return right.copy() if right is not None else None
     if right is None or right.empty:
@@ -212,7 +210,7 @@ def derive_final_metrics(df: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
-def available_covariates(df: pd.DataFrame, requested: Iterable[str] | None = None) -> list[str]:
+def available_covariates(df: pd.DataFrame, requested: Optional[Iterable[str]] = None) -> List[str]:
     if requested is not None:
         return [c for c in requested if c in df.columns]
     candidates = [
@@ -241,7 +239,7 @@ def is_numeric_series(series: pd.Series) -> bool:
     return pd.to_numeric(series, errors="coerce").notna().sum() >= max(3, len(series.dropna()) // 2)
 
 
-def covariate_terms(df: pd.DataFrame, covariates: Iterable[str]) -> list[str]:
+def covariate_terms(df: pd.DataFrame, covariates: Iterable[str]) -> List[str]:
     terms = []
     for cov in covariates:
         if cov not in df.columns:
@@ -256,11 +254,11 @@ def covariate_terms(df: pd.DataFrame, covariates: Iterable[str]) -> list[str]:
 def fit_lm(
     df: pd.DataFrame,
     outcome: str,
-    predictor_terms: list[str],
-    covariates: Iterable[str] | None = None,
-    term_of_interest: str | None = None,
+    predictor_terms: List[str],
+    covariates: Optional[Iterable[str]] = None,
+    term_of_interest: Optional[str] = None,
     min_n: int = 12,
-) -> dict:
+) -> Dict:
     """Fit an OLS model and return a tidy row for the primary term."""
     covariates = list(covariates or [])
     needed = [outcome]

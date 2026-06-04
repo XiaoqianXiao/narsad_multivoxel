@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 """Run primary MVPA L2 models from the harmonized subject table."""
 
-from __future__ import annotations
-
 import argparse
 from pathlib import Path
+from typing import Dict, List, Optional, Tuple
 
 import pandas as pd
 
@@ -24,7 +23,7 @@ GROUP_TERM = "C(Group, Treatment(reference='HC'))[T.SAD]"
 DRUG_INTERACTION_TERM = "C(Group, Treatment(reference='HC'))[T.SAD]:C(Drug, Treatment(reference='Placebo'))[T.Oxytocin]"
 
 
-def apply_stage29_zscore(df: pd.DataFrame, column: str, threshold: float) -> tuple[pd.DataFrame, str | None, int, str | None]:
+def apply_stage29_zscore(df: pd.DataFrame, column: str, threshold: float) -> Tuple[pd.DataFrame, Optional[str], int, Optional[str]]:
     """Apply the FearNetwork stage-29 outlier rule and add a final z column."""
     if column not in df.columns:
         return df, None, 0, None
@@ -50,7 +49,7 @@ def apply_stage29_zscore(df: pd.DataFrame, column: str, threshold: float) -> tup
     return out, z_col, int(outlier_mask.sum()), "fearnetwork_stage29_zscore"
 
 
-def zscore_numeric_covariates(df: pd.DataFrame, covariates: list[str], threshold: float) -> tuple[pd.DataFrame, list[str], dict[str, int]]:
+def zscore_numeric_covariates(df: pd.DataFrame, covariates: List[str], threshold: float) -> Tuple[pd.DataFrame, List[str], Dict[str, int]]:
     """Z-score numeric covariates with the same outlier rule; keep categorical covariates unchanged."""
     out = df.copy()
     model_covariates = []
@@ -69,7 +68,7 @@ def zscore_numeric_covariates(df: pd.DataFrame, covariates: list[str], threshold
     return out, model_covariates, removed
 
 
-def run_aim2(df: pd.DataFrame, feature_space: str, covariates: list[str]) -> pd.DataFrame:
+def run_aim2(df: pd.DataFrame, feature_space: str, covariates: List[str]) -> pd.DataFrame:
     rows = []
     sub = df[(df["FeatureSpace"] == feature_space) & (df["Drug"] == "Placebo")].copy()
     for metric in CORE_NEURAL_METRICS:
@@ -85,7 +84,7 @@ def run_aim2(df: pd.DataFrame, feature_space: str, covariates: list[str]) -> pd.
     return pd.DataFrame(rows)
 
 
-def run_aim3(df: pd.DataFrame, feature_space: str, covariates: list[str], clinical_outlier_z: float) -> pd.DataFrame:
+def run_aim3(df: pd.DataFrame, feature_space: str, covariates: List[str], clinical_outlier_z: float) -> pd.DataFrame:
     rows = []
     sub = df[df["FeatureSpace"] == feature_space].copy()
     groups = [g for g in ["SAD", "HC"] if g in set(sub["Group"].dropna())]
@@ -163,7 +162,7 @@ def run_aim3(df: pd.DataFrame, feature_space: str, covariates: list[str], clinic
     return pd.DataFrame(rows)
 
 
-def run_aim4(df: pd.DataFrame, feature_space: str, covariates: list[str]) -> pd.DataFrame:
+def run_aim4(df: pd.DataFrame, feature_space: str, covariates: List[str]) -> pd.DataFrame:
     rows = []
     sub = df[df["FeatureSpace"] == feature_space].copy()
     for scr in PRIMARY_SCR_INDICES:
@@ -182,7 +181,7 @@ def run_aim4(df: pd.DataFrame, feature_space: str, covariates: list[str]) -> pd.
     return pd.DataFrame(rows)
 
 
-def run_aim5(df: pd.DataFrame, feature_space: str, covariates: list[str]) -> pd.DataFrame:
+def run_aim5(df: pd.DataFrame, feature_space: str, covariates: List[str]) -> pd.DataFrame:
     rows = []
     sub = df[df["FeatureSpace"] == feature_space].copy()
     for metric in CORE_NEURAL_METRICS:

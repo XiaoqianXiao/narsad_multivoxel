@@ -36,7 +36,7 @@ Run this after the Hyak jobs are complete:
 ```bash
 salloc -A psych -p cpu-g2-mem2x --mem=60G --time=12:00:00
 FEAR_DIR='/gscratch/scrubbed/fanglab/xiaoqian/NARSAD/LSS/results/FearNetwork/' \
-MEMORY_DIR='/gscratch/scrubbed/fanglab/xiaoqian/NARSAD/LSS/results/MemoryFearNetwork/ \
+MEMORY_DIR='/gscratch/scrubbed/fanglab/xiaoqian/NARSAD/LSS/results/MemoryFearNetwork/' \
 bash scripts/run_mvpa_l2_posthyak.sh
 ```
 
@@ -51,6 +51,43 @@ To include the whole-brain/parcellation sensitivity check later, add `SCHAEFER_D
 ```bash
 SCHAEFER_DIR=/path/to/Schaefer/output \
 bash scripts/run_mvpa_l2_posthyak.sh
+```
+
+## Analysis 1 SCR-Subgroup Sensitivity
+
+For Analysis 1, the clean sensitivity test is to rerun only Stage 6 within the SCR-defined responder/learner cohorts. This asks whether the main `CSR` versus `CSS` discriminability, cross-group generalization, and SAD-HC spatial similarity remain visible among participants who show physiological learning. It does not rerun the full Aim 2-5 model stack.
+
+First make sure `outputs/mvpa_l2/harmonized/scr_sensitivity_groups.csv` exists. If needed:
+
+```bash
+bash scripts/run_mvpa_l2_posthyak.sh
+```
+
+Then submit the labeled Stage 6 subgroup jobs:
+
+```bash
+hyak/submit_mvpa_L2_aim1_scr_sensitivity.sh
+```
+
+By default this runs four cohorts:
+
+- `SCR_Physiological_Responder`
+- `SCR_Simple_Acquisition_Differential_Learner`
+- `SCR_Habituation_Adjusted_Learner`
+- `SCR_Late_Phase_Sensitivity_Learner`
+
+The jobs write labeled checkpoints such as:
+
+```text
+/gscratch/scrubbed/fanglab/xiaoqian/NARSAD/LSS/results/FearNetwork/checkpoints/cell_06_aim1_scr_physiological_responder.joblib
+```
+
+The primary `cell_06.joblib` is not overwritten. After the subgroup jobs finish, export a tidy table:
+
+```bash
+python3 scripts/export_aim1_scr_sensitivity.py \
+  --feature-dir /gscratch/scrubbed/fanglab/xiaoqian/NARSAD/LSS/results/FearNetwork \
+  --out /gscratch/scrubbed/fanglab/xiaoqian/NARSAD/LSS/results/mvpa_l2/stats/aim1_scr_sensitivity.csv
 ```
 
 ## Outputs

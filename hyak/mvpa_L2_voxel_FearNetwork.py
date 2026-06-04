@@ -150,6 +150,26 @@ def parse_runtime_args():
         default=os.environ.get("STAGE"),
         help="Analysis stage to run, for example 6, 12, or a comma/range list like 6,10-12. Omit to run all.",
     )
+    parser.add_argument(
+        "--include_subjects_csv",
+        default=os.environ.get("INCLUDE_SUBJECTS_CSV"),
+        help="Optional subject-level CSV used to restrict Stage 6 Analysis 1.1 to a sensitivity subgroup.",
+    )
+    parser.add_argument(
+        "--include_subjects_flag",
+        default=os.environ.get("INCLUDE_SUBJECTS_FLAG"),
+        help="Optional boolean column in --include_subjects_csv. Subjects with truthy values are retained.",
+    )
+    parser.add_argument(
+        "--include_subjects_column",
+        default=os.environ.get("INCLUDE_SUBJECTS_COLUMN", "sub_ID"),
+        help="Subject ID column in --include_subjects_csv.",
+    )
+    parser.add_argument(
+        "--analysis_label",
+        default=os.environ.get("ANALYSIS_LABEL", ""),
+        help="Optional label for subgroup/sensitivity runs. Used to avoid overwriting the primary Stage 6 checkpoint.",
+    )
     return parser.parse_known_args()
 
 
@@ -424,6 +444,10 @@ STAGE11_CHUNK_IDX = _args.stage11_chunk_idx
 STAGE11_CHUNK_COUNT = _args.stage11_chunk_count
 STAGE11_MERGE = _args.stage11_merge
 STAGE11_GROUP = _args.stage11_group
+INCLUDE_SUBJECTS_CSV = _args.include_subjects_csv
+INCLUDE_SUBJECTS_FLAG = _args.include_subjects_flag
+INCLUDE_SUBJECTS_COLUMN = _args.include_subjects_column
+ANALYSIS_LABEL = _args.analysis_label
 configure_blas_threads()
 
 
@@ -627,6 +651,91 @@ print(f"[Runtime] PROJECT_ROOT={PROJECT_ROOT}")
 print(f"[Runtime] OUT_DIR_MAIN={OUT_DIR_MAIN}")
 print(f"[Runtime] CHECKPOINT_DIR={CHECKPOINT_DIR}")
 print(f"[Runtime] ROI_DIR={ROI_DIR}")
+if INCLUDE_SUBJECTS_CSV:
+    print(
+        "[Runtime] Stage 6 subject filter: "
+        f"csv={INCLUDE_SUBJECTS_CSV}, flag={INCLUDE_SUBJECTS_FLAG}, "
+        f"id_col={INCLUDE_SUBJECTS_COLUMN}, label={ANALYSIS_LABEL or 'unlabeled'}"
+    )
+
+
+def make_safe_label(label):
+    """Return a filesystem-safe label for sensitivity checkpoints."""
+    cleaned = "".join(ch if ch.isalnum() or ch in ("-", "_") else "_" for ch in str(label).strip())
+    return cleaned.strip("_")
+
+
+def normalize_subject_id_for_filter(value):
+    """Normalize subject identifiers across SCR CSVs and MVPA trial labels."""
+    if pd.isna(value):
+        return None
+    text = str(value).strip()
+    if not text:
+        return None
+    if text.endswith(".0"):
+        text = text[:-2]
+    if text.startswith("sub-"):
+        text = text[4:]
+    return text
+
+
+def _truthy_subject_flag(series):
+    """Convert common CSV boolean encodings into a boolean mask."""
+    if series.dtype == bool:
+        return series.fillna(False)
+    numeric = pd.to_numeric(series, errors="coerce")
+    string_mask = series.astype(str).str.strip().str.lower().isin({"true", "t", "yes", "y", "1"})
+    return numeric.fillna(0).ne(0) | string_mask
+
+
+def load_stage6_include_subjects():
+    """Load optional subject IDs for Analysis 1.1 subgroup sensitivity runs."""
+    if not INCLUDE_SUBJECTS_CSV:
+        return None
+    if not os.path.exists(INCLUDE_SUBJECTS_CSV):
+        raise FileNotFoundError(f"Subject-filter CSV not found: {INCLUDE_SUBJECTS_CSV}")
+    df = pd.read_csv(INCLUDE_SUBJECTS_CSV)
+    if INCLUDE_SUBJECTS_COLUMN not in df.columns:
+        raise ValueError(
+            f"Subject-filter CSV {INCLUDE_SUBJECTS_CSV} does not contain "
+            f"'{INCLUDE_SUBJECTS_COLUMN}'. Available columns: {list(df.columns)}"
+        )
+    if INCLUDE_SUBJECTS_FLAG:
+        if INCLUDE_SUBJECTS_FLAG not in df.columns:
+            raise ValueError(
+                f"Subject-filter CSV {INCLUDE_SUBJECTS_CSV} does not contain "
+                f"flag '{INCLUDE_SUBJECTS_FLAG}'. Available columns: {list(df.columns)}"
+            )
+        df = df[_truthy_subject_flag(df[INCLUDE_SUBJECTS_FLAG])]
+    subjects = {
+        sub for sub in df[INCLUDE_SUBJECTS_COLUMN].map(normalize_subject_id_for_filter).dropna().tolist()
+    }
+    if not subjects:
+        raise ValueError(
+            f"Subject-filter CSV produced zero subjects after applying flag "
+            f"{INCLUDE_SUBJECTS_FLAG or '<none>'}."
+        )
+    return subjects
+
+
+def apply_stage6_subject_filter(X, y, sub, include_subjects, label):
+    if include_subjects is None:
+        return X, y, sub
+    subject_ids = np.array([normalize_subject_id_for_filter(s) for s in sub])
+    keep = np.isin(subject_ids, list(include_subjects))
+    X_f, y_f, sub_f = X[keep], y[keep], sub[keep]
+    print(
+        f"  [FILTER:{label}] retained {len(np.unique(sub_f))}/{len(np.unique(sub))} "
+        f"subjects and {len(sub_f)}/{len(sub)} trials."
+    )
+    if len(np.unique(sub_f)) < 4:
+        raise ValueError(
+            f"Subject filter {label} retained fewer than four subjects. "
+            "Stage 6 decoding would be unstable."
+        )
+    if len(np.unique(y_f)) < 2:
+        raise ValueError(f"Subject filter {label} retained fewer than two classes.")
+    return X_f, y_f, sub_f
 
 
 def _script_ckpt_path(cell_id: int) -> str:
@@ -2458,7 +2567,13 @@ if cell_active(6):
     print("--- Running Analysis 1.1: Neural Dissociation ---")
 
     target_param = 'classification__C'  # Variable for the hyperparameter key
+    stage6_filter_label = make_safe_label(ANALYSIS_LABEL)
+    if INCLUDE_SUBJECTS_CSV and not stage6_filter_label:
+        stage6_filter_label = make_safe_label(INCLUDE_SUBJECTS_FLAG or "subject_filter")
     cache_cell6 = _ckpt_path(6)
+    if stage6_filter_label:
+        cache_cell6 = os.path.join(CHECKPOINT_DIR, f"cell_06_{stage6_filter_label}.joblib")
+        print(f"  [SENSITIVITY] Stage 6 will use labeled checkpoint: {cache_cell6}")
 
     # =============================================================================
     # CHECK CACHE
@@ -2508,6 +2623,18 @@ if cell_active(6):
             X_hc, y_hc, sub_hc = get_extinction_data("HC_Placebo")
             X_sad, y_sad, sub_sad = get_extinction_data("SAD_Placebo")
             print(f"Data Loaded: SAD (n={len(np.unique(sub_sad))}), HC (n={len(np.unique(sub_hc))})")
+            include_subjects = load_stage6_include_subjects()
+            if include_subjects is not None:
+                X_hc, y_hc, sub_hc = apply_stage6_subject_filter(
+                    X_hc, y_hc, sub_hc, include_subjects, f"{stage6_filter_label}:HC"
+                )
+                X_sad, y_sad, sub_sad = apply_stage6_subject_filter(
+                    X_sad, y_sad, sub_sad, include_subjects, f"{stage6_filter_label}:SAD"
+                )
+                print(
+                    f"Data After Filter: SAD (n={len(np.unique(sub_sad))}), "
+                    f"HC (n={len(np.unique(sub_hc))})"
+                )
         except ValueError as e:
             print(f"CRITICAL ERROR: {e}")
             raise
@@ -2627,13 +2754,25 @@ if cell_active(6):
             "model_sad": res_sad['model'], # The refitted SAD pipeline
             "model_hc": res_hc['model'],    # The refitted HC pipeline
             "best_c_sad": best_c_sad,
-            "best_c_hc": best_c_hc
+            "best_c_hc": best_c_hc,
+            "analysis_label": stage6_filter_label or "primary",
+            "include_subjects_csv": INCLUDE_SUBJECTS_CSV,
+            "include_subjects_flag": INCLUDE_SUBJECTS_FLAG,
+            "include_subjects_column": INCLUDE_SUBJECTS_COLUMN,
+            "n_sad_subjects": int(len(np.unique(sub_sad))),
+            "n_hc_subjects": int(len(np.unique(sub_hc))),
+            "n_sad_trials": int(len(sub_sad)),
+            "n_hc_trials": int(len(sub_hc)),
         }
     
         # Save to Cache
-        save_checkpoint(6, {
-            "results_11": results_11
-        })
+        if stage6_filter_label:
+            joblib.dump({"results_11": results_11}, cache_cell6)
+            print(f"[Checkpoint] Saved labeled cell 6 -> {cache_cell6}")
+        else:
+            save_checkpoint(6, {
+                "results_11": results_11
+            })
         print(f"  [SAVE] Analysis complete. Results cached to {cache_cell6}.")
 
     # =============================================================================
@@ -2691,7 +2830,20 @@ if cell_active(6):
 
     plt.tight_layout()
     plt.show()
-    save_cell_results(6, ['N_JOBS', 'annot_func', 'annot_spatial', 'ax3', 'ax4', 'cache_cell6', 'data_subsets', 'fig', 'func_matrix', 'func_pvals', 'gs', 'i', 'importance_mask_permutated', 'importance_scores_permutated', 'meta', 'p_hc', 'p_sad', 'results_11', 'results_12', 'results_13', 'results_13_2', 'results_14_self', 'results_21', 'results_21_pv', 'results_22', 'results_23', 'results_24', 'results_25', 'spatial_matrix', 'spatial_pvals', 'strict_cross_phase_results', 'sub_to_meta', 'target_param'])
+    if stage6_filter_label:
+        labeled_plot_payload = {
+            "results_11": results_11,
+            "func_matrix": func_matrix,
+            "func_pvals": func_pvals,
+            "spatial_matrix": spatial_matrix,
+            "spatial_pvals": spatial_pvals,
+            "analysis_label": stage6_filter_label,
+        }
+        labeled_plot_path = os.path.join(CHECKPOINT_DIR, f"cell_06_{stage6_filter_label}_plot.joblib")
+        joblib.dump(labeled_plot_payload, labeled_plot_path)
+        print(f"[Cell checkpoint] Saved labeled cell 6 plot payload -> {labeled_plot_path}")
+    else:
+        save_cell_results(6, ['N_JOBS', 'annot_func', 'annot_spatial', 'ax3', 'ax4', 'cache_cell6', 'data_subsets', 'fig', 'func_matrix', 'func_pvals', 'gs', 'i', 'importance_mask_permutated', 'importance_scores_permutated', 'meta', 'p_hc', 'p_sad', 'results_11', 'results_12', 'results_13', 'results_13_2', 'results_14_self', 'results_21', 'results_21_pv', 'results_22', 'results_23', 'results_24', 'results_25', 'spatial_matrix', 'spatial_pvals', 'strict_cross_phase_results', 'sub_to_meta', 'target_param'])
 
 
 else:
