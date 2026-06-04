@@ -25,6 +25,17 @@ SCR_FLAGS="${SCR_FLAGS:-}"
 SCR_FLAGS_OUT="$OUT_ROOT/harmonized/scr_sensitivity_groups.csv"
 CLINICAL_OUTLIER_Z="${CLINICAL_OUTLIER_Z:-3.0}"
 
+"$PYTHON_BIN" - <<'PY'
+import sys
+if sys.version_info < (3, 7):
+    raise SystemExit(
+        "ERROR: MVPA L2 post-Hyak scripts require Python >= 3.7. "
+        f"Current interpreter is {sys.executable} ({sys.version.split()[0]}). "
+        "Run inside /gscratch/fang/images/jupyter.sif or set PYTHON_BIN to a newer Python."
+    )
+print(f"Using Python: {sys.executable} ({sys.version.split()[0]})")
+PY
+
 mkdir -p "$(dirname "$SCR_FLAGS_OUT")"
 if [[ -n "$SCR_FLAGS" && -f "$SCR_FLAGS" ]]; then
   if [[ "$SCR_FLAGS" != "$SCR_FLAGS_OUT" ]]; then
