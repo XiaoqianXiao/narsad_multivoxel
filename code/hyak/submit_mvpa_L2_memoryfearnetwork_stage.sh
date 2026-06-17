@@ -12,7 +12,7 @@ set -euo pipefail
 # ---- User-configurable settings ----
 PROJECT_ROOT="${PROJECT_ROOT:-/gscratch/fang/NARSAD}"
 CONTAINER_SIF="${CONTAINER_SIF:-/gscratch/fang/images/jupyter.sif}"
-APP_PATH="${APP_PATH:-/gscratch/scrubbed/fanglab/xiaoqian/repo/narsad_multivoxel/hyak}"
+APP_PATH="${APP_PATH:-/gscratch/scrubbed/fanglab/xiaoqian/repo/narsad_multivoxel/code/hyak}"
 OUT_BASE="${OUT_BASE:-/gscratch/scrubbed/fanglab/xiaoqian/NARSAD/LSS/results}"
 OUT_DIR="${OUT_DIR:-/output_dir/MemoryFearNetwork}"
 ROI_DIR="${MEMORY_FEAR_ROI_DIR:-${PROJECT_ROOT}/ROI/MemoryFearNetwork}"
