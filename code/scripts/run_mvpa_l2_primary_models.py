@@ -8,11 +8,11 @@ from typing import Dict, List, Optional, Tuple
 import pandas as pd
 
 from mvpa_l2_common import (
+    ALL_CLINICAL_SCORES,
+    ALL_SCR_INDICES,
     CLINICAL_SCORE_HIERARCHY,
     CORE_NEURAL_METRICS,
     NEURAL_METRIC_HIERARCHY,
-    PRIMARY_CLINICAL_SCORES,
-    PRIMARY_SCR_INDICES,
     add_fdr,
     available_covariates,
     fit_lm,
@@ -31,15 +31,16 @@ AIM2_QUESTION_METRICS = {
         "Neural_Dist_Threat_Background",
     ],
     "Q2_decision_certainty": [
-        "Neural_Decision_Margin_CSS",
-        "Neural_Decision_Margin_CSR",
-        "Neural_Boundary_Separation",
+        "Neural_SafetyEvidence",
+        "Neural_ThreatEvidence",
         "Neural_Decoder_Entropy_CSS",
         "Neural_Decoder_Entropy_CSR",
     ],
     "Q3_learning_dynamics": [
         "Neural_Safety_Trajectory_Slope",
         "Neural_Threat_Trajectory_Slope",
+        "Shock_Anchor_Trajectory_Slope",
+        "Residualized_Shock_Anchor_Trajectory_Slope",
     ],
 }
 
@@ -51,9 +52,10 @@ AIM2_QUESTION_LABELS = {
 
 AIM2_SECONDARY_METRICS = {
     "Neural_Dist_Threat_Background",
-    "Neural_Boundary_Separation",
     "Neural_Decoder_Entropy_CSS",
     "Neural_Decoder_Entropy_CSR",
+    "Shock_Anchor_Trajectory_Slope",
+    "Residualized_Shock_Anchor_Trajectory_Slope",
 }
 
 AIM2_PRIMARY_METRICS = set(CORE_NEURAL_METRICS)
@@ -159,7 +161,7 @@ def run_aim3(df: pd.DataFrame, feature_space: str, covariates: List[str], clinic
     for group in groups:
         group_df = sub[sub["Group"] == group].copy()
         group_df, model_covariates, covariate_outliers = zscore_numeric_covariates(group_df, covariates, clinical_outlier_z)
-        for clinical in PRIMARY_CLINICAL_SCORES:
+        for clinical in ALL_CLINICAL_SCORES:
             clinical_df, clinical_z, n_clinical_outliers, clinical_method = apply_stage29_zscore(group_df, clinical, clinical_outlier_z)
             if clinical_z is None:
                 row = {"status": "missing_or_constant_clinical_score", "n": 0, "outcome": clinical}
@@ -244,7 +246,7 @@ def run_aim4(df: pd.DataFrame, feature_space: str, covariates: List[str]) -> pd.
     groups = [g for g in ["SAD", "HC"] if g in set(sub["Group"].dropna())]
     for group in groups:
         group_df = sub[sub["Group"] == group].copy()
-        for scr in PRIMARY_SCR_INDICES:
+        for scr in ALL_SCR_INDICES:
             for metric in CORE_NEURAL_METRICS:
                 if metric not in group_df.columns:
                     continue
@@ -262,6 +264,7 @@ def run_aim4(df: pd.DataFrame, feature_space: str, covariates: List[str]) -> pd.
                         "Group": group,
                         "metric": metric,
                         "scr_index": scr,
+                        "scr_index_role": "primary" if scr in ALL_SCR_INDICES[:2] else "secondary",
                         "feature_space": feature_space,
                     }
                 )

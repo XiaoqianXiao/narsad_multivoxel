@@ -1,0 +1,231 @@
+{
+  "main": {
+    "id": "4cf25503a3911aeb",
+    "type": "split",
+    "children": [
+      {
+        "id": "0f6f2404cf63d616",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "ff85a5a39d5c68c4",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "task_Visualization-Aim4.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "task_Visualization-Aim4"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "65eb0c37acc31059",
+    "type": "split",
+    "children": [
+      {
+        "id": "4527540c9888bc27",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "3d742366a438beb9",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Files"
+            }
+          },
+          {
+            "id": "421cbef1952e6701",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Search"
+            }
+          },
+          {
+            "id": "69570fccca987d2a",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Bookmarks"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "5d895478a45a051c",
+    "type": "split",
+    "children": [
+      {
+        "id": "2b531a388023c326",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "fcc9bdd21d419089",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "task_Visualization-Aim4.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Backlinks for task_Visualization-Aim4"
+            }
+          },
+          {
+            "id": "a02f45970dd069c7",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "task_Visualization-Aim4.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Outgoing links from task_Visualization-Aim4"
+            }
+          },
+          {
+            "id": "6b55b41946db45e7",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Tags"
+            }
+          },
+          {
+            "id": "3b76e9d41b309973",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "All properties"
+            }
+          },
+          {
+            "id": "257893a51ef0b840",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "task_Visualization-Aim4.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Outline of task_Visualization-Aim4"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Open quick switcher": false,
+      "graph:Open graph view": false,
+      "canvas:Create new canvas": false,
+      "daily-notes:Open today's daily note": false,
+      "templates:Insert template": false,
+      "command-palette:Open command palette": false,
+      "bases:Create new base": false
+    }
+  },
+  "active": "3d742366a438beb9",
+  "lastOpenFiles": [
+    "task_Visualization-Aim3.md",
+    "task_Visualization-Aim4.md",
+    "task_Visualization-Aim5.md",
+    "task_Visualization-Aim1.md",
+    "task_Visualization-Aim5-sensitivity.md",
+    "task_Visualization-Aim5-primary.md",
+    "task_Visualization-Aim5-secondary.md",
+    "task_Visualization-Aim4-sensitivity.md",
+    "task_Visualization-Aim4-secondary.md",
+    "task_Visualization-Aim4-primary.md",
+    "task_Visualization-Aim3-secondary.md",
+    "task_Visualization-Aim3-sensitivity.md",
+    "task_Visualization-Aim3-primary.md",
+    "task_Visualization-Aim2.md",
+    "task_Visualization-Aim1-sensitivity.md",
+    "task_Visualization-Aim1-secondary.md",
+    "task_Visualization-Aim1-primary.md",
+    "task_Visualization-Aim2-primary.md",
+    "code/FigureS2_Aim2_Sensitivity_RobustnessHeatmap.svg",
+    "code/FigureS2_Aim2_Sensitivity_RobustnessHeatmap.png",
+    "code/TableS2_Aim2_Sensitivity_Stats.csv",
+    "FigureS2_Aim2_Sensitivity_RobustnessHeatmap.svg",
+    "FigureS2_Aim2_Sensitivity_RobustnessHeatmap.png",
+    "TableS2_Aim2_Sensitivity_Stats.csv",
+    "task_Visualization-Aim2-sensitivity.md",
+    "task_Visualization-Aim2-secondary.md",
+    "task_Visualization-Aim2_revised.md",
+    "mvpa_l2_v3.md",
+    "Visualization_Aim2.md",
+    "outputs/mvpa_l2/stats/figures/figure_aim2.png",
+    "outputs/mvpa_l2/stats/figures/figure_aim2.pdf",
+    "outputs/mvpa_l2/stats/figures/figure_aim2.svg",
+    "outputs/mvpa_l2/stats/figures",
+    "outputs/mvpa_l2/stats",
+    "outputs/mvpa_l2",
+    "outputs",
+    "results/outputs/mvpa_l2/figures/visualization_mvpa_l2",
+    "results/outputs/mvpa_l2/figures",
+    "visualization_mvpa_l2.ipynb",
+    "mvpa_l2_v1.md",
+    "PROJECT_CONTEXT.md",
+    "mvpa_L2.md"
+  ]
+}

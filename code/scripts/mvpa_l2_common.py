@@ -21,50 +21,77 @@ from statsmodels.stats.multitest import multipletests
 CORE_NEURAL_METRICS = [
     "Neural_Dist_Safety_Background",
     "Neural_Dist_Threat_Safety",
-    "Neural_Decision_Margin_CSS",
-    "Neural_Decision_Margin_CSR",
+    "Neural_SafetyEvidence",
+    "Neural_ThreatEvidence",
     "Neural_Safety_Trajectory_Slope",
     "Neural_Threat_Trajectory_Slope",
 ]
 
 COMPANION_NEURAL_METRICS = [
     "Neural_Dist_Threat_Background",
-    "Neural_Boundary_Separation",
     "Neural_Decoder_Entropy_CSS",
     "Neural_Decoder_Entropy_CSR",
+    "Shock_Anchor_Trajectory_Slope",
+    "Residualized_Shock_Anchor_Trajectory_Slope",
 ]
 
 PRIMARY_CLINICAL_SCORES = [
-    "lsas_total",
-    "lsas_fear",
-    "lsas_avoid",
     "dass_anxiety",
+    "lsas_total",
 ]
 
+SECONDARY_CLINICAL_SCORES = [
+    "lsas_fear",
+    "lsas_avoid",
+    "dass_stress",
+    "dass_depression",
+    "ecr_total",
+]
+
+ALL_CLINICAL_SCORES = PRIMARY_CLINICAL_SCORES + SECONDARY_CLINICAL_SCORES
+
 CLINICAL_SCORE_HIERARCHY = {
-    "lsas_total": {
+    "dass_anxiety": {
         "order": 1,
+        "role": "primary",
+        "family": "general_anxiety",
+        "label": "DASS anxiety",
+    },
+    "lsas_total": {
+        "order": 2,
         "role": "primary",
         "family": "social_anxiety_total",
         "label": "LSAS total",
     },
     "lsas_fear": {
-        "order": 2,
-        "role": "secondary_decomposition",
+        "order": 3,
+        "role": "secondary",
         "family": "social_anxiety_subscale",
         "label": "LSAS fear",
     },
     "lsas_avoid": {
-        "order": 3,
-        "role": "secondary_decomposition",
+        "order": 4,
+        "role": "secondary",
         "family": "social_anxiety_subscale",
         "label": "LSAS avoidance",
     },
-    "dass_anxiety": {
-        "order": 4,
-        "role": "convergent_anxiety",
-        "family": "general_anxiety",
-        "label": "DASS anxiety",
+    "dass_stress": {
+        "order": 5,
+        "role": "secondary",
+        "family": "general_distress",
+        "label": "DASS stress",
+    },
+    "dass_depression": {
+        "order": 6,
+        "role": "secondary",
+        "family": "general_distress",
+        "label": "DASS depression",
+    },
+    "ecr_total": {
+        "order": 7,
+        "role": "secondary",
+        "family": "attachment",
+        "label": "ECR total",
     },
 }
 
@@ -80,11 +107,16 @@ NEURAL_METRIC_HIERARCHY.update(
 )
 
 PRIMARY_SCR_INDICES = [
-    "SCR_SafetyMinusBackground",
-    "SCR_ThreatMinusSafety",
     "SCR_Safety_Trajectory_Slope",
     "SCR_Threat_Trajectory_Slope",
 ]
+
+SECONDARY_SCR_INDICES = [
+    "SCR_SafetyMinusBackground",
+    "SCR_ThreatMinusSafety",
+]
+
+ALL_SCR_INDICES = PRIMARY_SCR_INDICES + SECONDARY_SCR_INDICES
 
 SCR_SENSITIVITY_FLAGS = [
     "SCR_Physiological_Responder",
@@ -167,9 +199,9 @@ def payload_value(payload, *keys):
 
 def find_existing(base_dir: Path, names: Iterable[str]) -> Optional[Path]:
     for name in names:
-        path = base_dir / name
-        if path.exists():
-            return path
+        for path in (base_dir / name, base_dir / "intermediate" / name):
+            if path.exists():
+                return path
     return None
 
 
@@ -250,6 +282,10 @@ def derive_final_metrics(df: pd.DataFrame) -> pd.DataFrame:
         out["Neural_SafetyLike_Safety"] = 1 - pd.to_numeric(out["Neural_ThreatLike_Safety"], errors="coerce")
     if "Neural_ThreatLike_Threat" in out.columns and "Neural_SafetyLike_Threat" not in out.columns:
         out["Neural_SafetyLike_Threat"] = 1 - pd.to_numeric(out["Neural_ThreatLike_Threat"], errors="coerce")
+    if "Neural_ThreatLike_Safety" in out.columns:
+        out["Neural_SafetyEvidence"] = 1 - pd.to_numeric(out["Neural_ThreatLike_Safety"], errors="coerce")
+    if "Neural_ThreatLike_Threat" in out.columns:
+        out["Neural_ThreatEvidence"] = pd.to_numeric(out["Neural_ThreatLike_Threat"], errors="coerce")
     if "Neural_ThreatLike_Safety" in out.columns:
         out["Neural_Decision_Margin_CSS"] = 0.5 - pd.to_numeric(out["Neural_ThreatLike_Safety"], errors="coerce")
     if "Neural_ThreatLike_Threat" in out.columns:

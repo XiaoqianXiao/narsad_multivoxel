@@ -77,6 +77,35 @@ C_MIN_EXP = -2
 C_MAX_EXP = 2
 C_POINTS = 20
 
+CORE_NEURAL_METRICS = [
+    "Neural_Dist_Safety_Background",
+    "Neural_Dist_Threat_Safety",
+    "Neural_SafetyEvidence",
+    "Neural_ThreatEvidence",
+    "Neural_Safety_Trajectory_Slope",
+    "Neural_Threat_Trajectory_Slope",
+]
+COMPANION_NEURAL_METRICS = [
+    "Neural_Dist_Threat_Background",
+    "Neural_Decoder_Entropy_CSS",
+    "Neural_Decoder_Entropy_CSR",
+    "Shock_Anchor_Trajectory_Slope",
+    "Residualized_Shock_Anchor_Trajectory_Slope",
+]
+PRIMARY_CLINICAL_SCORES = ["dass_anxiety", "lsas_total"]
+SECONDARY_CLINICAL_SCORES = ["lsas_fear", "lsas_avoid", "dass_stress", "dass_depression", "ecr_total"]
+PRIMARY_SCR_INDICES = ["SCR_Safety_Trajectory_Slope", "SCR_Threat_Trajectory_Slope"]
+SECONDARY_SCR_INDICES = ["SCR_SafetyMinusBackground", "SCR_ThreatMinusSafety"]
+NOTEBOOK_REQUIRED_SUBJECT_COLUMNS = (
+    ["sub_ID", "FeatureSpace", "Group", "Drug"]
+    + CORE_NEURAL_METRICS
+    + COMPANION_NEURAL_METRICS
+    + PRIMARY_CLINICAL_SCORES
+    + SECONDARY_CLINICAL_SCORES
+    + PRIMARY_SCR_INDICES
+    + SECONDARY_SCR_INDICES
+)
+
 STAGE_INTERMEDIATE_MAP = {
     6: ["stage06_NeuralDissociation", "stage06_models", "stage06_permutation"],
     10: ["stage10_spatial_haufe"],
@@ -450,8 +479,12 @@ def stage_active(stage_id: int) -> bool:
 
 def save_stage_bundle(stage_id: int, name: str, payload: dict) -> None:
     """Save a stage-level checkpoint + intermediate bundle for exact resume."""
-    save_checkpoint(stage_id, payload)
-    save_intermediate(name, payload)
+    bundle = dict(payload)
+    bundle.setdefault("stage_id", stage_id)
+    bundle.setdefault("analysis_feature_space", "WholeBrain_Schaefer")
+    bundle.setdefault("notebook_required_subject_columns", NOTEBOOK_REQUIRED_SUBJECT_COLUMNS)
+    save_checkpoint(stage_id, bundle)
+    save_intermediate(name, bundle)
 
 
 def calculate_crossnobis_rdm(X, y, subjects, conditions, n_repeats=CROSSNOBIS_REPEATS, random_state=RANDOM_STATE):
@@ -509,8 +542,13 @@ def calculate_crossnobis_rdm(X, y, subjects, conditions, n_repeats=CROSSNOBIS_RE
     return np.array(rdms), np.array(sub_ids)
 
 
-def extract_topology_metrics(rdms, idx_cs_minus=0, idx_css=1, idx_csr=2):
-    return rdms[:, idx_csr, idx_css], rdms[:, idx_css, idx_cs_minus]
+def extract_topology_metrics(rdms, idx_cs_minus=0, idx_css=1, idx_csr=2, include_threat_background=False):
+    threat_safety = rdms[:, idx_csr, idx_css]
+    safety_background = rdms[:, idx_css, idx_cs_minus]
+    threat_background = rdms[:, idx_csr, idx_cs_minus]
+    if include_threat_background:
+        return threat_safety, safety_background, threat_background
+    return threat_safety, safety_background
 
 
 def one_sample_distance_test(data, name):
@@ -555,9 +593,8 @@ def partial_corr_residualized(df, x_col, y_col, covariates):
 
 
 NEURAL_CLINICAL_METRICS = [
-    "Neural_Dist_Threat_Safety",
-    "Neural_Dist_Safety_Background",
-    "Neural_Safety_Trajectory_Slope",
+    *CORE_NEURAL_METRICS,
+    *COMPANION_NEURAL_METRICS,
     "Neural_Safety_Mean",
     "Neural_SCR_Safety_Coupling",
     "Neural_Uncertainty_Entropy",
@@ -569,7 +606,7 @@ NEURAL_CLINICAL_METRICS = [
     "Neural_ThreatLike_Safety",
     "Neural_Boundary_Separation",
 ]
-CLINICAL_INDICES = ["lsas_total", "lsas_fear", "lsas_avoid", "dass_anxiety", "dass_stress", "ecr_total"]
+CLINICAL_INDICES = PRIMARY_CLINICAL_SCORES + SECONDARY_CLINICAL_SCORES
 CLINICAL_COVARIATES = ["demo_age"]
 SCR_CONDITION_MAP = {"CS-": "CS-", "CS+S": "CSS", "CS+R": "CSR", "CSS": "CSS", "CSR": "CSR"}
 SCR_BEHAVIORAL_INDICES = [
@@ -581,7 +618,7 @@ SCR_BEHAVIORAL_INDICES = [
     "SCR_Safety_Trajectory_Slope",
     "SCR_Threat_Trajectory_Slope",
 ]
-CLINICAL_INDICES = CLINICAL_INDICES + SCR_BEHAVIORAL_INDICES
+CLINICAL_INDICES = CLINICAL_INDICES + PRIMARY_SCR_INDICES + SECONDARY_SCR_INDICES
 
 
 def resolve_trial_scr_path(project_root):
@@ -4276,8 +4313,20 @@ if stage_active(24):
     hc_feature_count = max(float(results_12.get("features_hc", 1)), 1.0)
     rdms_sad_pv = results_12.get("rdms_sad_pv", results_12["rdms_sad"] / sad_feature_count)
     rdms_hc_pv = results_12.get("rdms_hc_pv", results_12["rdms_hc"] / hc_feature_count)
-    vA_sad_pv, vB_sad_pv = extract_topology_metrics(rdms_sad_pv, idx_cs_minus, idx_css, idx_csr)
-    vA_hc_pv, vB_hc_pv = extract_topology_metrics(rdms_hc_pv, idx_cs_minus, idx_css, idx_csr)
+    vA_sad_pv, vB_sad_pv, vC_sad_pv = extract_topology_metrics(
+        rdms_sad_pv,
+        idx_cs_minus,
+        idx_css,
+        idx_csr,
+        include_threat_background=True,
+    )
+    vA_hc_pv, vB_hc_pv, vC_hc_pv = extract_topology_metrics(
+        rdms_hc_pv,
+        idx_cs_minus,
+        idx_css,
+        idx_csr,
+        include_threat_background=True,
+    )
 
     s_id_sad = np.asarray(results_12.get("subs_sad_rdm", globals().get("subs_sad_rdm", []))).astype(str)
     s_id_hc = np.asarray(results_12.get("subs_hc_rdm", globals().get("subs_hc_rdm", []))).astype(str)
@@ -4289,6 +4338,7 @@ if stage_active(24):
         "Neural_Dist_Threat_Safety": np.concatenate([vA_sad_pv, vA_hc_pv]),
         "Neural_Dist_Safety_Background": np.concatenate([vB_sad_pv, vB_hc_pv]),
         "Neural_Dist_Safety_Backgr": np.concatenate([vB_sad_pv, vB_hc_pv]),
+        "Neural_Dist_Threat_Background": np.concatenate([vC_sad_pv, vC_hc_pv]),
         "Group": ["SAD"] * len(s_id_sad) + ["HC"] * len(s_id_hc),
     })
 
@@ -4296,27 +4346,55 @@ if stage_active(24):
     if not isinstance(trajectory_payload, dict) or "data_safe" not in trajectory_payload:
         raise ValueError("Single-trial trajectory data missing. Run/resume Stage 13 before Stage 24.")
 
-    def calculate_subject_slopes(df):
+    def calculate_subject_slopes(df, metric_name, mean_name=None):
         slopes = []
+        columns = ["sub_ID", metric_name]
+        if mean_name:
+            columns.append(mean_name)
         if df is None or df.empty:
-            return pd.DataFrame(columns=[
-                "sub_ID", "Neural_Safety_Trajectory_Slope",
-                "Neural_Rigidity_Slope", "Neural_Safety_Mean"
-            ])
+            return pd.DataFrame(columns=columns)
         for sub in df["sub"].unique():
             sub_data = df[df["sub"] == sub].sort_values("trial")
             if len(sub_data) < 3:
                 continue
             slope, _ = np.polyfit(sub_data["trial"], sub_data["score"], 1)
-            slopes.append({
+            row = {
                 "sub_ID": str(sub),
-                "Neural_Safety_Trajectory_Slope": slope,
-                "Neural_Rigidity_Slope": slope,  # Legacy alias for older saved analyses.
-                "Neural_Safety_Mean": sub_data["score"].mean(),
-            })
+                metric_name: slope,
+            }
+            if metric_name == "Neural_Safety_Trajectory_Slope":
+                row["Neural_Rigidity_Slope"] = slope  # Legacy alias for older saved analyses.
+            if mean_name:
+                row[mean_name] = sub_data["score"].mean()
+            slopes.append(row)
         return pd.DataFrame(slopes)
 
-    df_neural_trajectories = calculate_subject_slopes(trajectory_payload["data_safe"])
+    df_neural_trajectories = calculate_subject_slopes(
+        trajectory_payload["data_safe"],
+        "Neural_Safety_Trajectory_Slope",
+        "Neural_Safety_Mean",
+    )
+    for data_key, metric_name in [
+        ("data_threat", "Neural_Threat_Trajectory_Slope"),
+        ("data_threat_shock", "Shock_Anchor_Trajectory_Slope"),
+    ]:
+        metric_slopes = calculate_subject_slopes(trajectory_payload.get(data_key, pd.DataFrame()), metric_name)
+        if not metric_slopes.empty:
+            df_neural_trajectories = df_neural_trajectories.merge(metric_slopes, on="sub_ID", how="outer")
+    shock_anchor_df = pd.DataFrame()
+    if isinstance(results_12, dict):
+        shock_anchor_results = results_12.get("shock_anchor_results", {})
+        if isinstance(shock_anchor_results, dict):
+            shock_anchor_df = shock_anchor_results.get("df", pd.DataFrame())
+        if shock_anchor_df.empty:
+            shock_anchor_df = results_12.get("shock_anchor_df", pd.DataFrame())
+    if isinstance(shock_anchor_df, pd.DataFrame) and not shock_anchor_df.empty and "Cosine_CSR_minus_CSS" in shock_anchor_df.columns:
+        residualized_shock_anchor = shock_anchor_df[["Subject", "Cosine_CSR_minus_CSS"]].rename(columns={
+            "Subject": "sub_ID",
+            "Cosine_CSR_minus_CSS": "Residualized_Shock_Anchor_Trajectory_Slope",
+        })
+        residualized_shock_anchor["sub_ID"] = residualized_shock_anchor["sub_ID"].astype(str)
+        df_neural_trajectories = df_neural_trajectories.merge(residualized_shock_anchor, on="sub_ID", how="outer")
     if "df_scr_trials" not in globals():
         df_scr_trials, SCR_path = load_trialwise_scr(PROJECT_ROOT)
     df_scr_neural_coupling = calculate_neural_scr_safety_coupling(trajectory_payload["data_safe"], df_scr_trials)
@@ -4346,6 +4424,16 @@ if stage_active(24):
         "p_csr_csr": "Neural_Threat_Evidence_CSR",
         "boundary_separation": "Neural_Boundary_Separation",
     })
+    if "Neural_ThreatLike_Safety" in df_neural_uncertainty.columns:
+        df_neural_uncertainty["Neural_SafetyEvidence"] = 1 - pd.to_numeric(
+            df_neural_uncertainty["Neural_ThreatLike_Safety"],
+            errors="coerce",
+        )
+    if "Neural_Threat_Evidence_CSR" in df_neural_uncertainty.columns:
+        df_neural_uncertainty["Neural_ThreatEvidence"] = pd.to_numeric(
+            df_neural_uncertainty["Neural_Threat_Evidence_CSR"],
+            errors="coerce",
+        )
     df_neural_uncertainty["sub_ID"] = df_neural_uncertainty["sub_ID"].astype(str)
 
     print(f"Topology indices: {len(df_neural_topology)} subjects.")

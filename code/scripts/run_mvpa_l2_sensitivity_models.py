@@ -8,8 +8,8 @@ from typing import Dict, List
 import pandas as pd
 
 from mvpa_l2_common import (
+    ALL_SCR_INDICES,
     CORE_NEURAL_METRICS,
-    PRIMARY_SCR_INDICES,
     SCR_SENSITIVITY_FLAGS,
     add_fdr,
     available_covariates,
@@ -43,7 +43,7 @@ def run_group_model(df: pd.DataFrame, label: str, feature_space: str, covariates
 def run_scr_model(df: pd.DataFrame, label: str, feature_space: str, covariates: List[str]) -> List[Dict]:
     rows = []
     sub = df[df["FeatureSpace"] == feature_space].copy()
-    for scr in PRIMARY_SCR_INDICES:
+    for scr in ALL_SCR_INDICES:
         for metric in CORE_NEURAL_METRICS:
             row = fit_lm(
                 sub,
@@ -53,7 +53,14 @@ def run_scr_model(df: pd.DataFrame, label: str, feature_space: str, covariates: 
                 term_of_interest=f"Q('{metric}')",
                 min_n=10,
             )
-            row.update({"analysis": "Sensitivity_Aim4_SCR", "sensitivity": label, "metric": metric, "scr_index": scr, "feature_space": feature_space})
+            row.update({
+                "analysis": "Sensitivity_Aim4_SCR",
+                "sensitivity": label,
+                "metric": metric,
+                "scr_index": scr,
+                "scr_index_role": "primary" if scr in ALL_SCR_INDICES[:2] else "secondary",
+                "feature_space": feature_space,
+            })
             rows.append(row)
     return rows
 

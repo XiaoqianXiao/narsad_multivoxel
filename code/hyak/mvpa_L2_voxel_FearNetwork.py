@@ -89,6 +89,35 @@ C_MAX_EXP = 2
 C_POINTS = 20
 MIN_FEATURES_FOR_PRIMARY_MASK = 20
 
+CORE_NEURAL_METRICS = [
+    "Neural_Dist_Safety_Background",
+    "Neural_Dist_Threat_Safety",
+    "Neural_SafetyEvidence",
+    "Neural_ThreatEvidence",
+    "Neural_Safety_Trajectory_Slope",
+    "Neural_Threat_Trajectory_Slope",
+]
+COMPANION_NEURAL_METRICS = [
+    "Neural_Dist_Threat_Background",
+    "Neural_Decoder_Entropy_CSS",
+    "Neural_Decoder_Entropy_CSR",
+    "Shock_Anchor_Trajectory_Slope",
+    "Residualized_Shock_Anchor_Trajectory_Slope",
+]
+PRIMARY_CLINICAL_SCORES = ["dass_anxiety", "lsas_total"]
+SECONDARY_CLINICAL_SCORES = ["lsas_fear", "lsas_avoid", "dass_stress", "dass_depression", "ecr_total"]
+PRIMARY_SCR_INDICES = ["SCR_Safety_Trajectory_Slope", "SCR_Threat_Trajectory_Slope"]
+SECONDARY_SCR_INDICES = ["SCR_SafetyMinusBackground", "SCR_ThreatMinusSafety"]
+NOTEBOOK_REQUIRED_SUBJECT_COLUMNS = (
+    ["sub_ID", "FeatureSpace", "Group", "Drug"]
+    + CORE_NEURAL_METRICS
+    + COMPANION_NEURAL_METRICS
+    + PRIMARY_CLINICAL_SCORES
+    + SECONDARY_CLINICAL_SCORES
+    + PRIMARY_SCR_INDICES
+    + SECONDARY_SCR_INDICES
+)
+
 # Hyak/runtime configuration adapted from hyak/mvpa_L2_voxel_WholeBrain_Schaefer.py.
 import argparse
 import pickle
@@ -197,10 +226,13 @@ SCR_BEHAVIORAL_INDICES = [
 ]
 
 
-def extract_metrics_pv(rdms_pv, idx_cs_minus=0, idx_css=1, idx_csr=2):
+def extract_metrics_pv(rdms_pv, idx_cs_minus=0, idx_css=1, idx_csr=2, include_threat_background=False):
     """Extract per-voxel topology metrics from RDMs ordered as CS-, CSS, CSR."""
     threat_safety = rdms_pv[:, idx_csr, idx_css]
     safety_background = rdms_pv[:, idx_css, idx_cs_minus]
+    threat_background = rdms_pv[:, idx_csr, idx_cs_minus]
+    if include_threat_background:
+        return threat_safety, safety_background, threat_background
     return threat_safety, safety_background
 
 
@@ -2346,6 +2378,15 @@ def load_intermediate(name: str):
         raise FileNotFoundError(f"No intermediate file found at {path}")
 
 
+def save_stage_bundle(stage_id: int, name: str, payload: dict) -> None:
+    """Save a named stage bundle for the post-Hyak notebook exporter."""
+    bundle = dict(payload)
+    bundle.setdefault("stage_id", stage_id)
+    bundle.setdefault("analysis_feature_space", ANALYSIS_LABEL)
+    bundle.setdefault("notebook_required_subject_columns", NOTEBOOK_REQUIRED_SUBJECT_COLUMNS)
+    save_intermediate(name, bundle)
+
+
 def calculate_crossnobis_rdm(
     X,
     y,
@@ -3815,15 +3856,15 @@ if cell_active(12):
     # Constants for Condition Indices: ["CS-", "CSS", "CSR"]
     I_CS_MINUS, I_CSS, I_CSR = 0, 1, 2 
 
-    def extract_metrics_pv(rdms_pv):
+    def extract_metrics_pv_report(rdms_pv):
         """Slices the 3D Per-Voxel RDM array."""
         m_a = rdms_pv[:, I_CSR, I_CSS]        # Threat vs Safety
         m_b = rdms_pv[:, I_CSS, I_CS_MINUS]   # Safety vs Background
         return m_a, m_b
 
     # 1. Extract PV Vectors
-    vA_sad_pv, vB_sad_pv = extract_metrics_pv(results_12["rdms_sad_raw_pv"])
-    vA_hc_pv, vB_hc_pv   = extract_metrics_pv(results_12["rdms_hc_raw_pv"])
+    vA_sad_pv, vB_sad_pv = extract_metrics_pv_report(results_12["rdms_sad_raw_pv"])
+    vA_hc_pv, vB_hc_pv   = extract_metrics_pv_report(results_12["rdms_hc_raw_pv"])
 
     print("\n" + "="*110)
     print(f"{'INDEX (PER-VOXEL)':<25} | {'GROUP':<5} | {'MEAN':<10} | {'t(vs 0)':<8} | {'p(vs 0)':<8} || {'t(GroupDiff)':<12} | {'p(GroupDiff)':<12}")
@@ -5216,6 +5257,13 @@ if cell_active(23):
     if not df_scr_indices.empty:
         df_scored_clinical = df_scored_clinical.merge(df_scr_indices, on='sub_ID', how='left')
         print(f"SCR behavioral indices merged for {df_scr_indices['sub_ID'].nunique()} subjects.")
+    stage23_payload = {
+        "df_scored_clinical": df_scored_clinical,
+        "df_scr_trials": df_scr_trials,
+        "df_scr_indices": df_scr_indices,
+        "clinical_paths": {"LSAS": LSAS_path, "ECR": ECR_path, "DASS": DASS_path, "SCR": SCR_path},
+    }
+    save_stage_bundle(23, "stage23_ClinicalScores", stage23_payload)
     save_cell_results(23, ['DASS_path', 'ECR_path', 'LSAS_path', 'SCR_path', 'anxiety_items', 'clinical_dir', 'data_subsets', 'depression_items', 'df_dass', 'df_dass_raw', 'df_ecr', 'df_ecr_raw', 'df_lsas', 'df_lsas_raw', 'df_scr_indices', 'df_scr_trials', 'df_scored_clinical', 'importance_mask_permutated', 'importance_scores_permutated', 'meta', 'results_11', 'results_12', 'results_13', 'results_13_2', 'results_14_self', 'results_21', 'results_21_pv', 'results_22', 'results_23', 'results_24', 'results_25', 'stress_items', 'strict_cross_phase_results', 'sub_to_meta'])
 
 
@@ -5225,8 +5273,14 @@ else:
 # %% [cell 24]
 if cell_active(24):
     # 1. Extract PV Distance Vectors
-    vA_sad_pv, vB_sad_pv = extract_metrics_pv(results_12["rdms_sad_raw_pv"])
-    vA_hc_pv, vB_hc_pv   = extract_metrics_pv(results_12["rdms_hc_raw_pv"])
+    vA_sad_pv, vB_sad_pv, vC_sad_pv = extract_metrics_pv(
+        results_12["rdms_sad_raw_pv"],
+        include_threat_background=True,
+    )
+    vA_hc_pv, vB_hc_pv, vC_hc_pv = extract_metrics_pv(
+        results_12["rdms_hc_raw_pv"],
+        include_threat_background=True,
+    )
 
     # 2. Extract subject IDs from saved Analysis 1.2 results, or reconstruct from raw trial labels.
     s_id_sad = resolve_topology_subject_ids(results_12, "SAD", len(vA_sad_pv))
@@ -5243,6 +5297,7 @@ if cell_active(24):
         'Neural_Dist_Threat_Safety': np.concatenate([vA_sad_pv, vA_hc_pv]),
         'Neural_Dist_Safety_Background': np.concatenate([vB_sad_pv, vB_hc_pv]),
         'Neural_Dist_Safety_Backgr': np.concatenate([vB_sad_pv, vB_hc_pv]),
+        'Neural_Dist_Threat_Background': np.concatenate([vC_sad_pv, vC_hc_pv]),
         'Group': ['SAD']*len(s_id_sad) + ['HC']*len(s_id_hc)
     })
 
@@ -5259,8 +5314,13 @@ if cell_active(24):
 
     # 2. Calculate Linear Slope per Subject
     # This represents the 'Rate of Safety Learning'
-    def calculate_subject_slopes(df):
+    def calculate_subject_slopes(df, metric_name, mean_name=None):
         slopes = []
+        columns = ['sub_ID', metric_name]
+        if mean_name:
+            columns.append(mean_name)
+        if df is None or df.empty:
+            return pd.DataFrame(columns=columns)
         for sub in df['sub'].unique():
             sub_data = df[df['sub'] == sub].sort_values('trial')
             if len(sub_data) < 3: continue  # Need enough points for a trend
@@ -5268,15 +5328,44 @@ if cell_active(24):
             # Linear fit: y = mx + b (we want 'm')
             m, _ = np.polyfit(sub_data['trial'], sub_data['score'], 1)
         
-            slopes.append({
+            row = {
                 'sub_ID': str(sub),
-                'Neural_Safety_Trajectory_Slope': m,
-                'Neural_Rigidity_Slope': m,  # Legacy alias for older saved analyses.
-                'Neural_Safety_Mean': sub_data['score'].mean()
-            })
+                metric_name: m,
+            }
+            if metric_name == 'Neural_Safety_Trajectory_Slope':
+                row['Neural_Rigidity_Slope'] = m  # Legacy alias for older saved analyses.
+            if mean_name:
+                row[mean_name] = sub_data['score'].mean()
+            slopes.append(row)
         return pd.DataFrame(slopes)
 
-    df_neural_trajectories = calculate_subject_slopes(df_safe)
+    trajectory_payload = results_13_2 if isinstance(results_13_2, dict) else {}
+    df_neural_trajectories = calculate_subject_slopes(
+        trajectory_payload.get('data_safe', df_safe),
+        'Neural_Safety_Trajectory_Slope',
+        'Neural_Safety_Mean',
+    )
+    for data_key, metric_name in [
+        ('data_threat', 'Neural_Threat_Trajectory_Slope'),
+        ('data_threat_shock', 'Shock_Anchor_Trajectory_Slope'),
+    ]:
+        metric_slopes = calculate_subject_slopes(trajectory_payload.get(data_key, pd.DataFrame()), metric_name)
+        if not metric_slopes.empty:
+            df_neural_trajectories = df_neural_trajectories.merge(metric_slopes, on='sub_ID', how='outer')
+    shock_anchor_df = pd.DataFrame()
+    if isinstance(results_12, dict):
+        shock_anchor_results = results_12.get('shock_anchor_results', {})
+        if isinstance(shock_anchor_results, dict):
+            shock_anchor_df = shock_anchor_results.get('df', pd.DataFrame())
+        if shock_anchor_df.empty:
+            shock_anchor_df = results_12.get('shock_anchor_df', pd.DataFrame())
+    if isinstance(shock_anchor_df, pd.DataFrame) and not shock_anchor_df.empty and 'Cosine_CSR_minus_CSS' in shock_anchor_df.columns:
+        residualized_shock_anchor = shock_anchor_df[['Subject', 'Cosine_CSR_minus_CSS']].rename(columns={
+            'Subject': 'sub_ID',
+            'Cosine_CSR_minus_CSS': 'Residualized_Shock_Anchor_Trajectory_Slope',
+        })
+        residualized_shock_anchor['sub_ID'] = residualized_shock_anchor['sub_ID'].astype(str)
+        df_neural_trajectories = df_neural_trajectories.merge(residualized_shock_anchor, on='sub_ID', how='outer')
     if 'df_scr_trials' not in locals():
         df_scr_trials, SCR_path = load_trialwise_scr(PROJECT_ROOT)
     df_scr_neural_coupling = calculate_neural_scr_safety_coupling(df_safe, df_scr_trials)
@@ -5321,12 +5410,29 @@ if cell_active(24):
         'p_csr_csr': 'Neural_Threat_Evidence_CSR',
         'boundary_separation': 'Neural_Boundary_Separation'
     })
+    if 'Neural_ThreatLike_Safety' in df_neural_uncertainty.columns:
+        df_neural_uncertainty['Neural_SafetyEvidence'] = 1 - pd.to_numeric(
+            df_neural_uncertainty['Neural_ThreatLike_Safety'],
+            errors='coerce',
+        )
+    if 'Neural_Threat_Evidence_CSR' in df_neural_uncertainty.columns:
+        df_neural_uncertainty['Neural_ThreatEvidence'] = pd.to_numeric(
+            df_neural_uncertainty['Neural_Threat_Evidence_CSR'],
+            errors='coerce',
+        )
 
     # Ensure ID is a string for merging
     df_neural_uncertainty['sub_ID'] = df_neural_uncertainty['sub_ID'].astype(str)
 
     print(f"Decision Profile generated for {len(df_neural_uncertainty)} subjects.")
     print(df_neural_uncertainty.head())
+    stage24_payload = {
+        "df_neural_topology": df_neural_topology,
+        "df_neural_trajectories": df_neural_trajectories,
+        "df_neural_uncertainty": df_neural_uncertainty,
+        "df_scr_neural_coupling": df_scr_neural_coupling,
+    }
+    save_stage_bundle(24, "stage24_NeuralClinicalIndices", stage24_payload)
     save_cell_results(24, ['data_subsets', 'df_hc_idx', 'df_neural_topology', 'df_neural_trajectories', 'df_neural_uncertainty', 'df_sad_idx', 'df_scr_neural_coupling', 'df_scr_trials', 'importance_mask_permutated', 'importance_scores_permutated', 'meta', 'results_11', 'results_12', 'results_13', 'results_13_2', 'results_14_self', 'results_21', 'results_21_pv', 'results_22', 'results_23', 'results_24', 'results_25', 'strict_cross_phase_results', 'sub_to_meta', 'vA_hc_pv', 'vA_sad_pv', 'vB_hc_pv', 'vB_sad_pv'])
 
 
@@ -5358,6 +5464,11 @@ if cell_active(26):
         on='sub_ID', 
         how='inner'
     )
+    save_stage_bundle(26, "stage26_MasterClinicalNeural", {
+        "df_final_clinical_neural": df_final_clinical_neural,
+        "df_final_indecision": df_final_indecision,
+        "df_master_analysis": df_master_analysis,
+    })
     save_cell_results(26, ['data_subsets', 'df_final_clinical_neural', 'df_final_indecision', 'df_master_analysis', 'importance_mask_permutated', 'importance_scores_permutated', 'meta', 'results_11', 'results_12', 'results_13', 'results_13_2', 'results_14_self', 'results_21', 'results_21_pv', 'results_22', 'results_23', 'results_24', 'results_25', 'strict_cross_phase_results', 'sub_to_meta'])
 
 
@@ -5375,13 +5486,16 @@ if cell_active(27):
     # 1. Config
     groups = df_master_analysis['Group'].unique()
     neural_metrics = ['Neural_Dist_Threat_Safety',
-           'Neural_Dist_Safety_Background', 'Neural_Safety_Trajectory_Slope',
+           'Neural_Dist_Safety_Background', 'Neural_Dist_Threat_Background',
+           'Neural_SafetyEvidence', 'Neural_ThreatEvidence',
+           'Neural_Safety_Trajectory_Slope', 'Neural_Threat_Trajectory_Slope',
+           'Shock_Anchor_Trajectory_Slope', 'Residualized_Shock_Anchor_Trajectory_Slope',
            'Neural_Safety_Mean', 'Neural_SCR_Safety_Coupling', 'Neural_Uncertainty_Entropy',
            'Neural_Sharpness_Kurtosis', 'Neural_Decision_Margin_CSS',
            'Neural_Decision_Margin_CSR', 'Neural_Decoder_Entropy_CSS',
            'Neural_Decoder_Entropy_CSR',
            'Neural_ThreatLike_Safety', 'Neural_Boundary_Separation']
-    clinical_indices = ['lsas_total', 'lsas_fear', 'lsas_avoid', 'dass_anxiety', 'dass_stress', 'ecr_total'] + SCR_BEHAVIORAL_INDICES
+    clinical_indices = PRIMARY_CLINICAL_SCORES + SECONDARY_CLINICAL_SCORES + PRIMARY_SCR_INDICES + SECONDARY_SCR_INDICES
 
     def get_sig_star(p):
         if p < 0.001: return "***"
@@ -5414,6 +5528,7 @@ if cell_active(27):
                     })
 
     df_res_grp = pd.DataFrame(group_results)
+    save_stage_bundle(27, "stage27_NeuralClinicalPearson", {"df_res_grp": df_res_grp})
 
     # 3. Visualization: Group-Wise Comparative Grids
     sns.set_context("talk")
@@ -5464,13 +5579,16 @@ if cell_active(28):
     # Using the merged df_master_analysis
     groups = df_master_analysis['Group'].unique()
     neural_metrics = ['Neural_Dist_Threat_Safety',
-           'Neural_Dist_Safety_Background', 'Neural_Safety_Trajectory_Slope',
+           'Neural_Dist_Safety_Background', 'Neural_Dist_Threat_Background',
+           'Neural_SafetyEvidence', 'Neural_ThreatEvidence',
+           'Neural_Safety_Trajectory_Slope', 'Neural_Threat_Trajectory_Slope',
+           'Shock_Anchor_Trajectory_Slope', 'Residualized_Shock_Anchor_Trajectory_Slope',
            'Neural_Safety_Mean', 'Neural_SCR_Safety_Coupling', 'Neural_Uncertainty_Entropy',
            'Neural_Sharpness_Kurtosis', 'Neural_Decision_Margin_CSS',
            'Neural_Decision_Margin_CSR', 'Neural_Decoder_Entropy_CSS',
            'Neural_Decoder_Entropy_CSR',
            'Neural_ThreatLike_Safety', 'Neural_Boundary_Separation']
-    clinical_indices = ['lsas_total', 'lsas_fear', 'lsas_avoid', 'dass_anxiety', 'dass_stress', 'ecr_total'] + SCR_BEHAVIORAL_INDICES
+    clinical_indices = PRIMARY_CLINICAL_SCORES + SECONDARY_CLINICAL_SCORES + PRIMARY_SCR_INDICES + SECONDARY_SCR_INDICES
     covariates = ['demo_age'] # Standard demographic controls
 
     def get_sig_star(p):
@@ -5505,6 +5623,7 @@ if cell_active(28):
                     })
 
     df_res_grp = pd.DataFrame(group_results)
+    save_stage_bundle(28, "stage28_NeuralClinicalPartial", {"df_res_partial": df_res_grp})
 
     # 3. Visualization: Group-Wise Comparative Grids
     sns.set_context("talk")
@@ -5552,7 +5671,11 @@ if cell_active(29):
     # 1. Configuration
     neural_metrics = [
         'Neural_Dist_Threat_Safety', 'Neural_Dist_Safety_Background',
-        'Neural_Safety_Trajectory_Slope', 'Neural_Safety_Mean',
+        'Neural_Dist_Threat_Background',
+        'Neural_SafetyEvidence', 'Neural_ThreatEvidence',
+        'Neural_Safety_Trajectory_Slope', 'Neural_Threat_Trajectory_Slope',
+        'Shock_Anchor_Trajectory_Slope', 'Residualized_Shock_Anchor_Trajectory_Slope',
+        'Neural_Safety_Mean',
         'Neural_SCR_Safety_Coupling',
         'Neural_Uncertainty_Entropy', 'Neural_Sharpness_Kurtosis',
         'Neural_Decision_Margin_CSS', 'Neural_Decision_Margin_CSR',
@@ -5560,7 +5683,7 @@ if cell_active(29):
         'Neural_ThreatLike_Safety',
         'Neural_Boundary_Separation'
     ]
-    clinical_indices = ['lsas_total', 'lsas_fear', 'lsas_avoid', 'dass_anxiety', 'dass_stress', 'ecr_total'] + SCR_BEHAVIORAL_INDICES
+    clinical_indices = PRIMARY_CLINICAL_SCORES + SECONDARY_CLINICAL_SCORES + PRIMARY_SCR_INDICES + SECONDARY_SCR_INDICES
     covariates = ['demo_age']
 
     all_cols = neural_metrics + clinical_indices + covariates
@@ -5590,7 +5713,9 @@ if cell_active(29):
             print(f"Warning: {col} not found in dataframe.")
 
     print("\nOutlier removal and final Z-scoring complete.")
-    save_cell_results(29, ['all_cols', 'clinical_indices', 'col', 'covariates', 'data_subsets', 'importance_mask_permutated', 'importance_scores_permutated', 'meta', 'neural_metrics', 'results_11', 'results_12', 'results_13', 'results_13_2', 'results_14_self', 'results_21', 'results_21_pv', 'results_22', 'results_23', 'results_24', 'results_25', 'strict_cross_phase_results', 'sub_to_meta', 'z_limit'])
+    df_master_analysis_z = df_master_analysis.copy()
+    save_stage_bundle(29, "stage29_NeuralClinicalZScore", {"df_master_analysis": df_master_analysis, "df_master_analysis_z": df_master_analysis_z})
+    save_cell_results(29, ['all_cols', 'clinical_indices', 'col', 'covariates', 'data_subsets', 'df_master_analysis', 'df_master_analysis_z', 'importance_mask_permutated', 'importance_scores_permutated', 'meta', 'neural_metrics', 'results_11', 'results_12', 'results_13', 'results_13_2', 'results_14_self', 'results_21', 'results_21_pv', 'results_22', 'results_23', 'results_24', 'results_25', 'strict_cross_phase_results', 'sub_to_meta', 'z_limit'])
 
 
 else:
@@ -5612,6 +5737,7 @@ if cell_active(30):
 
     sns.set_context("talk")
     sns.set_style("white")
+    ols_results = []
 
     # 2. Analysis & Plotting Loop
     for n_m in neural_z:
@@ -5646,6 +5772,16 @@ if cell_active(30):
                     beta = model.params[n_m]
                     sig_note = " *SIGNIFICANT*" if p_val < 0.05 else ""
                     print(f"[{grp:<3}] N={len(analysis_df):<3} | Beta={beta:>6.3f} | t={model.tvalues[n_m]:>6.2f} | p={p_val:>6.4f}{sig_note}")
+                    ols_results.append({
+                        "Group": grp,
+                        "neural_metric_z": n_m,
+                        "clinical_score_z": c_i,
+                        "n": int(len(analysis_df)),
+                        "estimate": float(beta),
+                        "t": float(model.tvalues[n_m]),
+                        "p": float(p_val),
+                        "r2": float(model.rsquared),
+                    })
                 
                     # B. VISUALIZATION
                     sns.regplot(
@@ -5670,7 +5806,9 @@ if cell_active(30):
         sns.despine()
         plt.tight_layout()
         plt.show()
-    save_cell_results(30, ['clinical_z', 'data_subsets', 'groups', 'importance_mask_permutated', 'importance_scores_permutated', 'meta', 'n_m', 'neural_z', 'results_11', 'results_12', 'results_13', 'results_13_2', 'results_14_self', 'results_21', 'results_21_pv', 'results_22', 'results_23', 'results_24', 'results_25', 'strict_cross_phase_results', 'sub_to_meta'])
+    df_ols_results = pd.DataFrame(ols_results)
+    save_stage_bundle(30, "stage30_NeuralClinicalOLS", {"df_ols_results": df_ols_results})
+    save_cell_results(30, ['clinical_z', 'data_subsets', 'df_ols_results', 'groups', 'importance_mask_permutated', 'importance_scores_permutated', 'meta', 'n_m', 'neural_z', 'results_11', 'results_12', 'results_13', 'results_13_2', 'results_14_self', 'results_21', 'results_21_pv', 'results_22', 'results_23', 'results_24', 'results_25', 'strict_cross_phase_results', 'sub_to_meta'])
 
 
 else:

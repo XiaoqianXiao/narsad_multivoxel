@@ -30,6 +30,7 @@ from mvpa_l2_common import (
 DEFAULT_FEATURE_DIRS = {
     "FearNetwork": Path("outputs/mvpa_l2/FearNetwork"),
     "MemoryFearNetwork": Path("outputs/mvpa_l2/MemoryFearNetwork"),
+    "WholeBrain_Schaefer": Path("outputs/mvpa_l2/WholeBrain_Schaefer"),
 }
 
 
@@ -57,6 +58,8 @@ def load_master(base_dir: Path) -> Optional[pd.DataFrame]:
         base_dir,
         [
             "df_master_analysis.joblib",
+            "stage26_MasterClinicalNeural.joblib",
+            "stage26_master_clinical_neural.joblib",
             "cell_26.joblib",
             "checkpoints/cell_26.joblib",
         ],
@@ -133,6 +136,8 @@ def load_topology(base_dir: Path) -> Optional[pd.DataFrame]:
         base_dir,
         [
             "analysis_12_topology.joblib",
+            "stage12_topology_stats.joblib",
+            "stage12_StaticRepresentationalTopology.joblib",
             "cell_12.joblib",
             "checkpoints/cell_12.joblib",
             "results_12.joblib",
@@ -170,6 +175,7 @@ def load_decision(base_dir: Path) -> Optional[pd.DataFrame]:
         [
             "cell_19.joblib",
             "cell_16_opening_test.joblib",
+            "stage15_results_23.joblib",
             "checkpoints/cell_19.joblib",
         ],
     )
@@ -186,6 +192,8 @@ def load_decision(base_dir: Path) -> Optional[pd.DataFrame]:
         [
             "cell_15.joblib",
             "cell_13_decision_stats_opt.joblib",
+            "stage15_decision_stats.joblib",
+            "stage15_DecisionBoundaryCharacteristics.joblib",
             "checkpoints/cell_15.joblib",
         ],
     )
@@ -224,6 +232,8 @@ def load_trajectories(base_dir: Path) -> Optional[pd.DataFrame]:
         [
             "cell_14.joblib",
             "cell_12_trajectories.joblib",
+            "stage14_trajectories.joblib",
+            "stage14_DynamicTrajectories.joblib",
             "checkpoints/cell_14.joblib",
         ],
     )
@@ -232,11 +242,13 @@ def load_trajectories(base_dir: Path) -> Optional[pd.DataFrame]:
     if isinstance(results, dict):
         data_safe = results.get("data_safe")
         data_threat = results.get("data_threat")
+        data_threat_shock = results.get("data_threat_shock")
         slopes = results.get("trajectory_slopes")
         if isinstance(slopes, pd.DataFrame) and not slopes.empty:
             for condition, metric in [
                 ("Safety Learning", "Neural_Safety_Trajectory_Slope"),
                 ("Threat Maintenance", "Neural_Threat_Trajectory_Slope"),
+                ("Threat Shock Target", "Shock_Anchor_Trajectory_Slope"),
             ]:
                 sub = slopes[slopes["Condition"] == condition].copy()
                 if not sub.empty:
@@ -247,6 +259,29 @@ def load_trajectories(base_dir: Path) -> Optional[pd.DataFrame]:
             frames.append(_trajectory_slopes(data_safe, "Safety Learning", "Neural_Safety_Trajectory_Slope"))
         if isinstance(data_threat, pd.DataFrame):
             frames.append(_trajectory_slopes(data_threat, "Threat Maintenance", "Neural_Threat_Trajectory_Slope"))
+        if isinstance(data_threat_shock, pd.DataFrame):
+            frames.append(_trajectory_slopes(data_threat_shock, "Threat Shock Target", "Shock_Anchor_Trajectory_Slope"))
+
+    payload12 = load_payload(
+        base_dir,
+        [
+            "cell_12.joblib",
+            "stage12_topology_stats.joblib",
+            "stage12_StaticRepresentationalTopology.joblib",
+            "checkpoints/cell_12.joblib",
+        ],
+    )
+    shock_anchor_df = payload_value(payload12, "shock_anchor_df")
+    if isinstance(shock_anchor_df, pd.DataFrame) and not shock_anchor_df.empty and "Cosine_CSR_minus_CSS" in shock_anchor_df.columns:
+        residualized = ensure_subject_column(shock_anchor_df.rename(columns={"Subject": "sub_ID"}))
+        residualized["Drug"] = "Placebo"
+        if "Group" not in residualized.columns:
+            residualized["Group"] = pd.NA
+        residualized["Residualized_Shock_Anchor_Trajectory_Slope"] = pd.to_numeric(
+            residualized["Cosine_CSR_minus_CSS"],
+            errors="coerce",
+        )
+        frames.append(residualized[["sub_ID", "Group", "Drug", "Residualized_Shock_Anchor_Trajectory_Slope"]])
 
     payload18 = load_payload(base_dir, ["cell_18.joblib", "checkpoints/cell_18.joblib"])
     drift = payload_value(payload18, "df_drift", "df")
@@ -278,7 +313,15 @@ def load_trajectories(base_dir: Path) -> Optional[pd.DataFrame]:
 
 
 def load_clinical(base_dir: Path) -> Optional[pd.DataFrame]:
-    payload23 = load_payload(base_dir, ["cell_23.joblib", "checkpoints/cell_23.joblib"])
+    payload23 = load_payload(
+        base_dir,
+        [
+            "cell_23.joblib",
+            "stage23_ClinicalScores.joblib",
+            "stage23_clinical_scores.joblib",
+            "checkpoints/cell_23.joblib",
+        ],
+    )
     df = payload_value(payload23, "df_scored_clinical")
     if isinstance(df, pd.DataFrame):
         return ensure_subject_column(df)

@@ -4,3 +4,7 @@ __pycache__/
 .ipython_tmp/
 .nbconvert_out/
 scr_analysis_outputs/
+/data
+/results
+/outputs
+task*.md
