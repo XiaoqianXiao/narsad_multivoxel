@@ -185,6 +185,7 @@
   },
   "active": "3d742366a438beb9",
   "lastOpenFiles": [
+    "need_to_run.sh",
     "task_Visualization-Aim3.md",
     "task_Visualization-Aim4.md",
     "task_Visualization-Aim5.md",
@@ -225,7 +226,6 @@
     "results/outputs/mvpa_l2/figures",
     "visualization_mvpa_l2.ipynb",
     "mvpa_l2_v1.md",
-    "PROJECT_CONTEXT.md",
-    "mvpa_L2.md"
+    "PROJECT_CONTEXT.md"
   ]
 }
