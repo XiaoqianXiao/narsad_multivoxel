@@ -7,7 +7,7 @@ import itertools
 import os
 import time
 from itertools import combinations
-from typing import Dict, List, Sequence, Union
+from typing import Dict, List, Sequence, Tuple, Union
 # Core scientific/data stack
 import joblib
 from joblib import Parallel, delayed, dump
@@ -487,7 +487,7 @@ def save_stage_bundle(stage_id: int, name: str, payload: dict) -> None:
     save_intermediate(name, bundle)
 
 
-def _cosine_alignment_01(vector, target) -> tuple[float, float]:
+def _cosine_alignment_01(vector, target) -> Tuple[float, float]:
     """Return raw cosine and a 0-1 display alignment from true centroid vectors."""
     vector = np.asarray(vector, dtype=float)
     target = np.asarray(target, dtype=float)

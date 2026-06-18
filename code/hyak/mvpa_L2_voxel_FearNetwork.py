@@ -58,7 +58,7 @@ import statsmodels.formula.api as smf
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from typing import List, Sequence, Union
+from typing import List, Sequence, Tuple, Union
 import plotly.graph_objects as go
 # Nice plotting defaults
 sns.set_context("poster")
@@ -813,7 +813,7 @@ def load_cell_results(cell_id: int):
     return payload
 
 
-def _cosine_alignment_01(vector, target) -> tuple[float, float]:
+def _cosine_alignment_01(vector, target) -> Tuple[float, float]:
     """Return raw cosine and a 0-1 display alignment from true centroid vectors."""
     vector = np.asarray(vector, dtype=float)
     target = np.asarray(target, dtype=float)
