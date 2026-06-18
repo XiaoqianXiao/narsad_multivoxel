@@ -22,6 +22,8 @@ set -euo pipefail
 #   RUN_POSTHYAK_NOW=1    run post-Hyak commands now; default prints them for after Hyak jobs finish
 #   POSTHYAK_MODE=submit  submit post-Hyak through hyak/submit_mvpa_L2_posthyak.sh (default)
 #   POSTHYAK_MODE=direct  run scripts/run_mvpa_l2_posthyak.sh in the current shell
+#   FEAR_MEMORY_MODE=all  submit full Fear/Memory dependency chains so Stage 11 masks exist (default)
+#   FEAR_MEMORY_MODE=selected  run only selected late stages; requires completed Stage 11 masks
 #   RUN_OPTIONAL_CORR=1   include Hyak stages 27 and 28
 #   RUN_SCHAEFER=1        include WholeBrain/Schaefer stages
 #   SCHAEFER_MODE=all     submit Schaefer's dependency chain with its native "all" mode (default)
@@ -39,6 +41,7 @@ DRY_RUN="${DRY_RUN:-1}"
 RUN_HYAK="${RUN_HYAK:-1}"
 RUN_POSTHYAK_NOW="${RUN_POSTHYAK_NOW:-0}"
 POSTHYAK_MODE="${POSTHYAK_MODE:-submit}"
+FEAR_MEMORY_MODE="${FEAR_MEMORY_MODE:-all}"
 RUN_OPTIONAL_CORR="${RUN_OPTIONAL_CORR:-0}"
 RUN_SCHAEFER="${RUN_SCHAEFER:-0}"
 SCHAEFER_MODE="${SCHAEFER_MODE:-all}"
@@ -81,9 +84,15 @@ fi
 
 if [[ "$RUN_HYAK" == "1" ]]; then
   echo "Step 1: refresh Hyak stage bundles and true Aim 2 panel inputs used by mvpa_l2.ipynb"
-  echo "Submitting Fear/Memory stages ${FEAR_MEMORY_STAGE_SPEC} as one ordered job per feature space."
-  run_cmd bash hyak/submit_mvpa_L2_fearnetwork_stage.sh "$FEAR_MEMORY_STAGE_SPEC"
-  run_cmd bash hyak/submit_mvpa_L2_memoryfearnetwork_stage.sh "$FEAR_MEMORY_STAGE_SPEC"
+  if [[ "$FEAR_MEMORY_MODE" == "all" ]]; then
+    echo "Submitting Fear/Memory with native all-stage dependency chains so Stage 11 masks are available."
+    run_cmd bash hyak/submit_mvpa_L2_fearnetwork_stage.sh all
+    run_cmd bash hyak/submit_mvpa_L2_memoryfearnetwork_stage.sh all
+  else
+    echo "Submitting Fear/Memory stages ${FEAR_MEMORY_STAGE_SPEC}; this requires completed Stage 11 masks."
+    run_cmd bash hyak/submit_mvpa_L2_fearnetwork_stage.sh "$FEAR_MEMORY_STAGE_SPEC"
+    run_cmd bash hyak/submit_mvpa_L2_memoryfearnetwork_stage.sh "$FEAR_MEMORY_STAGE_SPEC"
+  fi
   if [[ "$RUN_SCHAEFER" == "1" ]]; then
     if [[ "$SCHAEFER_MODE" == "all" ]]; then
       echo "Submitting Schaefer with its native all-stage dependency chain."

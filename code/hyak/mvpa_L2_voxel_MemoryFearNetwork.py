@@ -405,9 +405,19 @@ def make_all_positive_importance_mask(scores):
 
 def get_analysis_feature_masks(analysis_label, min_primary_features=MIN_FEATURES_FOR_PRIMARY_MASK):
     if "importance_mask_permutated" not in globals() or not importance_mask_permutated:
-        raise ValueError(f"{analysis_label}: importance_mask_permutated missing. Run/resume Stage 11 first.")
+        load_stage11_split_results()
     if "importance_scores_permutated" not in globals() or not importance_scores_permutated:
-        raise ValueError(f"{analysis_label}: importance_scores_permutated missing. Run/resume Stage 11 first.")
+        load_stage11_split_results()
+    if "importance_mask_permutated" not in globals() or not importance_mask_permutated:
+        raise ValueError(
+            f"{analysis_label}: importance_mask_permutated missing. Run Stage 11 first "
+            "(submit_mvpa_L2_memoryfearnetwork_stage.sh all, or run 11:SAD and 11:HC plus their merge jobs)."
+        )
+    if "importance_scores_permutated" not in globals() or not importance_scores_permutated:
+        raise ValueError(
+            f"{analysis_label}: importance_scores_permutated missing. Run Stage 11 first "
+            "(submit_mvpa_L2_memoryfearnetwork_stage.sh all, or run 11:SAD and 11:HC plus their merge jobs)."
+        )
 
     selected_masks = {}
     feature_space = {}
@@ -496,16 +506,35 @@ def load_stage11_split_results() -> bool:
     merged_p_values = {}
     loaded_any = False
 
-    main_path = _script_ckpt_path(11)
-    if os.path.exists(main_path):
-        payload = load_cell_results(11)
+    def _merge_stage11_payload(payload):
         if isinstance(payload, dict):
-            merged_masks.update(payload.get("importance_mask_permutated", {}))
-            merged_scores.update(payload.get("importance_scores_permutated", {}))
+            masks = payload.get("importance_mask_permutated") or payload.get("importance_masks_permutated") or {}
+            scores = payload.get("importance_scores_permutated") or {}
+            merged_masks.update(masks)
+            merged_scores.update(scores)
             p_vals = payload.get("p_values_permutated", {})
             if isinstance(p_vals, dict):
                 merged_p_values.update(p_vals)
+
+    main_path = _script_ckpt_path(11)
+    combined_paths = [
+        main_path,
+        _script_intermediate_path("stage11_importance_masks"),
+        os.path.join(CHECKPOINT_DIR, "stage11_importance_masks.joblib"),
+    ]
+    for combined_path in combined_paths:
+        if not os.path.exists(combined_path):
+            continue
+        payload = joblib.load(combined_path)
+        if combined_path == main_path:
+            globals().update(payload if isinstance(payload, dict) else {})
+            print(f"[Cell checkpoint] Loaded cell 11 <- {combined_path}")
+        else:
+            print(f"[Cell checkpoint] Loaded combined stage 11 <- {combined_path}")
+        _merge_stage11_payload(payload)
         loaded_any = True
+        if {"SAD", "HC"}.issubset(set(merged_masks)):
+            break
 
     for group_name in ("SAD", "HC"):
         group_paths = [
@@ -518,11 +547,7 @@ def load_stage11_split_results() -> bool:
             payload = joblib.load(group_path)
             if not isinstance(payload, dict):
                 continue
-            merged_masks.update(payload.get("importance_mask_permutated", {}))
-            merged_scores.update(payload.get("importance_scores_permutated", {}))
-            p_vals = payload.get("p_values_permutated", {})
-            if isinstance(p_vals, dict):
-                merged_p_values.update(p_vals)
+            _merge_stage11_payload(payload)
             print(f"[Cell checkpoint] Loaded split stage 11 {group_name} <- {group_path}")
             loaded_any = True
             break
