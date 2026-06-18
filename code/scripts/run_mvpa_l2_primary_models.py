@@ -15,6 +15,7 @@ from mvpa_l2_common import (
     NEURAL_METRIC_HIERARCHY,
     add_fdr,
     available_covariates,
+    derive_final_metrics,
     fit_lm,
     harmonize_group_drug,
     write_csv,
@@ -365,7 +366,7 @@ def main() -> None:
     parser.add_argument("--out-dir", type=Path, default=Path("outputs/mvpa_l2/stats"))
     args = parser.parse_args()
 
-    df = harmonize_group_drug(pd.read_csv(args.input))
+    df = derive_final_metrics(harmonize_group_drug(pd.read_csv(args.input)))
     covariates = available_covariates(df, args.covariates)
     print(f"Using covariates: {covariates}")
 

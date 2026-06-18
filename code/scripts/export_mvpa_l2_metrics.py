@@ -226,6 +226,53 @@ def _trajectory_slopes(df: pd.DataFrame, condition: str, metric_name: str) -> pd
     return pd.DataFrame(rows)
 
 
+def _standardize_trial_alignment(data: pd.DataFrame, trajectory: str, value_col: Optional[str] = None) -> pd.DataFrame:
+    """Return notebook-ready trial alignment rows for Figure 2 panel D."""
+    if data is None or data.empty:
+        return pd.DataFrame()
+    subject_col = next((col for col in ["subject_id", "Subject", "sub_ID", "sub"] if col in data.columns), None)
+    group_col = next((col for col in ["Group", "group"] if col in data.columns), None)
+    trial_col = next((col for col in ["trial", "Trial", "block", "Block"] if col in data.columns), None)
+    score_col = value_col or next(
+        (col for col in ["safety_alignment", "threat_evidence", "score", "Score", "similarity", "Similarity", "value", "evidence"] if col in data.columns),
+        None,
+    )
+    if subject_col is None or group_col is None or trial_col is None or score_col is None:
+        return pd.DataFrame()
+    out = data[[subject_col, group_col, trial_col, score_col]].copy()
+    out = out.rename(columns={subject_col: "subject_id", group_col: "group", trial_col: "trial", score_col: "value"})
+    out["trajectory"] = trajectory
+    out["trial"] = pd.to_numeric(out["trial"], errors="coerce")
+    out["value"] = pd.to_numeric(out["value"], errors="coerce")
+    out["group"] = out["group"].astype(str)
+    return out.dropna(subset=["trial", "value"])[["subject_id", "group", "trial", "trajectory", "value"]]
+
+
+def trajectory_panel_from_feature_dir(base_dir: Path) -> pd.DataFrame:
+    """Extract trial-level safety/threat trajectories for Figure 2 panel D."""
+    payload14 = load_payload(
+        base_dir,
+        [
+            "cell_14.joblib",
+            "cell_12_trajectories.joblib",
+            "stage14_trajectories.joblib",
+            "stage14_DynamicTrajectories.joblib",
+            "checkpoints/cell_14.joblib",
+        ],
+    )
+    results = payload_value(payload14, "results_13_2") or payload14
+    frames = []
+    if isinstance(results, dict):
+        data_safe = results.get("data_safe")
+        data_threat = results.get("data_threat")
+        if isinstance(data_safe, pd.DataFrame):
+            frames.append(_standardize_trial_alignment(data_safe, "safety"))
+        if isinstance(data_threat, pd.DataFrame):
+            frames.append(_standardize_trial_alignment(data_threat, "threat"))
+    frames = [frame for frame in frames if not frame.empty]
+    return pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
+
+
 def load_trajectories(base_dir: Path) -> Optional[pd.DataFrame]:
     payload14 = load_payload(
         base_dir,
@@ -312,6 +359,116 @@ def load_trajectories(base_dir: Path) -> Optional[pd.DataFrame]:
     return coalesce_duplicate_columns(out)
 
 
+GEOMETRY_PANEL_COLUMNS = ["subject_id", "group", "condition", "safety_alignment", "threat_alignment", "source"]
+
+
+def empty_geometry_panel() -> pd.DataFrame:
+    """Return an empty Figure 2 panel-B schema."""
+    return pd.DataFrame(columns=GEOMETRY_PANEL_COLUMNS)
+
+
+def standardize_geometry_panel(data: pd.DataFrame, source_name: str) -> pd.DataFrame:
+    """Standardize a true subject-level centroid/alignment export for Figure 2."""
+    subject_col = next((col for col in ["subject_id", "Subject", "sub_ID", "sub"] if col in data.columns), None)
+    group_col = next((col for col in ["group", "Group"] if col in data.columns), None)
+    condition_col = next((col for col in ["condition", "Condition", "Cue", "cue"] if col in data.columns), None)
+    safety_col = next(
+        (col for col in ["safety_alignment", "SafetyAlignment", "target_safety_alignment", "TargetSafetyAlignment"] if col in data.columns),
+        None,
+    )
+    threat_col = next(
+        (col for col in ["threat_alignment", "ThreatAlignment", "target_threat_alignment", "TargetThreatAlignment"] if col in data.columns),
+        None,
+    )
+    if None in {subject_col, group_col, condition_col, safety_col, threat_col}:
+        return empty_geometry_panel()
+    out = data[[subject_col, group_col, condition_col, safety_col, threat_col]].copy()
+    out = out.rename(
+        columns={
+            subject_col: "subject_id",
+            group_col: "group",
+            condition_col: "condition",
+            safety_col: "safety_alignment",
+            threat_col: "threat_alignment",
+        }
+    )
+    out["safety_alignment"] = pd.to_numeric(out["safety_alignment"], errors="coerce")
+    out["threat_alignment"] = pd.to_numeric(out["threat_alignment"], errors="coerce")
+    out["group"] = out["group"].astype(str)
+    out["condition"] = out["condition"].astype(str)
+    out["source"] = source_name
+    out = out[out["group"].isin(["SAD", "HC"])]
+    out = out[out["condition"].isin(["CSR", "CSS", "CS-"])]
+    return out.dropna(subset=["safety_alignment", "threat_alignment"])[GEOMETRY_PANEL_COLUMNS]
+
+
+def geometry_panel_from_feature_dir(base_dir: Path) -> pd.DataFrame:
+    """Load true centroid geometry if an upstream export exists; otherwise empty."""
+    candidate_names = [
+        "aim2_geometry_centroids.csv",
+        "aim2_condition_centroids.csv",
+        "aim2_subject_condition_centroids.csv",
+        "aim2_true_centroid_geometry.csv",
+    ]
+    search_dirs = [base_dir, base_dir / "intermediate", base_dir / "stats", base_dir / "exports"]
+    for directory in search_dirs:
+        for name in candidate_names:
+            path = directory / name
+            if not path.exists():
+                continue
+            panel = standardize_geometry_panel(pd.read_csv(path), path.name)
+            if not panel.empty:
+                return panel
+    return empty_geometry_panel()
+
+
+def trajectory_panel_from_stats(stats_dir: Path) -> pd.DataFrame:
+    """Use residualized shock-anchor trialwise rows when upstream trajectories are absent."""
+    path = stats_dir / "aim2_residualized_shock_anchor_trialwise_long.csv"
+    if not path.exists():
+        return pd.DataFrame()
+    data = pd.read_csv(path)
+    required = {"Subject", "Group", "Cue", "Trial"}
+    if not required.issubset(data.columns):
+        return pd.DataFrame()
+    value_col = "Cosine" if "Cosine" in data.columns else "Projection" if "Projection" in data.columns else None
+    if value_col is None:
+        return pd.DataFrame()
+    frames = []
+    css = data[data["Cue"].astype(str).eq("CSS")].copy()
+    csr = data[data["Cue"].astype(str).eq("CSR")].copy()
+    frames.append(_standardize_trial_alignment(css, "safety", value_col=value_col))
+    frames.append(_standardize_trial_alignment(csr, "threat", value_col=value_col))
+    frames = [frame for frame in frames if not frame.empty]
+    if not frames:
+        return pd.DataFrame()
+    out = pd.concat(frames, ignore_index=True)
+    # Map cosine/projection values onto a stable 0-1 panel scale without changing ranks.
+    for trajectory, idx in out.groupby("trajectory").groups.items():
+        values = out.loc[idx, "value"]
+        lo = values.quantile(0.02)
+        hi = values.quantile(0.98)
+        if pd.notna(lo) and pd.notna(hi) and hi > lo:
+            out.loc[idx, "value"] = ((values - lo) / (hi - lo)).clip(0, 1)
+    return out
+
+
+def export_aim2_panel_inputs(subject_df: pd.DataFrame, feature_dirs: Dict[str, Path], stats_dir: Path, feature_space: str = "FearNetwork") -> None:
+    """Write Figure 2 geometry and trajectory input CSVs for the notebook."""
+    stats_dir.mkdir(parents=True, exist_ok=True)
+    geometry = geometry_panel_from_feature_dir(feature_dirs[feature_space]) if feature_space in feature_dirs else empty_geometry_panel()
+    write_csv(geometry, stats_dir / "aim2_geometry_panel.csv")
+    write_csv(geometry, stats_dir / "aim2_subject_condition_centroids.csv")
+
+    trajectory = pd.DataFrame()
+    if feature_space in feature_dirs:
+        trajectory = trajectory_panel_from_feature_dir(feature_dirs[feature_space])
+    if trajectory.empty:
+        trajectory = trajectory_panel_from_stats(stats_dir)
+    write_csv(trajectory, stats_dir / "aim2_trajectory_panel.csv")
+    print(f"Wrote Aim 2 panel inputs -> {stats_dir / 'aim2_geometry_panel.csv'} and {stats_dir / 'aim2_trajectory_panel.csv'}")
+
+
 def load_clinical(base_dir: Path) -> Optional[pd.DataFrame]:
     payload23 = load_payload(
         base_dir,
@@ -380,6 +537,12 @@ def main() -> None:
         type=Path,
         default=Path("outputs/mvpa_l2/harmonized/mvpa_l2_subject_metrics.csv"),
     )
+    parser.add_argument(
+        "--stats-out-dir",
+        type=Path,
+        default=None,
+        help="Directory for notebook-facing auxiliary inputs such as Aim 2 geometry/trajectory panels.",
+    )
     args = parser.parse_args()
 
     feature_dirs = parse_feature_dir(args.feature_dir)
@@ -401,6 +564,8 @@ def main() -> None:
     out = coalesce_duplicate_columns(out)
     out = out.sort_values(["FeatureSpace", "Group", "Drug", "sub_ID"], na_position="last")
     write_csv(out, args.out)
+    stats_out_dir = args.stats_out_dir or args.out.parent.parent / "stats"
+    export_aim2_panel_inputs(out, feature_dirs, stats_out_dir)
     print(f"Wrote {len(out)} rows x {len(out.columns)} columns -> {args.out}")
     print(out.groupby(["FeatureSpace", "Group", "Drug"], dropna=False).size())
 

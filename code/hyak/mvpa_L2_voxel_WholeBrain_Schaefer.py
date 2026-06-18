@@ -487,6 +487,147 @@ def save_stage_bundle(stage_id: int, name: str, payload: dict) -> None:
     save_intermediate(name, bundle)
 
 
+def _cosine_alignment_01(vector, target) -> tuple[float, float]:
+    """Return raw cosine and a 0-1 display alignment from true centroid vectors."""
+    vector = np.asarray(vector, dtype=float)
+    target = np.asarray(target, dtype=float)
+    denom = float(np.linalg.norm(vector) * np.linalg.norm(target))
+    if not np.isfinite(denom) or denom <= 0:
+        return np.nan, np.nan
+    cosine = float(np.dot(vector, target) / denom)
+    cosine = float(np.clip(cosine, -1.0, 1.0))
+    return cosine, (cosine + 1.0) / 2.0
+
+
+def build_true_condition_centroid_geometry(X, y, subjects, group_label, conditions, feature_space=None):
+    """Build notebook-facing geometry from true subject condition centroids."""
+    rows = []
+    X_arr = np.asarray(X, dtype=float)
+    y_arr = np.asarray(y).astype(str)
+    sub_arr = np.asarray(subjects).astype(str)
+    if X_arr.ndim != 2 or len(X_arr) != len(y_arr) or len(y_arr) != len(sub_arr):
+        return pd.DataFrame()
+
+    safety_condition = "CS-"
+    threat_condition = "CSR"
+    n_features = int(X_arr.shape[1])
+    feature_source = feature_space.get(group_label, feature_space) if isinstance(feature_space, dict) else feature_space
+    feature_source = str(feature_source) if feature_source is not None else ""
+    for subject_id in np.unique(sub_arr):
+        subject_mask = sub_arr == subject_id
+        centroids = {}
+        counts = {}
+        for condition in conditions:
+            condition_mask = subject_mask & (y_arr == condition)
+            if not np.any(condition_mask):
+                continue
+            centroids[condition] = X_arr[condition_mask].mean(axis=0)
+            counts[condition] = int(np.sum(condition_mask))
+        if safety_condition not in centroids or threat_condition not in centroids:
+            continue
+        safety_target = centroids[safety_condition]
+        threat_target = centroids[threat_condition]
+        for condition in conditions:
+            if condition not in centroids:
+                continue
+            safety_cos, safety_alignment = _cosine_alignment_01(centroids[condition], safety_target)
+            threat_cos, threat_alignment = _cosine_alignment_01(centroids[condition], threat_target)
+            rows.append({
+                "subject_id": subject_id,
+                "group": group_label,
+                "condition": condition,
+                "safety_alignment": safety_alignment,
+                "threat_alignment": threat_alignment,
+                "safety_cosine": safety_cos,
+                "threat_cosine": threat_cos,
+                "n_condition_trials": counts[condition],
+                "n_features": n_features,
+                "feature_space": feature_source,
+                "alignment_scale": "cosine_mapped_0_1",
+                "source": "true_subject_condition_centroids",
+            })
+    return pd.DataFrame(rows)
+
+
+def export_aim2_geometry_panel(geometry_panel):
+    """Write true centroid geometry where post-Hyak exporters and the notebook can find it."""
+    columns = [
+        "subject_id", "group", "condition", "safety_alignment", "threat_alignment",
+        "safety_cosine", "threat_cosine", "n_condition_trials", "n_features",
+        "feature_space", "alignment_scale", "source",
+    ]
+    if geometry_panel is None or geometry_panel.empty:
+        geometry_panel = pd.DataFrame(columns=columns)
+    else:
+        geometry_panel = geometry_panel.copy()
+        for column in columns:
+            if column not in geometry_panel.columns:
+                geometry_panel[column] = np.nan
+        geometry_panel = geometry_panel[columns]
+    for output_dir in (OUT_DIR_MAIN, INTERMEDIATE_DIR):
+        os.makedirs(output_dir, exist_ok=True)
+        for filename in ("aim2_subject_condition_centroids.csv", "aim2_geometry_panel.csv"):
+            path = os.path.join(output_dir, filename)
+            geometry_panel.to_csv(path, index=False)
+            print(f"[Aim2 export] Wrote true centroid geometry -> {path} ({len(geometry_panel)} rows)")
+
+
+def _first_existing_column(df, names):
+    for name in names:
+        if name in df.columns:
+            return name
+    return None
+
+
+def _standardize_aim2_trajectory_frame(df, trajectory):
+    if df is None or df.empty:
+        return pd.DataFrame()
+    subject_col = _first_existing_column(df, ("subject_id", "Subject", "sub_ID", "sub"))
+    group_col = _first_existing_column(df, ("group", "Group"))
+    trial_col = _first_existing_column(df, ("trial", "Trial", "block"))
+    value_col = _first_existing_column(df, ("value", "score", "similarity", "evidence"))
+    if not all((subject_col, group_col, trial_col, value_col)):
+        return pd.DataFrame()
+    out = pd.DataFrame({
+        "subject_id": df[subject_col].astype(str),
+        "group": df[group_col].astype(str),
+        "trial": pd.to_numeric(df[trial_col], errors="coerce"),
+        "trajectory": trajectory,
+        "value": pd.to_numeric(df[value_col], errors="coerce"),
+        "source": "true_trial_projection",
+    })
+    return out.dropna(subset=["trial", "value"])
+
+
+def export_aim2_trajectory_panel(trajectory_payload):
+    """Write true trial-level trajectories needed by mvpa_l2.ipynb Figure 2."""
+    frames = []
+    if isinstance(trajectory_payload, dict):
+        frames.append(_standardize_aim2_trajectory_frame(
+            trajectory_payload.get("data_safe"),
+            "CSS toward target safety",
+        ))
+        frames.append(_standardize_aim2_trajectory_frame(
+            trajectory_payload.get("data_threat"),
+            "CSR toward target threat",
+        ))
+        frames.append(_standardize_aim2_trajectory_frame(
+            trajectory_payload.get("data_threat_shock"),
+            "CSR toward shock target",
+        ))
+    panel = pd.concat([frame for frame in frames if frame is not None and not frame.empty], ignore_index=True) if frames else pd.DataFrame()
+    columns = ["subject_id", "group", "trial", "trajectory", "value", "source"]
+    if panel.empty:
+        panel = pd.DataFrame(columns=columns)
+    else:
+        panel = panel[columns]
+    for output_dir in (OUT_DIR_MAIN, INTERMEDIATE_DIR):
+        os.makedirs(output_dir, exist_ok=True)
+        path = os.path.join(output_dir, "aim2_trajectory_panel.csv")
+        panel.to_csv(path, index=False)
+        print(f"[Aim2 export] Wrote true trial trajectories -> {path} ({len(panel)} rows)")
+
+
 def calculate_crossnobis_rdm(X, y, subjects, conditions, n_repeats=CROSSNOBIS_REPEATS, random_state=RANDOM_STATE):
     unique_subs = np.unique(subjects)
     rdms, sub_ids = [], []
@@ -2625,6 +2766,16 @@ if stage_active(12):
     
     print(f"  > Computed RDMs: SAD (n={len(subs_sad_rdm)}), HC (n={len(subs_hc_rdm)})")
 
+    aim2_geometry_panel = pd.concat([
+        build_true_condition_centroid_geometry(
+            X_sad_12, y_sad_12, sub_sad_12, "SAD", RDM_CONDITIONS, feature_space_12
+        ),
+        build_true_condition_centroid_geometry(
+            X_hc_12, y_hc_12, sub_hc_12, "HC", RDM_CONDITIONS, feature_space_12
+        ),
+    ], ignore_index=True)
+    export_aim2_geometry_panel(aim2_geometry_panel)
+
     # Secondary Shock-anchor sensitivity: residualize each trial across features,
     # then project CS patterns onto each subject's Shock-minus-CS- axis. Shock is
     # intentionally not added as a fourth RDM condition because its global evoked
@@ -2799,6 +2950,7 @@ if stage_active(12):
         "mask_sad_analysis": mask_sad_analysis,
         "mask_hc_analysis": mask_hc_analysis,
         "feature_space": feature_space_12,
+        "aim2_geometry_panel": aim2_geometry_panel,
         "one_sample_stats": {"p_a_sad": p_a_sad_0, "p_a_hc": p_a_hc_0, "p_b_sad": p_b_sad_0, "p_b_hc": p_b_hc_0}
     }
     _save_result("results_12", results_12)
@@ -2822,6 +2974,7 @@ if stage_active(12):
             "sub_hc_12": locals().get("sub_hc_12"),
             "mask_sad_analysis": locals().get("mask_sad_analysis"),
             "mask_hc_analysis": locals().get("mask_hc_analysis"),
+            "aim2_geometry_panel": aim2_geometry_panel,
             "mask_sad_top5": locals().get("mask_sad_top5"),
             "mask_hc_top5": locals().get("mask_hc_top5"),
             "feature_space": locals().get("feature_space_12"),
@@ -3239,6 +3392,7 @@ if stage_active(13):
         "results_13_2": results_13_2,
     })
     save_intermediate("stage14_trajectories", {"results_13_2": results_13_2})
+    export_aim2_trajectory_panel(results_13_2)
     save_stage_bundle(
         13,
         "stage13_DynamicRepresentationalDrift",

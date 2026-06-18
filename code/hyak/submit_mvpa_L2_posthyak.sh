@@ -77,6 +77,11 @@ if [[ -n "$DEPENDENCY" ]]; then
   dependency_args=(--dependency="afterok:${DEPENDENCY}")
 fi
 
+bind_args=(-B "${PROJECT_ROOT}:${PROJECT_ROOT}" -B "${REPO_ROOT}:/app" -B "${OUT_BASE}:/output_dir")
+if [[ -n "$SCR_DIR" && "$SCR_DIR" = /* ]]; then
+  bind_args+=(-B "${SCR_DIR}:${SCR_DIR}")
+fi
+
 inner_cmd=$(
   cat <<EOF
 set -euo pipefail
@@ -106,7 +111,7 @@ job_id=$(
     --job-name="mvpa_l2_posthyak" \
     --output="$LOG_DIR/mvpa_l2_posthyak_%j.out" \
     --error="$LOG_DIR/mvpa_l2_posthyak_%j.err" \
-    --wrap="apptainer exec -B ${PROJECT_ROOT}:${PROJECT_ROOT} -B ${REPO_ROOT}:/app -B ${OUT_BASE}:/output_dir ${CONTAINER_SIF} bash -lc ${inner_cmd_q}"
+    --wrap="apptainer exec ${bind_args[*]} ${CONTAINER_SIF} bash -lc ${inner_cmd_q}"
 )
 
 echo "Submitted MVPA L2 post-Hyak job: ${job_id}"

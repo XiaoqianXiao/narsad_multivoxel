@@ -64,7 +64,13 @@ fi
 "$PYTHON_BIN" scripts/export_mvpa_l2_metrics.py \
   "${FEATURE_ARGS[@]}" \
   --scr-flags "$SCR_FLAGS_OUT" \
-  --out "$OUT_ROOT/harmonized/mvpa_l2_subject_metrics.csv"
+  --out "$OUT_ROOT/harmonized/mvpa_l2_subject_metrics.csv" \
+  --stats-out-dir "$OUT_ROOT/stats"
+
+"$PYTHON_BIN" scripts/export_aim1_decoding_primary.py \
+  --feature-dir "$FEAR_DIR" \
+  --out "$OUT_ROOT/stats/aim1_decoding_primary.csv" \
+  --feature-space "FearNetwork"
 
 "$PYTHON_BIN" scripts/run_mvpa_l2_primary_models.py \
   --input "$OUT_ROOT/harmonized/mvpa_l2_subject_metrics.csv" \

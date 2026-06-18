@@ -7,17 +7,24 @@ set -euo pipefail
 # Default behavior prints the commands without running them:
 #   bash need_to_run.sh
 #
-# Submit the Hyak late-stage jobs:
+# Submit the Hyak jobs that regenerate notebook inputs:
 #   DRY_RUN=0 bash need_to_run.sh
 #
 # After those Hyak jobs finish, rebuild the notebook-facing tables:
 #   DRY_RUN=0 RUN_HYAK=0 RUN_POSTHYAK_NOW=1 bash need_to_run.sh
 #
+# If you are already inside a Python >=3.7 environment and want to run the
+# post-Hyak scripts directly instead of submitting a Slurm container job:
+#   DRY_RUN=0 RUN_HYAK=0 RUN_POSTHYAK_NOW=1 POSTHYAK_MODE=direct bash need_to_run.sh
+#
 # Optional controls:
 #   RUN_HYAK=0            skip Hyak submission and only print/run post-Hyak commands
 #   RUN_POSTHYAK_NOW=1    run post-Hyak commands now; default prints them for after Hyak jobs finish
+#   POSTHYAK_MODE=submit  submit post-Hyak through hyak/submit_mvpa_L2_posthyak.sh (default)
+#   POSTHYAK_MODE=direct  run scripts/run_mvpa_l2_posthyak.sh in the current shell
 #   RUN_OPTIONAL_CORR=1   include Hyak stages 27 and 28
 #   RUN_SCHAEFER=1        include WholeBrain/Schaefer stages
+#   SCHAEFER_MODE=all     submit Schaefer's dependency chain with its native "all" mode (default)
 #   RUN_AIM1_SCR=1        export Aim 1 SCR sensitivity table
 #   RUN_HAUFE_SCR=1       export Aim 2 Haufe/SCR sensitivity tables
 #
@@ -31,8 +38,10 @@ set -euo pipefail
 DRY_RUN="${DRY_RUN:-1}"
 RUN_HYAK="${RUN_HYAK:-1}"
 RUN_POSTHYAK_NOW="${RUN_POSTHYAK_NOW:-0}"
+POSTHYAK_MODE="${POSTHYAK_MODE:-submit}"
 RUN_OPTIONAL_CORR="${RUN_OPTIONAL_CORR:-0}"
 RUN_SCHAEFER="${RUN_SCHAEFER:-0}"
+SCHAEFER_MODE="${SCHAEFER_MODE:-all}"
 RUN_AIM1_SCR="${RUN_AIM1_SCR:-0}"
 RUN_HAUFE_SCR="${RUN_HAUFE_SCR:-0}"
 
@@ -62,39 +71,65 @@ print_cmd() {
 
 cd "$CODE_DIR"
 
-LATE_STAGE_SPEC="23,24,26,29,30"
+FEAR_MEMORY_STAGE_SPEC="12,14,23,24,26,29,30"
+SCHAEFER_STAGE_SPEC="12,13,23,24,26,29,30"
 
 if [[ "$RUN_OPTIONAL_CORR" == "1" ]]; then
-  LATE_STAGE_SPEC="23,24,26,27,28,29,30"
+  FEAR_MEMORY_STAGE_SPEC="12,14,23,24,26,27,28,29,30"
+  SCHAEFER_STAGE_SPEC="12,13,23,24,26,27,28,29,30"
 fi
 
 if [[ "$RUN_HYAK" == "1" ]]; then
-  echo "Step 1: refresh late Hyak stage bundles used by mvpa_l2.ipynb"
-  echo "Submitting stages ${LATE_STAGE_SPEC} as one ordered job per feature space."
-  run_cmd bash hyak/submit_mvpa_L2_fearnetwork_stage.sh "$LATE_STAGE_SPEC"
-  run_cmd bash hyak/submit_mvpa_L2_memoryfearnetwork_stage.sh "$LATE_STAGE_SPEC"
+  echo "Step 1: refresh Hyak stage bundles and true Aim 2 panel inputs used by mvpa_l2.ipynb"
+  echo "Submitting Fear/Memory stages ${FEAR_MEMORY_STAGE_SPEC} as one ordered job per feature space."
+  run_cmd bash hyak/submit_mvpa_L2_fearnetwork_stage.sh "$FEAR_MEMORY_STAGE_SPEC"
+  run_cmd bash hyak/submit_mvpa_L2_memoryfearnetwork_stage.sh "$FEAR_MEMORY_STAGE_SPEC"
   if [[ "$RUN_SCHAEFER" == "1" ]]; then
-    run_cmd bash hyak/submit_mvpa_L2_schaefer_stage.sh "$LATE_STAGE_SPEC"
+    if [[ "$SCHAEFER_MODE" == "all" ]]; then
+      echo "Submitting Schaefer with its native all-stage dependency chain."
+      run_cmd bash hyak/submit_mvpa_L2_schaefer_stage.sh all
+    else
+      echo "Schaefer does not accept comma-separated stage selections; run these selected stages after their prerequisites finish:"
+      for stage in ${SCHAEFER_STAGE_SPEC//,/ }; do
+        print_cmd bash hyak/submit_mvpa_L2_schaefer_stage.sh "$stage" --resume
+      done
+    fi
   fi
 else
   echo "Step 1 skipped because RUN_HYAK=0"
 fi
 
 echo "Step 2: rebuild notebook-facing harmonized/stat/model/QC tables"
-POSTHYAK_ENV=(
-  FEAR_DIR="$FEAR_DIR"
-  MEMORY_DIR="$MEMORY_DIR"
-  OUT_ROOT="$OUT_ROOT"
-  SCR_DIR="$SCR_DIR"
-)
-if [[ "$RUN_SCHAEFER" == "1" ]]; then
-  POSTHYAK_ENV+=(SCHAEFER_DIR="$SCHAEFER_DIR")
+if [[ "$POSTHYAK_MODE" == "submit" ]]; then
+  POSTHYAK_ENV=(
+    FEAR_DIR="/output_dir/FearNetwork"
+    MEMORY_DIR="/output_dir/MemoryFearNetwork"
+    OUT_ROOT="/output_dir/mvpa_l2"
+    SCR_FLAGS=""
+    SCR_DIR="$SCR_DIR"
+  )
+  if [[ "$RUN_SCHAEFER" == "1" ]]; then
+    POSTHYAK_ENV+=(SCHAEFER_DIR="/output_dir/wholebrain_parcellation_schaefer")
+  fi
+  POSTHYAK_CMD=(env "${POSTHYAK_ENV[@]}" bash hyak/submit_mvpa_L2_posthyak.sh)
+else
+  POSTHYAK_ENV=(
+    FEAR_DIR="$FEAR_DIR"
+    MEMORY_DIR="$MEMORY_DIR"
+    OUT_ROOT="$OUT_ROOT"
+    SCR_DIR="$SCR_DIR"
+  )
+  if [[ "$RUN_SCHAEFER" == "1" ]]; then
+    POSTHYAK_ENV+=(SCHAEFER_DIR="$SCHAEFER_DIR")
+  fi
+  POSTHYAK_CMD=(env "${POSTHYAK_ENV[@]}" bash scripts/run_mvpa_l2_posthyak.sh)
 fi
+
 if [[ "$RUN_POSTHYAK_NOW" == "1" ]]; then
-  run_cmd env "${POSTHYAK_ENV[@]}" bash scripts/run_mvpa_l2_posthyak.sh
+  run_cmd "${POSTHYAK_CMD[@]}"
 else
   echo "Run this after the Hyak jobs above finish:"
-  print_cmd env "${POSTHYAK_ENV[@]}" bash scripts/run_mvpa_l2_posthyak.sh
+  print_cmd "${POSTHYAK_CMD[@]}"
 fi
 
 if [[ "$RUN_AIM1_SCR" == "1" ]]; then

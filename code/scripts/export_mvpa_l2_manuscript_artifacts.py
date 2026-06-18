@@ -14,6 +14,7 @@ from mvpa_l2_common import (
     NEURAL_METRIC_HIERARCHY,
     PRIMARY_CLINICAL_SCORES,
     PRIMARY_SCR_INDICES,
+    derive_final_metrics,
     write_csv,
 )
 
@@ -288,6 +289,114 @@ def missingness_table(df: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+def write_aim2_panel_inputs(input_path: Path, stats_dir: Path) -> None:
+    """Write notebook-facing Figure 2 geometry and trajectory input CSVs."""
+    df = derive_final_metrics(read_csv_if_exists(input_path))
+    if df.empty:
+        write_csv(pd.DataFrame(), stats_dir / "aim2_geometry_panel.csv")
+        write_csv(pd.DataFrame(), stats_dir / "aim2_trajectory_panel.csv")
+        return
+
+    geometry = build_aim2_geometry_panel(stats_dir)
+    write_csv(geometry, stats_dir / "aim2_geometry_panel.csv")
+
+    trajectory = build_aim2_trajectory_panel(stats_dir)
+    write_csv(trajectory, stats_dir / "aim2_trajectory_panel.csv")
+
+
+GEOMETRY_PANEL_COLUMNS = ["subject_id", "group", "condition", "safety_alignment", "threat_alignment", "source"]
+
+
+def build_aim2_geometry_panel(stats_dir: Path) -> pd.DataFrame:
+    """Load true centroid geometry if an upstream export exists; otherwise empty."""
+    candidate_names = [
+        "aim2_geometry_panel.csv",
+        "aim2_geometry_centroids.csv",
+        "aim2_condition_centroids.csv",
+        "aim2_subject_condition_centroids.csv",
+        "aim2_true_centroid_geometry.csv",
+    ]
+    for name in candidate_names:
+        path = stats_dir / name
+        if not path.exists():
+            continue
+        panel = standardize_aim2_geometry_panel(pd.read_csv(path), path.name)
+        if not panel.empty:
+            return panel
+    return pd.DataFrame(columns=GEOMETRY_PANEL_COLUMNS)
+
+
+def standardize_aim2_geometry_panel(data: pd.DataFrame, source_name: str) -> pd.DataFrame:
+    """Standardize a true subject-level centroid/alignment export for Figure 2."""
+    subject_col = next((col for col in ["subject_id", "Subject", "sub_ID", "sub"] if col in data.columns), None)
+    group_col = next((col for col in ["group", "Group"] if col in data.columns), None)
+    condition_col = next((col for col in ["condition", "Condition", "Cue", "cue"] if col in data.columns), None)
+    safety_col = next(
+        (col for col in ["safety_alignment", "SafetyAlignment", "target_safety_alignment", "TargetSafetyAlignment"] if col in data.columns),
+        None,
+    )
+    threat_col = next(
+        (col for col in ["threat_alignment", "ThreatAlignment", "target_threat_alignment", "TargetThreatAlignment"] if col in data.columns),
+        None,
+    )
+    if None in {subject_col, group_col, condition_col, safety_col, threat_col}:
+        return pd.DataFrame(columns=GEOMETRY_PANEL_COLUMNS)
+    out = data[[subject_col, group_col, condition_col, safety_col, threat_col]].copy()
+    out = out.rename(
+        columns={
+            subject_col: "subject_id",
+            group_col: "group",
+            condition_col: "condition",
+            safety_col: "safety_alignment",
+            threat_col: "threat_alignment",
+        }
+    )
+    out["safety_alignment"] = pd.to_numeric(out["safety_alignment"], errors="coerce")
+    out["threat_alignment"] = pd.to_numeric(out["threat_alignment"], errors="coerce")
+    out["group"] = out["group"].astype(str)
+    out["condition"] = out["condition"].astype(str)
+    out["source"] = source_name
+    out = out[out["group"].isin(["SAD", "HC"])]
+    out = out[out["condition"].isin(["CSR", "CSS", "CS-"])]
+    return out.dropna(subset=["safety_alignment", "threat_alignment"])[GEOMETRY_PANEL_COLUMNS]
+
+
+def build_aim2_trajectory_panel(stats_dir: Path) -> pd.DataFrame:
+    """Create Figure 2 panel-D input from residualized trialwise rows if present."""
+    path = stats_dir / "aim2_residualized_shock_anchor_trialwise_long.csv"
+    columns = ["subject_id", "group", "trial", "trajectory", "value"]
+    if not path.exists():
+        return pd.DataFrame(columns=columns)
+    data = pd.read_csv(path)
+    required = {"Subject", "Group", "Cue", "Trial"}
+    if not required.issubset(data.columns):
+        return pd.DataFrame(columns=columns)
+    value_col = "Cosine" if "Cosine" in data.columns else "Projection" if "Projection" in data.columns else None
+    if value_col is None:
+        return pd.DataFrame(columns=columns)
+    frames = []
+    for cue, trajectory in [("CSS", "safety"), ("CSR", "threat")]:
+        sub = data[data["Cue"].astype(str).eq(cue)].copy()
+        if sub.empty:
+            continue
+        out = sub[["Subject", "Group", "Trial", value_col]].copy()
+        out = out.rename(columns={"Subject": "subject_id", "Group": "group", "Trial": "trial", value_col: "value"})
+        out["trajectory"] = trajectory
+        out["trial"] = pd.to_numeric(out["trial"], errors="coerce")
+        out["value"] = pd.to_numeric(out["value"], errors="coerce")
+        frames.append(out[columns])
+    if not frames:
+        return pd.DataFrame(columns=columns)
+    out = pd.concat(frames, ignore_index=True).dropna(subset=["trial", "value"])
+    for _, idx in out.groupby("trajectory").groups.items():
+        values = out.loc[idx, "value"]
+        lo = values.quantile(0.02)
+        hi = values.quantile(0.98)
+        if pd.notna(lo) and pd.notna(hi) and hi > lo:
+            out.loc[idx, "value"] = ((values - lo) / (hi - lo)).clip(0, 1)
+    return out
+
+
 def write_qc_dashboard(input_path: Path, stats_dir: Path, repo_root: Path) -> None:
     df = read_csv_if_exists(input_path)
     if df.empty:
@@ -358,6 +467,7 @@ def main() -> None:
     args = parser.parse_args()
 
     args.stats_dir.mkdir(parents=True, exist_ok=True)
+    write_aim2_panel_inputs(args.input, args.stats_dir)
     write_primary_table(args.stats_dir)
     convergence_matrix(args.stats_dir)
     write_qc_dashboard(args.input, args.stats_dir, args.repo_root)

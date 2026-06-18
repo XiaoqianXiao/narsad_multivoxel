@@ -13,6 +13,7 @@ from mvpa_l2_common import (
     SCR_SENSITIVITY_FLAGS,
     add_fdr,
     available_covariates,
+    derive_final_metrics,
     fit_lm,
     harmonize_group_drug,
     write_csv,
@@ -89,6 +90,13 @@ def cell_count_ok(df: pd.DataFrame, min_cell_n: int) -> bool:
     return len(counts) >= 2 and counts.min() >= min_cell_n
 
 
+def truthy_flag(series: pd.Series) -> pd.Series:
+    """Parse boolean-like SCR cohort flags without pandas downcast warnings."""
+    if series.dtype == bool:
+        return series.fillna(False)
+    return series.astype("string").str.strip().str.lower().isin({"true", "1", "yes", "y"})
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -102,7 +110,7 @@ def main() -> None:
     parser.add_argument("--out", type=Path, default=Path("outputs/mvpa_l2/stats/sensitivity_models_all.csv"))
     args = parser.parse_args()
 
-    df = harmonize_group_drug(pd.read_csv(args.input))
+    df = derive_final_metrics(harmonize_group_drug(pd.read_csv(args.input)))
     covariates = available_covariates(df, args.covariates)
     rows = []
 
@@ -118,7 +126,7 @@ def main() -> None:
         if flag not in primary_df.columns:
             print(f"[WARN] SCR sensitivity flag missing: {flag}")
             continue
-        sub = primary_df[primary_df[flag].fillna(False).astype(bool)].copy()
+        sub = primary_df[truthy_flag(primary_df[flag])].copy()
         label = f"SCRCohort:{flag}"
         if len(sub) == 0:
             print(f"[WARN] Empty cohort: {flag}")
