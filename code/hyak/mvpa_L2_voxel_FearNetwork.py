@@ -2382,7 +2382,7 @@ def save_stage_bundle(stage_id: int, name: str, payload: dict) -> None:
     """Save a named stage bundle for the post-Hyak notebook exporter."""
     bundle = dict(payload)
     bundle.setdefault("stage_id", stage_id)
-    bundle.setdefault("analysis_feature_space", ANALYSIS_LABEL)
+    bundle.setdefault("analysis_feature_space", globals().get("ANALYSIS_LABEL", "FearNetwork"))
     bundle.setdefault("notebook_required_subject_columns", NOTEBOOK_REQUIRED_SUBJECT_COLUMNS)
     save_intermediate(name, bundle)
 
@@ -5449,6 +5449,20 @@ else:
 
 # %% [cell 26]
 if cell_active(26):
+    required_stage26_vars = [
+        "df_scored_clinical",
+        "df_neural_topology",
+        "df_neural_trajectories",
+        "df_neural_uncertainty",
+    ]
+    missing_stage26_vars = [name for name in required_stage26_vars if name not in globals()]
+    if missing_stage26_vars:
+        raise RuntimeError(
+            "Stage 26 requires Stage 23 and 24 outputs in memory or checkpoint. "
+            f"Missing: {missing_stage26_vars}. Re-run with --stage 23,24,26 "
+            "or use need_to_run.sh so late stages execute in order."
+        )
+
     #df_neural_topology
     df_final_clinical_neural = df_scored_clinical \
         .merge(df_neural_topology, on='sub_ID', how='inner') \
@@ -5728,6 +5742,15 @@ if cell_active(30):
     import statsmodels.api as sm
     import matplotlib.pyplot as plt
     import seaborn as sns
+
+    required_stage30_vars = ["df_master_analysis", "neural_metrics", "clinical_indices"]
+    missing_stage30_vars = [name for name in required_stage30_vars if name not in globals()]
+    if missing_stage30_vars:
+        raise RuntimeError(
+            "Stage 30 requires Stage 29 outputs in memory or checkpoint. "
+            f"Missing: {missing_stage30_vars}. Re-run with --stage 29,30 "
+            "or use need_to_run.sh so late stages execute in order."
+        )
 
     # 1. Config
     neural_z = [f'{c}_z' for c in neural_metrics]
