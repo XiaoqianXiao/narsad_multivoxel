@@ -2207,6 +2207,15 @@ def save_stage_bundle(stage_id: int, name: str, payload: dict) -> None:
     save_intermediate(name, bundle)
 
 
+def keep_existing_columns(df, columns, label):
+    """Keep requested columns that exist in df and report optional omissions."""
+    existing = [col for col in columns if col in df.columns]
+    missing = [col for col in columns if col not in df.columns]
+    if missing:
+        print(f"[Column filter] Skipping missing {label}: {missing}")
+    return existing
+
+
 def calculate_crossnobis_rdm(
     X,
     y,
@@ -5284,6 +5293,8 @@ if cell_active(27):
            'Neural_Decoder_Entropy_CSR',
            'Neural_ThreatLike_Safety', 'Neural_Boundary_Separation']
     clinical_indices = PRIMARY_CLINICAL_SCORES + SECONDARY_CLINICAL_SCORES + PRIMARY_SCR_INDICES + SECONDARY_SCR_INDICES
+    neural_metrics = keep_existing_columns(df_master_analysis, neural_metrics, "stage 27 neural metrics")
+    clinical_indices = keep_existing_columns(df_master_analysis, clinical_indices, "stage 27 clinical/SCR indices")
 
     def get_sig_star(p):
         if p < 0.001: return "***"
@@ -5342,13 +5353,16 @@ if cell_active(27):
                             label=label_str, scatter_kws={'alpha':0.4})
             
             axes[j].set_title(f"{c_i.upper()}")
-            axes[j].legend(fontsize=12, loc='best')
+            handles, labels = axes[j].get_legend_handles_labels()
+            if handles:
+                axes[j].legend(handles, labels, fontsize=12, loc='best')
             sns.despine(ax=axes[j])
         
         plt.suptitle(f"Group-Wise Associations: {n_m.replace('_', ' ')}\n(* p<0.05, ** p<0.01, *** p<0.001)", 
                      fontsize=22, y=1.08)
         plt.tight_layout()
         plt.show()
+        plt.close(fig)
     save_cell_results(27, ['clinical_indices', 'data_subsets', 'df_res_grp', 'group_results', 'groups', 'grp', 'importance_mask_permutated', 'importance_scores_permutated', 'meta', 'n_m', 'neural_metrics', 'results_11', 'results_12', 'results_13', 'results_13_2', 'results_14_self', 'results_21', 'results_21_pv', 'results_22', 'results_23', 'results_24', 'results_25', 'strict_cross_phase_results', 'sub_to_meta'])
 
 
@@ -5377,6 +5391,8 @@ if cell_active(28):
            'Neural_Decoder_Entropy_CSR',
            'Neural_ThreatLike_Safety', 'Neural_Boundary_Separation']
     clinical_indices = PRIMARY_CLINICAL_SCORES + SECONDARY_CLINICAL_SCORES + PRIMARY_SCR_INDICES + SECONDARY_SCR_INDICES
+    neural_metrics = keep_existing_columns(df_master_analysis, neural_metrics, "stage 28 neural metrics")
+    clinical_indices = keep_existing_columns(df_master_analysis, clinical_indices, "stage 28 clinical/SCR indices")
     covariates = ['demo_age'] # Standard demographic controls
 
     def get_sig_star(p):
@@ -5437,13 +5453,16 @@ if cell_active(28):
                             label=label_str, scatter_kws={'alpha':0.4})
             
             axes[j].set_title(f"{c_i.upper()}")
-            axes[j].legend(fontsize=12, loc='best')
+            handles, labels = axes[j].get_legend_handles_labels()
+            if handles:
+                axes[j].legend(handles, labels, fontsize=12, loc='best')
             sns.despine(ax=axes[j])
         
         plt.suptitle(f"Group Associations (Controlled for Age/Gender): {n_m.replace('_', ' ')}\n(* p<0.05, ** p<0.01, *** p<0.001)", 
                      fontsize=22, y=1.08)
         plt.tight_layout()
         plt.show()
+        plt.close(fig)
     save_cell_results(28, ['clinical_indices', 'covariates', 'data_subsets', 'df_res_grp', 'group_results', 'groups', 'grp', 'importance_mask_permutated', 'importance_scores_permutated', 'meta', 'n_m', 'neural_metrics', 'results_11', 'results_12', 'results_13', 'results_13_2', 'results_14_self', 'results_21', 'results_21_pv', 'results_22', 'results_23', 'results_24', 'results_25', 'strict_cross_phase_results', 'sub_to_meta'])
 
 
@@ -5473,6 +5492,9 @@ if cell_active(29):
     ]
     clinical_indices = PRIMARY_CLINICAL_SCORES + SECONDARY_CLINICAL_SCORES + PRIMARY_SCR_INDICES + SECONDARY_SCR_INDICES
     covariates = ['demo_age']
+    neural_metrics = keep_existing_columns(df_master_analysis, neural_metrics, "stage 29 neural metrics")
+    clinical_indices = keep_existing_columns(df_master_analysis, clinical_indices, "stage 29 clinical/SCR indices")
+    covariates = keep_existing_columns(df_master_analysis, covariates, "stage 29 covariates")
 
     all_cols = neural_metrics + clinical_indices + covariates
     z_limit = 3.0 
@@ -5527,6 +5549,14 @@ if cell_active(30):
         )
 
     # 1. Config
+    missing_neural_z = [c for c in neural_metrics if f'{c}_z' not in df_master_analysis.columns]
+    missing_clinical_z = [c for c in clinical_indices if f'{c}_z' not in df_master_analysis.columns]
+    if missing_neural_z:
+        print(f"[Column filter] Skipping missing stage 30 neural z metrics: {missing_neural_z}")
+    if missing_clinical_z:
+        print(f"[Column filter] Skipping missing stage 30 clinical/SCR z indices: {missing_clinical_z}")
+    neural_metrics = [c for c in neural_metrics if f'{c}_z' in df_master_analysis.columns]
+    clinical_indices = [c for c in clinical_indices if f'{c}_z' in df_master_analysis.columns]
     neural_z = [f'{c}_z' for c in neural_metrics]
     clinical_z = [f'{c}_z' for c in clinical_indices]
     # Ensure groups are sorted for consistent coloring (e.g., SAD vs HC)
@@ -5596,13 +5626,16 @@ if cell_active(30):
             ax.set_ylabel(f"{c_i}")
             ax.axhline(0, color='gray', linestyle='--', alpha=0.3)
             ax.axvline(0, color='gray', linestyle='--', alpha=0.3)
-            ax.legend(fontsize='small', loc='best')
+            handles, labels = ax.get_legend_handles_labels()
+            if handles:
+                ax.legend(handles, labels, fontsize='small', loc='best')
 
         plt.suptitle(f"Brain-Behavior Associations: {n_m.replace('_z', '')} (Outliers Removed)", 
                      fontsize=24, y=1.08)
         sns.despine()
         plt.tight_layout()
         plt.show()
+        plt.close(fig)
     df_ols_results = pd.DataFrame(ols_results)
     save_stage_bundle(30, "stage30_NeuralClinicalOLS", {"df_ols_results": df_ols_results})
     save_cell_results(30, ['clinical_z', 'data_subsets', 'df_ols_results', 'groups', 'importance_mask_permutated', 'importance_scores_permutated', 'meta', 'n_m', 'neural_z', 'results_11', 'results_12', 'results_13', 'results_13_2', 'results_14_self', 'results_21', 'results_21_pv', 'results_22', 'results_23', 'results_24', 'results_25', 'strict_cross_phase_results', 'sub_to_meta'])

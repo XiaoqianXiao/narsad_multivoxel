@@ -183,11 +183,11 @@
       "bases:Create new base": false
     }
   },
-  "active": "3d742366a438beb9",
+  "active": "ff85a5a39d5c68c4",
   "lastOpenFiles": [
+    "task_Visualization-Aim4.md",
     "need_to_run.sh",
     "task_Visualization-Aim3.md",
-    "task_Visualization-Aim4.md",
     "task_Visualization-Aim5.md",
     "task_Visualization-Aim1.md",
     "task_Visualization-Aim5-sensitivity.md",
@@ -224,7 +224,6 @@
     "outputs",
     "results/outputs/mvpa_l2/figures/visualization_mvpa_l2",
     "results/outputs/mvpa_l2/figures",
-    "visualization_mvpa_l2.ipynb",
     "mvpa_l2_v1.md",
     "PROJECT_CONTEXT.md"
   ]
