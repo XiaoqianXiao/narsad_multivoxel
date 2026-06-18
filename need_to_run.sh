@@ -51,10 +51,10 @@ RUN_HAUFE_SCR="${RUN_HAUFE_SCR:-0}"
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CODE_DIR="${CODE_DIR:-$REPO_ROOT/code}"
 
-FEAR_DIR="${FEAR_DIR:-/gscratch/scrubbed/fanglab/xiaoqian/NARSAD/LSS/results/FearNetwork}"
-MEMORY_DIR="${MEMORY_DIR:-/gscratch/scrubbed/fanglab/xiaoqian/NARSAD/LSS/results/MemoryFearNetwork}"
-SCHAEFER_DIR="${SCHAEFER_DIR:-/gscratch/scrubbed/fanglab/xiaoqian/NARSAD/LSS/results/wholebrain_parcellation_schaefer}"
-OUT_ROOT="${OUT_ROOT:-/gscratch/scrubbed/fanglab/xiaoqian/NARSAD/LSS/results/mvpa_l2}"
+FEAR_DIR="${FEAR_DIR:-/gscratch/fang/NARSAD/MRI/derivatives/fMRI_analysis/LSS/results/FearNetwork}"
+MEMORY_DIR="${MEMORY_DIR:-/gscratch/fang/NARSAD/MRI/derivatives/fMRI_analysis/LSS/results/MemoryFearNetwork}"
+SCHAEFER_DIR="${SCHAEFER_DIR:-/gscratch/fang/NARSAD/MRI/derivatives/fMRI_analysis/LSS/results/wholebrain_parcellation_schaefer}"
+OUT_ROOT="${OUT_ROOT:-/gscratch/fang/NARSAD/MRI/derivatives/fMRI_analysis/LSS/results/mvpa_l2}"
 SCR_DIR="${SCR_DIR:-/gscratch/scrubbed/fanglab/xiaoqian/NARSAD/scr_analysis_outputs}"
 
 run_cmd() {

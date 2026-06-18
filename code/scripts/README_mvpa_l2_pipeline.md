@@ -35,8 +35,8 @@ Run this after the Hyak jobs are complete:
 
 ```bash
 salloc -A psych -p cpu-g2-mem2x --mem=60G --time=12:00:00
-FEAR_DIR='/gscratch/scrubbed/fanglab/xiaoqian/NARSAD/LSS/results/FearNetwork/' \
-MEMORY_DIR='/gscratch/scrubbed/fanglab/xiaoqian/NARSAD/LSS/results/MemoryFearNetwork/' \
+FEAR_DIR='/gscratch/fang/NARSAD/MRI/derivatives/fMRI_analysis/LSS/results/FearNetwork/' \
+MEMORY_DIR='/gscratch/fang/NARSAD/MRI/derivatives/fMRI_analysis/LSS/results/MemoryFearNetwork/' \
 bash scripts/run_mvpa_l2_posthyak.sh
 ```
 
@@ -79,15 +79,15 @@ By default this runs four cohorts:
 The jobs write labeled checkpoints such as:
 
 ```text
-/gscratch/scrubbed/fanglab/xiaoqian/NARSAD/LSS/results/FearNetwork/checkpoints/cell_06_aim1_scr_physiological_responder.joblib
+/gscratch/fang/NARSAD/MRI/derivatives/fMRI_analysis/LSS/results/FearNetwork/checkpoints/cell_06_aim1_scr_physiological_responder.joblib
 ```
 
 The primary `cell_06.joblib` is not overwritten. After the subgroup jobs finish, export a tidy table:
 
 ```bash
 python3 scripts/export_aim1_scr_sensitivity.py \
-  --feature-dir /gscratch/scrubbed/fanglab/xiaoqian/NARSAD/LSS/results/FearNetwork \
-  --out /gscratch/scrubbed/fanglab/xiaoqian/NARSAD/LSS/results/mvpa_l2/stats/aim1_scr_sensitivity.csv
+  --feature-dir /gscratch/fang/NARSAD/MRI/derivatives/fMRI_analysis/LSS/results/FearNetwork \
+  --out /gscratch/fang/NARSAD/MRI/derivatives/fMRI_analysis/LSS/results/mvpa_l2/stats/aim1_scr_sensitivity.csv
 ```
 
 ## Outputs

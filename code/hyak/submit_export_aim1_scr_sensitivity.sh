@@ -13,7 +13,7 @@ set -euo pipefail
 PROJECT_ROOT="${PROJECT_ROOT:-/gscratch/fang/NARSAD}"
 CONTAINER_SIF="${CONTAINER_SIF:-/gscratch/fang/images/jupyter.sif}"
 REPO_ROOT="${REPO_ROOT:-/gscratch/scrubbed/fanglab/xiaoqian/repo/narsad_multivoxel}"
-OUT_BASE="${OUT_BASE:-/gscratch/scrubbed/fanglab/xiaoqian/NARSAD/LSS/results}"
+OUT_BASE="${OUT_BASE:-/gscratch/fang/NARSAD/MRI/derivatives/fMRI_analysis/LSS/results}"
 
 FEATURE_DIR="${FEATURE_DIR:-/output_dir/FearNetwork}"
 OUT_CSV="${OUT_CSV:-/output_dir/mvpa_l2/stats/aim1_scr_sensitivity.csv}"

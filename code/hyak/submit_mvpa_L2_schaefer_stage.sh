@@ -11,7 +11,7 @@ set -euo pipefail
 PROJECT_ROOT="${PROJECT_ROOT:-/gscratch/fang/NARSAD}"
 CONTAINER_SIF="${CONTAINER_SIF:-/gscratch/fang/images/jupyter.sif}"
 APP_PATH="${APP_PATH:-/gscratch/scrubbed/fanglab/xiaoqian/repo/narsad_multivoxel/code/hyak}"
-OUT_BASE="${OUT_BASE:-/gscratch/scrubbed/fanglab/xiaoqian/NARSAD/LSS/results}"
+OUT_BASE="${OUT_BASE:-/gscratch/fang/NARSAD/MRI/derivatives/fMRI_analysis/LSS/results}"
 OUT_DIR="${OUT_DIR:-/output_dir/wholebrain_parcellation_schaefer}"
 NPZ_DIR="${NPZ_DIR:-${PROJECT_ROOT}/MRI/derivatives/fMRI_analysis/LSS/firstLevel/all_subjects/group_level}"
 
