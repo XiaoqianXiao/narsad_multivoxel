@@ -2470,7 +2470,14 @@ if stage_active(11):
             "null_dist": null_dist,
         }
         out_path = stage11_chunk_path(group_name, chunk_idx)
-        joblib.dump(chunk_payload, out_path, compress=3)
+        tmp_path = f"{out_path}.tmp.{os.getpid()}"
+        try:
+            joblib.dump(chunk_payload, tmp_path, compress=3)
+            os.replace(tmp_path, out_path)
+        except Exception:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
+            raise
         print(f"  [SAVE] Stage 11 importance chunk saved -> {out_path}")
 
         if chunk_count == 1:
@@ -2483,15 +2490,49 @@ if stage_active(11):
         if not paths:
             raise FileNotFoundError(f"No stage 11 importance chunk files found for {group_name} in {stage11_chunk_dir}")
         print(f"--- Stage 11 importance merge for {group_name}: {len(paths)} chunk files ---")
+        payloads = []
+        corrupt_paths = []
+        for path in paths:
+            try:
+                payload = joblib.load(path)
+            except Exception as exc:
+                size = os.path.getsize(path) if os.path.exists(path) else -1
+                corrupt_paths.append(f"{path} (size={size} bytes, error={type(exc).__name__}: {exc})")
+                continue
+            if not isinstance(payload, dict):
+                corrupt_paths.append(f"{path} (expected dict payload, got {type(payload).__name__})")
+                continue
+            required_keys = {
+                "chunk_idx",
+                "chunk_count",
+                "actual_repeats",
+                "actual_importance_sum",
+                "null_dist",
+            }
+            missing_keys = sorted(required_keys.difference(payload))
+            if missing_keys:
+                corrupt_paths.append(f"{path} (missing keys: {', '.join(missing_keys)})")
+                continue
+            payloads.append((path, payload))
+
+        if corrupt_paths:
+            raise RuntimeError(
+                f"Found {len(corrupt_paths)} unreadable or incomplete stage 11 chunk file(s) for {group_name}:\n"
+                + "\n".join(f"  - {item}" for item in corrupt_paths)
+                + "\nDelete and rerun the listed chunk job(s), then merge again."
+            )
+
         actual_sum = None
         actual_n = 0
         null_n = 0
         count_ge = None
         chunks_seen = set()
 
-        for path in paths:
-            payload = joblib.load(path)
-            chunks_seen.add(int(payload["chunk_idx"]))
+        for path, payload in payloads:
+            chunk_idx = int(payload["chunk_idx"])
+            if chunk_idx in chunks_seen:
+                raise ValueError(f"Duplicate stage 11 chunk index {chunk_idx} for {group_name}: {path}")
+            chunks_seen.add(chunk_idx)
             chunk_actual = np.asarray(payload["actual_importance_sum"], dtype=np.float64)
             actual_sum = chunk_actual if actual_sum is None else actual_sum + chunk_actual
             actual_n += int(payload["actual_repeats"])
@@ -2500,8 +2541,7 @@ if stage_active(11):
             raise ValueError(f"No actual importance repeats found for {group_name}.")
         actual_imp = actual_sum / actual_n
 
-        for path in paths:
-            payload = joblib.load(path)
+        for path, payload in payloads:
             null_dist = np.asarray(payload["null_dist"])
             if null_dist.size == 0:
                 continue
@@ -2511,11 +2551,12 @@ if stage_active(11):
 
         if count_ge is None or null_n == 0:
             raise ValueError(f"No null permutation rows found for {group_name}.")
-        expected_chunks = max(int(joblib.load(paths[0]).get("chunk_count", len(paths))), len(paths))
+        expected_chunks = max(int(payload["chunk_count"]) for _, payload in payloads)
         if len(chunks_seen) < expected_chunks:
+            missing_chunks = sorted(set(range(expected_chunks)).difference(chunks_seen))
             raise FileNotFoundError(
                 f"Only found {len(chunks_seen)}/{expected_chunks} stage 11 chunks for {group_name}. "
-                "Wait for all array tasks to finish before merging."
+                f"Missing chunk indices: {missing_chunks}. Wait for all array tasks to finish before merging."
             )
         p_values = (count_ge + 1) / (null_n + 1)
         stage11_save_group(group_name, actual_imp, p_values, null_n)
@@ -3026,16 +3067,13 @@ if stage_active(13):
     
     # Validate Reinstatement Data
     if X_rst_sad is None or X_rst_hc is None:
-        print("  ! WARNING: Reinstatement data missing. Threat analysis will fallback to Extinction (Trivial).")
-        X_rst_sad, y_rst_sad, sub_rst_sad = X_ext_sad, y_ext_sad, sub_ext_sad
-        X_rst_hc, y_rst_hc, sub_rst_hc = X_ext_hc, y_ext_hc, sub_ext_hc
+        raise ValueError("Reinstatement data missing. Run Cell 5 and ensure phase3 is loaded before Analysis 1.3.")
     
     # Handle CS- (Safety Target) - likely missing from subsets, need global X_ext
     if 'X_ext' in locals():
         X_global, y_global, sub_global = X_ext, y_ext, sub_ext
     else:
-        print("  ! WARNING: Global X_ext missing. Safety Target (CS-) might be unavailable.")
-        X_global, y_global, sub_global = X_ext_sad, y_ext_sad, sub_ext_sad
+        raise ValueError("Global extinction data missing (X_ext/y_ext/sub_ext). Run Cell 5 before Analysis 1.3.")
     
     
     # =============================================================================

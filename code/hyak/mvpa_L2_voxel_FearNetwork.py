@@ -4145,8 +4145,7 @@ if cell_active(13):
         if 'X_ext' in locals():
             X_global, y_global, sub_global = X_ext, y_ext, sub_ext
         else:
-            print("  ! Warning: X_ext not in locals, using Extinction phase fallback.")
-            X_global, y_global, sub_global = X_ext_sad, y_ext_sad, sub_ext_sad
+            raise ValueError("Global extinction data missing (X_ext/y_ext/sub_ext). Run Cell 5 before Analysis 1.3.")
 
         # =============================================================================
         # 2. Execution (Vector Plasticity Calculation)
@@ -4955,7 +4954,6 @@ if cell_active(18):
 
     # Container for outputs
 
-    # Reinstatement data (global) fallback
     data_rows = []
 
     if 'importance_masks' not in locals():

@@ -362,39 +362,23 @@ def standardize_aim2_geometry_panel(data: pd.DataFrame, source_name: str) -> pd.
 
 
 def build_aim2_trajectory_panel(stats_dir: Path) -> pd.DataFrame:
-    """Create Figure 2 panel-D input from residualized trialwise rows if present."""
-    path = stats_dir / "aim2_residualized_shock_anchor_trialwise_long.csv"
+    """Load Figure 2 panel-D input only from the true upstream trajectory export."""
+    path = stats_dir / "aim2_trajectory_panel.csv"
     columns = ["subject_id", "group", "trial", "trajectory", "value"]
     if not path.exists():
         return pd.DataFrame(columns=columns)
     data = pd.read_csv(path)
-    required = {"Subject", "Group", "Cue", "Trial"}
-    if not required.issubset(data.columns):
+    if not set(columns).issubset(data.columns):
         return pd.DataFrame(columns=columns)
-    value_col = "Cosine" if "Cosine" in data.columns else "Projection" if "Projection" in data.columns else None
-    if value_col is None:
-        return pd.DataFrame(columns=columns)
-    frames = []
-    for cue, trajectory in [("CSS", "safety"), ("CSR", "threat")]:
-        sub = data[data["Cue"].astype(str).eq(cue)].copy()
-        if sub.empty:
-            continue
-        out = sub[["Subject", "Group", "Trial", value_col]].copy()
-        out = out.rename(columns={"Subject": "subject_id", "Group": "group", "Trial": "trial", value_col: "value"})
-        out["trajectory"] = trajectory
-        out["trial"] = pd.to_numeric(out["trial"], errors="coerce")
-        out["value"] = pd.to_numeric(out["value"], errors="coerce")
-        frames.append(out[columns])
-    if not frames:
-        return pd.DataFrame(columns=columns)
-    out = pd.concat(frames, ignore_index=True).dropna(subset=["trial", "value"])
-    for _, idx in out.groupby("trajectory").groups.items():
-        values = out.loc[idx, "value"]
-        lo = values.quantile(0.02)
-        hi = values.quantile(0.98)
-        if pd.notna(lo) and pd.notna(hi) and hi > lo:
-            out.loc[idx, "value"] = ((values - lo) / (hi - lo)).clip(0, 1)
-    return out
+    out = data[columns].copy()
+    out["subject_id"] = out["subject_id"].astype(str)
+    out["group"] = out["group"].astype(str)
+    out["trajectory"] = out["trajectory"].astype(str)
+    out["trial"] = pd.to_numeric(out["trial"], errors="coerce")
+    out["value"] = pd.to_numeric(out["value"], errors="coerce")
+    out = out[out["group"].isin(["SAD", "HC"])]
+    out = out[out["trajectory"].isin(["safety", "threat"])]
+    return out.dropna(subset=["trial", "value"])[columns]
 
 
 def write_qc_dashboard(input_path: Path, stats_dir: Path, repo_root: Path) -> None:

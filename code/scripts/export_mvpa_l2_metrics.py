@@ -422,37 +422,6 @@ def geometry_panel_from_feature_dir(base_dir: Path) -> pd.DataFrame:
     return empty_geometry_panel()
 
 
-def trajectory_panel_from_stats(stats_dir: Path) -> pd.DataFrame:
-    """Use residualized shock-anchor trialwise rows when upstream trajectories are absent."""
-    path = stats_dir / "aim2_residualized_shock_anchor_trialwise_long.csv"
-    if not path.exists():
-        return pd.DataFrame()
-    data = pd.read_csv(path)
-    required = {"Subject", "Group", "Cue", "Trial"}
-    if not required.issubset(data.columns):
-        return pd.DataFrame()
-    value_col = "Cosine" if "Cosine" in data.columns else "Projection" if "Projection" in data.columns else None
-    if value_col is None:
-        return pd.DataFrame()
-    frames = []
-    css = data[data["Cue"].astype(str).eq("CSS")].copy()
-    csr = data[data["Cue"].astype(str).eq("CSR")].copy()
-    frames.append(_standardize_trial_alignment(css, "safety", value_col=value_col))
-    frames.append(_standardize_trial_alignment(csr, "threat", value_col=value_col))
-    frames = [frame for frame in frames if not frame.empty]
-    if not frames:
-        return pd.DataFrame()
-    out = pd.concat(frames, ignore_index=True)
-    # Map cosine/projection values onto a stable 0-1 panel scale without changing ranks.
-    for trajectory, idx in out.groupby("trajectory").groups.items():
-        values = out.loc[idx, "value"]
-        lo = values.quantile(0.02)
-        hi = values.quantile(0.98)
-        if pd.notna(lo) and pd.notna(hi) and hi > lo:
-            out.loc[idx, "value"] = ((values - lo) / (hi - lo)).clip(0, 1)
-    return out
-
-
 def export_aim2_panel_inputs(subject_df: pd.DataFrame, feature_dirs: Dict[str, Path], stats_dir: Path, feature_space: str = "FearNetwork") -> None:
     """Write Figure 2 geometry and trajectory input CSVs for the notebook."""
     stats_dir.mkdir(parents=True, exist_ok=True)
@@ -464,7 +433,7 @@ def export_aim2_panel_inputs(subject_df: pd.DataFrame, feature_dirs: Dict[str, P
     if feature_space in feature_dirs:
         trajectory = trajectory_panel_from_feature_dir(feature_dirs[feature_space])
     if trajectory.empty:
-        trajectory = trajectory_panel_from_stats(stats_dir)
+        trajectory = pd.DataFrame(columns=["subject_id", "group", "trial", "trajectory", "value"])
     write_csv(trajectory, stats_dir / "aim2_trajectory_panel.csv")
     print(f"Wrote Aim 2 panel inputs -> {stats_dir / 'aim2_geometry_panel.csv'} and {stats_dir / 'aim2_trajectory_panel.csv'}")
 

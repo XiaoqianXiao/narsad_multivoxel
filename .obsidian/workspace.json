@@ -185,6 +185,7 @@
   },
   "active": "ff85a5a39d5c68c4",
   "lastOpenFiles": [
+    "code/hyak/resubmit_voxel_WholeBrain_Schaefer.sh",
     "code/scripts/__pycache__/export_aim1_decoding_primary.cpython-311.pyc",
     "code/scripts/export_aim1_decoding_primary.py",
     "task_Visualization-Aim4.md",
@@ -224,7 +225,6 @@
     "outputs/mvpa_l2/stats",
     "outputs/mvpa_l2",
     "outputs",
-    "results/outputs/mvpa_l2/figures/visualization_mvpa_l2",
     "mvpa_l2_v1.md",
     "PROJECT_CONTEXT.md"
   ]
