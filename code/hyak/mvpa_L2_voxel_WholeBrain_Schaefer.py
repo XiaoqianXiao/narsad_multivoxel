@@ -2347,18 +2347,26 @@ if stage_active(11):
     stage11_chunk_dir = os.path.join(CHECKPOINT_DIR, "stage11_importance_chunks")
     os.makedirs(stage11_chunk_dir, exist_ok=True)
 
+    def stage11_merge_payload(prev):
+        if not isinstance(prev, dict):
+            return
+        importance_masks.update(prev.get("importance_mask_permutated", prev.get("importance_masks_permutated", prev.get("importance_masks", {}))))
+        importance_masks_all_positive.update(prev.get("importance_masks_all_positive", {}))
+        importance_scores.update(prev.get("importance_scores_permutated", prev.get("importance_scores", {})))
+        p_values_permutated.update(prev.get("p_values_permutated", {}))
+        q_values_permutated.update(prev.get("q_values_permutated", {}))
+        importance_diagnostics_permutated.update(prev.get("importance_diagnostics_permutated", {}))
+        feature_space_reports.update(prev.get("feature_space_reports", {}))
+
     # If resuming, merge any existing stage 11 intermediates (SAD/HC)
     if RESUME:
-        for resume_name in ("stage11_importance_masks",):
+        for resume_name in ("stage11_importance_masks", "stage11_importance_masks_SAD", "stage11_importance_masks_HC"):
             try:
                 prev = load_intermediate(resume_name)
             except FileNotFoundError:
                 continue
-            if isinstance(prev, dict):
-                importance_masks.update(prev.get("importance_masks", {}))
-                importance_scores.update(prev.get("importance_scores", {}))
-                print(f"  > Loaded existing {resume_name} for merge: {list(importance_scores.keys())}")
-            break
+            stage11_merge_payload(prev)
+            print(f"  > Loaded existing {resume_name} for merge: {list(importance_scores.keys())}")
 
     def stage11_bounds(total, chunk_idx, chunk_count):
         total = int(total)
@@ -2620,6 +2628,13 @@ if stage_active(11):
         else:
             stage11_compute_chunk(group_name)
 
+    for resume_name in ("stage11_importance_masks_SAD", "stage11_importance_masks_HC"):
+        try:
+            prev = load_intermediate(resume_name)
+        except FileNotFoundError:
+            continue
+        stage11_merge_payload(prev)
+
     if not importance_scores:
         print(
             "--- Stage 11 importance chunk complete. No final masks were produced in this run; "
@@ -2684,7 +2699,7 @@ if stage_active(11):
         "thr_hc_permutated": locals().get("thr_hc"),
         "parcel_names_ext_permutated": parcel_names_ext,
     })
-    save_intermediate("stage11_importance_masks", {
+    stage11_combined_payload = {
         "importance_mask_permutated": importance_masks,
         "importance_masks_permutated": importance_masks,
         "importance_masks_all_positive": importance_masks_all_positive,
@@ -2702,7 +2717,15 @@ if stage_active(11):
         "thr_sad_permutated": locals().get("thr_sad"),
         "thr_hc_permutated": locals().get("thr_hc"),
         "parcel_names_ext_permutated": parcel_names_ext,
-    })
+    }
+    if all(grp in importance_masks and grp in importance_scores for grp in ("SAD", "HC")):
+        save_intermediate("stage11_importance_masks", stage11_combined_payload)
+    else:
+        print(
+            "  ! Combined stage11_importance_masks not updated because it is incomplete: "
+            f"masks={sorted(importance_masks.keys())}, scores={sorted(importance_scores.keys())}. "
+            "Per-group Stage 11 intermediates were saved for downstream auto-loading."
+        )
     for grp in importance_scores.keys():
         save_intermediate(f"stage11_importance_masks_{grp}", {
             "importance_mask_permutated": {grp: importance_masks.get(grp)},

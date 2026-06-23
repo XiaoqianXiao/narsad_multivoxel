@@ -5,7 +5,7 @@ The exported table contains two complementary sensitivity readouts:
 
 1. SCR-subgroup trained models from labeled Stage 6 checkpoints.
 2. Full placebo-session models from the primary Stage 6 checkpoint applied to
-   each SCR-defined subgroup. These full-model subgroup rows are descriptive
+   pooled-drug rows within each SCR-defined subgroup. These full-model subgroup rows are descriptive
    hold-in checks, not subgroup cross-validation tests.
 """
 
@@ -42,10 +42,11 @@ def as_bool_series(series):
 
 
 def add_row(rows, result, label, feature_space, test, estimate, p_value, extra=None):
+    session = result.get("session") or ("pooled_drug" if result.get("include_subjects_flag") else "Placebo")
     row = {
         "analysis_label": label,
         "feature_space": feature_space,
-        "session": "Placebo",
+        "session": session,
         "test": test,
         "estimate": scalar(estimate),
         "p_value": scalar(p_value),
@@ -121,6 +122,18 @@ def load_extinction_subset(cell5, group_key):
     return subset
 
 
+def combine_extinction_subsets(cell5, group_keys):
+    subsets = [load_extinction_subset(cell5, group_key) for group_key in group_keys]
+    subsets = [subset for subset in subsets if isinstance(subset, dict)]
+    if not subsets:
+        return None
+    return {
+        "X": np.concatenate([np.asarray(subset.get("X")) for subset in subsets], axis=0),
+        "y": np.concatenate([np.asarray(subset.get("y")) for subset in subsets], axis=0),
+        "sub": np.concatenate([np.asarray(subset.get("sub")) for subset in subsets], axis=0),
+    }
+
+
 def add_full_model_subgroup_rows(rows, feature_dir, out_csv, feature_space, scr_groups_csv=None):
     scr_path = infer_scr_groups_csv(out_csv, scr_groups_csv)
     if not os.path.exists(scr_path):
@@ -152,8 +165,8 @@ def add_full_model_subgroup_rows(rows, feature_dir, out_csv, feature_space, scr_
         return
 
     datasets = {
-        "SAD": load_extinction_subset(cell5, "SAD_Placebo"),
-        "HC": load_extinction_subset(cell5, "HC_Placebo"),
+        "SAD": combine_extinction_subsets(cell5, ["SAD_Placebo", "SAD_Oxytocin"]),
+        "HC": combine_extinction_subsets(cell5, ["HC_Placebo", "HC_Oxytocin"]),
     }
     model_by_group = {"SAD": model_sad, "HC": model_hc}
 
@@ -175,12 +188,13 @@ def add_full_model_subgroup_rows(rows, feature_dir, out_csv, feature_space, scr_
                 y = np.asarray(data.get("y"))[mask]
                 sub = subjects[mask]
                 estimate = subject_mean_accuracy(model, X, y, sub)
-                test = "Full %s-placebo model tested on %s-placebo SCR subgroup" % (train_group, test_group)
+                test = "Full %s-placebo model tested on pooled-drug %s SCR subgroup" % (train_group, test_group)
                 add_row(
                     rows,
                     {
                         "include_subjects_flag": flag,
                         "include_subjects_csv": scr_path,
+                        "session": "pooled_drug",
                         "n_sad_subjects": n_sad_subjects,
                         "n_hc_subjects": n_hc_subjects,
                         "n_sad_trials": n_sad_trials,
@@ -194,8 +208,8 @@ def add_full_model_subgroup_rows(rows, feature_dir, out_csv, feature_space, scr_
                     estimate,
                     np.nan,
                     extra={
-                        "model_source": "full_placebo_dataset",
-                        "evaluation_scope": "SCR subgroup hold-in application",
+                        "model_source": "full_placebo_model",
+                        "evaluation_scope": "pooled-drug SCR subgroup hold-in application",
                         "train_group": train_group,
                         "test_group": test_group,
                         "n_test_subjects": int(len(np.unique(sub))),
@@ -237,7 +251,7 @@ def export(feature_dir, out_csv, feature_space, scr_groups_csv=None):
         keep = existing[
             ~existing.get("model_source", pd.Series(index=existing.index, dtype=object))
             .astype(str)
-            .eq("full_placebo_dataset")
+            .isin(["full_placebo_dataset", "full_placebo_model"])
         ].copy()
         rows.extend(keep.to_dict("records"))
 

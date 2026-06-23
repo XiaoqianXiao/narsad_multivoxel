@@ -2948,9 +2948,20 @@ if cell_active(6):
         # =============================================================================
         # Load Data
         try:
-            X_hc, y_hc, sub_hc = get_extinction_data("HC_Placebo")
-            X_sad, y_sad, sub_sad = get_extinction_data("SAD_Placebo")
-            print(f"Data Loaded: SAD (n={len(np.unique(sub_sad))}), HC (n={len(np.unique(sub_hc))})")
+            def load_stage6_group_data(group):
+                group_keys = [f"{group}_Placebo"]
+                if INCLUDE_SUBJECTS_FLAG:
+                    group_keys.append(f"{group}_Oxytocin")
+                arrays = [get_extinction_data(group_key) for group_key in group_keys]
+                X = np.concatenate([item[0] for item in arrays], axis=0)
+                y = np.concatenate([item[1] for item in arrays], axis=0)
+                sub = np.concatenate([item[2] for item in arrays], axis=0)
+                return X, y, sub, group_keys
+
+            X_hc, y_hc, sub_hc, hc_keys = load_stage6_group_data("HC")
+            X_sad, y_sad, sub_sad, sad_keys = load_stage6_group_data("SAD")
+            session_scope = "pooled_drug" if INCLUDE_SUBJECTS_FLAG else "placebo"
+            print(f"Data Loaded ({session_scope}): SAD {sad_keys} (n={len(np.unique(sub_sad))}), HC {hc_keys} (n={len(np.unique(sub_hc))})")
             include_subjects = load_stage6_include_subjects()
             if include_subjects is not None:
                 X_hc, y_hc, sub_hc = apply_stage6_subject_filter(
@@ -3087,6 +3098,7 @@ if cell_active(6):
             "include_subjects_csv": INCLUDE_SUBJECTS_CSV,
             "include_subjects_flag": INCLUDE_SUBJECTS_FLAG,
             "include_subjects_column": INCLUDE_SUBJECTS_COLUMN,
+            "session": session_scope,
             "n_sad_subjects": int(len(np.unique(sub_sad))),
             "n_hc_subjects": int(len(np.unique(sub_hc))),
             "n_sad_trials": int(len(sub_sad)),
