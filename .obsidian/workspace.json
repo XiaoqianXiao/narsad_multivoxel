@@ -185,17 +185,18 @@
   },
   "active": "ff85a5a39d5c68c4",
   "lastOpenFiles": [
-    "code/hyak/__pycache__/mvpa_L2_voxel_FearNetwork.cpython-310.pyc",
-    "code/scripts/__pycache__/mvpa_l2_common.cpython-312.pyc",
-    "code/scripts/__pycache__/run_mvpa_l2_primary_models.cpython-310.pyc",
-    "code/scripts/__pycache__/export_mvpa_l2_metrics.cpython-310.pyc",
-    "code/scripts/__pycache__/plot_figure_s2_aim2_sensitivity.cpython-311.pyc",
-    "code/scripts/__pycache__/plot_figure_s2_aim2_sensitivity.cpython-310.pyc",
-    "code/scripts/plot_figure_s2_aim2_sensitivity.py",
-    "code/hyak/resubmit_voxel_WholeBrain_Schaefer.sh",
-    "code/scripts/__pycache__/mvpa_l2_common.cpython-310.pyc",
-    "code/scripts/__pycache__/export_aim1_decoding_primary.cpython-311.pyc",
-    "code/scripts/export_aim1_decoding_primary.py",
+    "code/hyak/scripts/__pycache__/summarize_mvpa_l2_results.cpython-311.pyc",
+    "code/hyak/scripts/__pycache__/run_mvpa_l2_sensitivity_models.cpython-311.pyc",
+    "code/hyak/scripts/__pycache__/run_mvpa_l2_primary_models.cpython-311.pyc",
+    "code/hyak/scripts/__pycache__/run_mvpa_l2_primary_models.cpython-310.pyc",
+    "code/hyak/scripts/__pycache__/plot_figure_s2_aim2_sensitivity.cpython-311.pyc",
+    "code/hyak/scripts/__pycache__/plot_figure_s2_aim2_sensitivity.cpython-310.pyc",
+    "code/hyak/scripts/__pycache__/mvpa_l2_common.cpython-312.pyc",
+    "code/hyak/scripts/__pycache__/mvpa_l2_common.cpython-311.pyc",
+    "code/hyak/scripts/__pycache__/mvpa_l2_common.cpython-310.pyc",
+    "code/hyak/scripts/__pycache__/export_mvpa_l2_metrics.cpython-311.pyc",
+    "code/hyak/scripts/__pycache__/export_mvpa_l2_metrics.cpython-310.pyc",
+    "code/hyak/scripts/README_mvpa_l2_pipeline.md",
     "task_Visualization-Aim4.md",
     "task_Visualization-Aim3.md",
     "task_Visualization-Aim5.md",
@@ -225,7 +226,6 @@
     "Visualization_Aim2.md",
     "outputs/mvpa_l2/stats/figures/figure_aim2.png",
     "outputs/mvpa_l2/stats/figures/figure_aim2.svg",
-    "mvpa_l2_v1.md",
-    "PROJECT_CONTEXT.md"
+    "mvpa_l2_v1.md"
   ]
 }
