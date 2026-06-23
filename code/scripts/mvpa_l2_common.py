@@ -259,6 +259,8 @@ def derive_final_metrics(df: pd.DataFrame) -> pd.DataFrame:
         "Dist_Safety_PV": "Neural_Dist_Safety_Background",
         "Dist_Threat": "Neural_Dist_Threat_Safety",
         "Dist_Threat_PV": "Neural_Dist_Threat_Safety",
+        "Dist_Threat_Background": "Neural_Dist_Threat_Background",
+        "Dist_Threat_Background_PV": "Neural_Dist_Threat_Background",
         "P_CSR_CSS": "Neural_ThreatLike_Safety",
         "P_CSR_CSR": "Neural_ThreatLike_Threat",
         "Boundary_Separation": "Neural_Boundary_Separation",

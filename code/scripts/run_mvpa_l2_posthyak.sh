@@ -81,6 +81,11 @@ fi
   --input "$OUT_ROOT/harmonized/mvpa_l2_subject_metrics.csv" \
   --out "$OUT_ROOT/stats/sensitivity_models_all.csv"
 
+"$PYTHON_BIN" scripts/plot_figure_s2_aim2_sensitivity.py \
+  --input "$OUT_ROOT/stats/sensitivity_models_all.csv" \
+  --figure-dir "$OUT_ROOT/stats/figures" \
+  --table-dir "$OUT_ROOT/stats"
+
 "$PYTHON_BIN" scripts/export_mvpa_l2_manuscript_artifacts.py \
   --input "$OUT_ROOT/harmonized/mvpa_l2_subject_metrics.csv" \
   --stats-dir "$OUT_ROOT/stats" \

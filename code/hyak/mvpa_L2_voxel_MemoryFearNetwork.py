@@ -4550,16 +4550,19 @@ if cell_active(16):
             # 1. Calculate Raw Correlation Distance
             raw_dist_safety = cdist(p_css, p_cs_, metric='correlation')[0][0]
             raw_dist_threat = cdist(p_csr, p_css, metric='correlation')[0][0]
+            raw_dist_threat_background = cdist(p_csr, p_cs_, metric='correlation')[0][0]
         
             # 2. PV Normalization (Metric / Number of Voxels)
             # This matches the logic used in Cell 10 for static topology
             pv_dist_safety = raw_dist_safety / n_feat
             pv_dist_threat = raw_dist_threat / n_feat
+            pv_dist_threat_background = raw_dist_threat_background / n_feat
             
             data_rows.append({
                 "Subject": sub, "Group": group, "Drug": drug, "Condition": key,
                 "Dist_Safety_PV": pv_dist_safety,
-                "Dist_Threat_PV": pv_dist_threat
+                "Dist_Threat_PV": pv_dist_threat,
+                "Dist_Threat_Background_PV": pv_dist_threat_background
             })
 
     df_topo_pv = pd.DataFrame(data_rows)
@@ -4694,15 +4697,41 @@ if cell_active(17):
         
             # Metric 2: Threat Discrimination (CSR vs CSS)
             dist_threat = cdist(p_csr, p_css, metric='correlation')[0][0]
+            dist_threat_background = cdist(p_csr, p_cs_, metric='correlation')[0][0]
             
             data_rows.append({
                 "Subject": sub, "Group": group, "Drug": drug, "Condition": key,
                 "Dist_Safety": dist_safety,
-                "Dist_Threat": dist_threat
+                "Dist_Threat": dist_threat,
+                "Dist_Threat_Background": dist_threat_background
             })
 
+    shock_anchor_rows = []
+    for key, subject_list in subgroups_21.items():
+        group, drug = key.split('_')
+        current_mask = mask_sad_analysis if group == "SAD" else mask_hc_analysis
+        X_cs, y_cs, sub_cs = get_ext_data(key)
+        X_shock, y_shock, sub_shock = get_shock_target_data(key)
+        if X_shock is None:
+            continue
+        shock_anchor_group = calculate_residualized_shock_anchor_projection(
+            X_cs[:, current_mask],
+            y_cs,
+            sub_cs,
+            X_shock[:, current_mask],
+            y_shock,
+            sub_shock,
+        )
+        if shock_anchor_group.empty:
+            continue
+        shock_anchor_group["Group"] = group
+        shock_anchor_group["Drug"] = drug
+        shock_anchor_rows.append(shock_anchor_group)
+
     df_topo = pd.DataFrame(data_rows)
+    df_shock_anchor_all_drug = pd.concat(shock_anchor_rows, ignore_index=True) if shock_anchor_rows else pd.DataFrame()
     print(f"  > Computed metrics for {len(df_topo)} subjects.")
+    print(f"  > Computed all-drug residualized shock-anchor metrics for {len(df_shock_anchor_all_drug)} subjects.")
 
     # =============================================================================
     # 2. Statistical Tests (Linear Mixed Effects)
@@ -4754,8 +4783,8 @@ if cell_active(17):
     plt.tight_layout()
     plt.show()
 
-    results_21 = {'df': df_topo, 'p_safe': p_int_safe, 'p_threat': p_int_threat}
-    save_cell_results(17, ['COND_SAFE_BASE', 'COND_SAFE_LEARN', 'COND_THREAT', 'axes', 'data_rows', 'data_subsets', 'df_topo', 'fig', 'form_base', 'importance_mask_permutated', 'importance_scores_permutated', 'key', 'meta', 'p_int_safe', 'p_int_threat', 'pal_group', 'results_11', 'results_12', 'results_13', 'results_13_2', 'results_14_self', 'results_21', 'results_21_pv', 'results_22', 'results_23', 'results_24', 'results_25', 'strict_cross_phase_results', 'sub', 'sub_to_meta', 'subgroups_21', 'subject_list'])
+    results_21 = {'df': df_topo, 'shock_anchor_all_drug': df_shock_anchor_all_drug, 'p_safe': p_int_safe, 'p_threat': p_int_threat}
+    save_cell_results(17, ['COND_SAFE_BASE', 'COND_SAFE_LEARN', 'COND_THREAT', 'axes', 'data_rows', 'data_subsets', 'df_shock_anchor_all_drug', 'df_topo', 'fig', 'form_base', 'importance_mask_permutated', 'importance_scores_permutated', 'key', 'meta', 'p_int_safe', 'p_int_threat', 'pal_group', 'results_11', 'results_12', 'results_13', 'results_13_2', 'results_14_self', 'results_21', 'results_21_pv', 'results_22', 'results_23', 'results_24', 'results_25', 'shock_anchor_rows', 'strict_cross_phase_results', 'sub', 'sub_to_meta', 'subgroups_21', 'subject_list'])
 
 
 else:

@@ -285,6 +285,7 @@ def trajectory_panel_from_feature_dir(base_dir: Path) -> pd.DataFrame:
 
 
 def load_trajectories(base_dir: Path) -> Optional[pd.DataFrame]:
+    payload17 = load_payload(base_dir, ["cell_17.joblib", "checkpoints/cell_17.joblib"])
     payload14 = load_payload(
         base_dir,
         [
@@ -297,6 +298,18 @@ def load_trajectories(base_dir: Path) -> Optional[pd.DataFrame]:
     )
     results = payload_value(payload14, "results_13_2") or payload14
     frames = []
+    shock_anchor_all_drug = payload_value(payload17, "shock_anchor_all_drug", "df_shock_anchor_all_drug")
+    if (
+        isinstance(shock_anchor_all_drug, pd.DataFrame)
+        and not shock_anchor_all_drug.empty
+        and "Cosine_CSR_minus_CSS" in shock_anchor_all_drug.columns
+    ):
+        residualized_all_drug = ensure_subject_column(shock_anchor_all_drug.rename(columns={"Subject": "sub_ID"}))
+        residualized_all_drug["Residualized_Shock_Anchor_Trajectory_Slope"] = pd.to_numeric(
+            residualized_all_drug["Cosine_CSR_minus_CSS"],
+            errors="coerce",
+        )
+        frames.append(residualized_all_drug[["sub_ID", "Group", "Drug", "Residualized_Shock_Anchor_Trajectory_Slope"]])
     if isinstance(results, dict):
         data_safe = results.get("data_safe")
         data_threat = results.get("data_threat")
@@ -368,7 +381,18 @@ def load_trajectories(base_dir: Path) -> Optional[pd.DataFrame]:
     out = None
     for frame in frames:
         out = merge_on_subject(out, frame)
-    return coalesce_duplicate_columns(out)
+    out = coalesce_duplicate_columns(out)
+    if "Shock_Anchor_Trajectory_Slope" in out.columns:
+        out["ShockAnchor_Threat_Trajectory_Slope"] = pd.to_numeric(
+            out["Shock_Anchor_Trajectory_Slope"],
+            errors="coerce",
+        )
+    if "Residualized_Shock_Anchor_Trajectory_Slope" in out.columns:
+        out["Residualized_ShockAnchor_Threat_Slope"] = pd.to_numeric(
+            out["Residualized_Shock_Anchor_Trajectory_Slope"],
+            errors="coerce",
+        )
+    return out
 
 
 GEOMETRY_PANEL_COLUMNS = ["subject_id", "group", "condition", "safety_alignment", "threat_alignment", "source"]
@@ -451,6 +475,9 @@ def export_aim2_panel_inputs(subject_df: pd.DataFrame, feature_dirs: Dict[str, P
 
 
 def load_clinical(base_dir: Path) -> Optional[pd.DataFrame]:
+    # This table can include clinical/SCR subjects outside the analyzed neural
+    # sample and usually does not carry Group/Drug. The later outer merge keeps
+    # those rows visible; if metadata lacks them, they appear as Group/Drug NaN.
     payload23 = load_payload(
         base_dir,
         [
@@ -467,6 +494,9 @@ def load_clinical(base_dir: Path) -> Optional[pd.DataFrame]:
 
 
 def attach_metadata(df: pd.DataFrame, base_dir: Path) -> pd.DataFrame:
+    # cell_04 is the source for treatment-arm metadata. It may cover fewer
+    # subjects than df_scored_clinical, so combine_first fills only overlapping
+    # subjects and intentionally leaves clinical-only subjects as missing.
     payload4 = load_payload(base_dir, ["cell_04.joblib", "cell_4.joblib", "checkpoints/cell_04.joblib"])
     meta = payload_value(payload4, "meta")
     if isinstance(meta, pd.DataFrame):
@@ -483,6 +513,10 @@ def attach_metadata(df: pd.DataFrame, base_dir: Path) -> pd.DataFrame:
 
 
 def export_feature_space(feature_space: str, base_dir: Path) -> pd.DataFrame:
+    # Keep the merge inclusive across neural, clinical, SCR, and master exports.
+    # A final Group/Drug NaN count usually means retained clinical-only rows,
+    # not failed neural estimates. Check nonmissing Neural_* columns before
+    # interpreting those rows as analysis failures.
     pieces = [
         load_topology(base_dir),
         load_decision(base_dir),

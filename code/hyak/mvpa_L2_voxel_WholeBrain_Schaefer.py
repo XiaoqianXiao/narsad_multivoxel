@@ -3770,15 +3770,41 @@ if stage_active(16):
             
             # Metric 2: Threat Discrimination (CSR vs CSS)
             dist_threat = cdist(p_csr, p_css, metric='correlation')[0][0]
+            dist_threat_background = cdist(p_csr, p_cs_, metric='correlation')[0][0]
                 
             data_rows.append({
                 "Subject": sub, "Group": group, "Drug": drug, "Condition": key,
                 "Dist_Safety": dist_safety,
-                "Dist_Threat": dist_threat
+                "Dist_Threat": dist_threat,
+                "Dist_Threat_Background": dist_threat_background
             })
+
+    shock_anchor_rows = []
+    for key, subject_list in subgroups_21.items():
+        group, drug = key.split('_')
+        current_mask = mask_sad_analysis if group == "SAD" else mask_hc_analysis
+        X_cs, y_cs, sub_cs = get_ext_data(key)
+        X_shock, y_shock, sub_shock = get_shock_target_data(key)
+        if X_shock is None:
+            continue
+        shock_anchor_group = calculate_residualized_shock_anchor_projection(
+            X_cs[:, current_mask],
+            y_cs,
+            sub_cs,
+            X_shock[:, current_mask],
+            y_shock,
+            sub_shock,
+        )
+        if shock_anchor_group.empty:
+            continue
+        shock_anchor_group["Group"] = group
+        shock_anchor_group["Drug"] = drug
+        shock_anchor_rows.append(shock_anchor_group)
     
     df_topo = pd.DataFrame(data_rows)
+    df_shock_anchor_all_drug = pd.concat(shock_anchor_rows, ignore_index=True) if shock_anchor_rows else pd.DataFrame()
     print(f"  > Computed metrics for {len(df_topo)} subjects.")
+    print(f"  > Computed all-drug residualized shock-anchor metrics for {len(df_shock_anchor_all_drug)} subjects.")
     
     # =============================================================================
     # 2. Statistical Tests (Linear Mixed Effects)
@@ -3832,11 +3858,12 @@ if stage_active(16):
     _save_fig("results_14_self")
     plt.show()
     
-    results_21 = {'df': df_topo, 'p_safe': p_int_safe, 'p_threat': p_int_threat}
+    results_21 = {'df': df_topo, 'shock_anchor_all_drug': df_shock_anchor_all_drug, 'p_safe': p_int_safe, 'p_threat': p_int_threat}
     _save_result("results_21", results_21)
     _save_result("results_21", results_21)
     save_checkpoint(16, {
         "results_21": results_21,
+        "df_shock_anchor_all_drug": locals().get("df_shock_anchor_all_drug"),
         "df_topo": locals().get("df_topo"),
         "lme_results": locals().get("lme_results"),
     })

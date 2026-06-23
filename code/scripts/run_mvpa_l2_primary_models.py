@@ -11,6 +11,7 @@ from mvpa_l2_common import (
     ALL_CLINICAL_SCORES,
     ALL_SCR_INDICES,
     CLINICAL_SCORE_HIERARCHY,
+    COMPANION_NEURAL_METRICS,
     CORE_NEURAL_METRICS,
     NEURAL_METRIC_HIERARCHY,
     add_fdr,
@@ -285,7 +286,7 @@ def run_aim5(df: pd.DataFrame, feature_space: str, covariates: List[str]) -> pd.
         counts = frame.groupby(["Group", "Drug"], dropna=False).size().to_dict()
         return {f"{group}_{drug}": int(counts.get((group, drug), 0)) for group, drug in expected_cells}
 
-    for metric in CORE_NEURAL_METRICS:
+    for metric in CORE_NEURAL_METRICS + COMPANION_NEURAL_METRICS:
         needed = [metric, "Group", "Drug"] + [cov for cov in covariates if cov in sub.columns]
         if metric not in sub.columns:
             row = {"status": "missing_outcome", "n": 0, "outcome": metric}
@@ -399,6 +400,9 @@ def main() -> None:
             table = table.rename(columns={"q": "q_within_group"})
             table["q"] = table["q_within_group"]
             table["correction_family"] = table["Group"].astype(str)
+        elif name == "aim5_oxytocin_modulation" and "metric_role" in table.columns:
+            table = add_fdr(table, family_cols=["analysis", "metric_role"])
+            table["correction_family"] = table["metric_role"].astype(str)
         else:
             table = add_fdr(table, family_cols=["analysis"])
         write_csv(table, args.out_dir / f"{name}.csv")
