@@ -336,6 +336,18 @@ def ensure_importance_loaded():
     merged_masks = {}
     merged_p_values = {}
     merged_all_positive_masks = {}
+    required_groups = ("SAD", "HC")
+
+    def merge_importance_payload(prev):
+        if not isinstance(prev, dict):
+            return
+        merged_scores.update(prev.get("importance_scores_permutated", prev.get("importance_scores", {})))
+        merged_masks.update(prev.get("importance_mask_permutated", prev.get("importance_masks_permutated", prev.get("importance_masks", {}))))
+        merged_p_values.update(prev.get("p_values_permutated", {}))
+        merged_all_positive_masks.update(prev.get(
+            "importance_masks_all_positive",
+            prev.get("importance_masks_top100_positive", prev.get("importance_mask_top100_positive", {}))
+        ))
 
     def load_combined():
         for name in (
@@ -345,18 +357,14 @@ def ensure_importance_loaded():
                 prev = load_intermediate(name)
             except FileNotFoundError:
                 continue
-            merged_scores.update(prev.get("importance_scores_permutated", prev.get("importance_scores", {})))
-            merged_masks.update(prev.get("importance_mask_permutated", prev.get("importance_masks_permutated", prev.get("importance_masks", {}))))
-            merged_p_values.update(prev.get("p_values_permutated", {}))
-            merged_all_positive_masks.update(prev.get(
-                "importance_masks_all_positive",
-                prev.get("importance_masks_top100_positive", prev.get("importance_mask_top100_positive", {}))
-            ))
+            merge_importance_payload(prev)
             return
         raise FileNotFoundError("No combined importance intermediate found.")
 
-    def load_groups():
-        for grp in ("SAD", "HC"):
+    def load_groups(groups=None, require_all=True):
+        groups = required_groups if groups is None else tuple(groups)
+        missing = []
+        for grp in groups:
             loaded = False
             for name in (
                 f"stage11_importance_masks_{grp}",
@@ -365,17 +373,13 @@ def ensure_importance_loaded():
                     prev = load_intermediate(name)
                 except FileNotFoundError:
                     continue
-                merged_scores.update(prev.get("importance_scores_permutated", prev.get("importance_scores", {})))
-                merged_masks.update(prev.get("importance_mask_permutated", prev.get("importance_masks_permutated", prev.get("importance_masks", {}))))
-                merged_p_values.update(prev.get("p_values_permutated", {}))
-                merged_all_positive_masks.update(prev.get(
-                    "importance_masks_all_positive",
-                    prev.get("importance_masks_top100_positive", prev.get("importance_mask_top100_positive", {}))
-                ))
+                merge_importance_payload(prev)
                 loaded = True
                 break
             if not loaded:
-                raise FileNotFoundError(f"Missing per-group importance intermediate for {grp}.")
+                missing.append(grp)
+        if missing and require_all:
+            raise FileNotFoundError(f"Missing per-group importance intermediate for {missing}.")
 
     if IMPORTANCE_SOURCE == "combined":
         try_order = [load_combined]
@@ -390,6 +394,11 @@ def ensure_importance_loaded():
         except FileNotFoundError:
             continue
 
+    if IMPORTANCE_SOURCE == "auto":
+        missing_groups = [grp for grp in required_groups if grp not in merged_scores or grp not in merged_masks]
+        if missing_groups:
+            load_groups(missing_groups, require_all=False)
+
     if not merged_scores:
         if IMPORTANCE_SOURCE == "group":
             raise FileNotFoundError(
@@ -403,6 +412,16 @@ def ensure_importance_loaded():
         raise FileNotFoundError(
             "Missing importance intermediates. Expected stage11_importance_masks.joblib "
             "or stage11_importance_masks_{SAD,HC}.joblib in /intermediate."
+        )
+
+    missing_groups = [grp for grp in required_groups if grp not in merged_scores or grp not in merged_masks]
+    if missing_groups:
+        raise FileNotFoundError(
+            "Missing Stage 11 importance masks/scores for groups "
+            f"{missing_groups}. Downstream Schaefer analyses require both SAD and HC. "
+            "Run/merge Stage 11 for the missing group(s), for example "
+            "`--stage 11 --stage11_group HC --stage11_merge --resume`, or use "
+            "`--stage11_group ALL` before rerunning this downstream stage."
         )
 
     importance_scores = merged_scores
@@ -436,6 +455,12 @@ def get_analysis_feature_masks(label):
     selected_masks = {}
     feature_space = {}
     for grp in ("SAD", "HC"):
+        if grp not in importance_masks:
+            raise FileNotFoundError(
+                f"{label} requires a Stage 11 importance mask for {grp}, but only found "
+                f"{sorted(importance_masks.keys())}. Run/merge Stage 11 for {grp} before "
+                "rerunning this analysis."
+            )
         fdr_mask = np.asarray(importance_masks[grp], dtype=bool)
         fdr_n = int(np.sum(fdr_mask))
         positive_mask = np.asarray(importance_masks_all_positive.get(grp), dtype=bool)
