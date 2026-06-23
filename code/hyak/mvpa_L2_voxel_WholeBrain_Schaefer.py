@@ -1446,7 +1446,7 @@ def get_group_key(sub_id):
     return None
 
 
-def process_phase_data(X_all, y_all, sub_all, phase_name):
+def process_phase_data(X_all, y_all, sub_all, phase_name, keep_conditions=("CSS", "CSR")):
     print(f"\nProcessing {phase_name} Phase...")
     if X_all is None: return {k: None for k in group_keys}
     
@@ -1476,8 +1476,8 @@ def process_phase_data(X_all, y_all, sub_all, phase_name):
         sub_mean = np.mean(X_sub_full, axis=0)
         X_sub_centered = X_sub_full - sub_mean
         
-        # 5. FILTER CONDITIONS (Keep only CSS / CSR)
-        mask_cond = np.isin(y_sub_full, ["CSS", "CSR"])
+        # 5. FILTER CONDITIONS
+        mask_cond = np.isin(y_sub_full, list(keep_conditions))
         
         if np.sum(mask_cond) > 0:
             grouped_data[g_key]['X'].append(X_sub_centered[mask_cond])
@@ -3303,6 +3303,12 @@ if stage_active(13):
     # =============================================================================
     print("\n[Step 2] Calculating Single-Trial Trajectories...")
 
+    if not all(name in globals() for name in ("X_ext", "y_ext", "sub_ext")):
+        raise ValueError("Global extinction data missing (X_ext/y_ext/sub_ext). Run or load the phase-loading stage before Stage 14.")
+    ext_full_subsets = process_phase_data(
+        X_ext, y_ext, sub_ext, "Extinction full CS",
+        keep_conditions=(COND_SAFETY_TARGET, COND_SAFETY_LEARN, COND_THREAT_LEARN),
+    )
     trajectory_frames = {"safe": {}, "threat": {}, "threat_shock": {}}
     for group, drug, group_key, group_mask in [
         ("SAD", "Placebo", "SAD_Placebo", mask_sad),
@@ -3322,11 +3328,16 @@ if stage_active(13):
             print(f"  ! {group_key}: reinstatement data unavailable for threat trajectory ({exc})")
             X_rst_gd = y_rst_gd = sub_rst_gd = None
 
-        df_safe_gd = calc_trajectory(
-            X_ext_gd, y_ext_gd, sub_ext_gd,
-            X_ext_gd, y_ext_gd, sub_ext_gd,
-            group_mask, COND_SAFETY_LEARN, COND_SAFETY_TARGET,
-        )
+        ext_full_gd = ext_full_subsets.get(group_key)
+        if ext_full_gd is None:
+            print(f"  ! {group_key}: full extinction data unavailable for safety trajectory")
+            df_safe_gd = pd.DataFrame()
+        else:
+            df_safe_gd = calc_trajectory(
+                ext_full_gd["X"], ext_full_gd["y"], ext_full_gd["sub"],
+                ext_full_gd["X"], ext_full_gd["y"], ext_full_gd["sub"],
+                group_mask, COND_SAFETY_LEARN, COND_SAFETY_TARGET,
+            )
         trajectory_frames["safe"][group_key] = (group, drug, df_safe_gd)
 
         if X_rst_gd is not None:
