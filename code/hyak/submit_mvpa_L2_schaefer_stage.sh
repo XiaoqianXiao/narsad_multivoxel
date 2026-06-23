@@ -29,6 +29,7 @@ N_NULL_PERMS="${N_NULL_PERMS:-5000}"
 STAGE11_ACTUAL_REPEATS="${STAGE11_ACTUAL_REPEATS:-${N_NULL_PERMS}}"
 STAGE11_CHUNKS="${STAGE11_CHUNKS:-500}"
 STAGE11_ARRAY_MAX_RUNNING="${STAGE11_ARRAY_MAX_RUNNING:-20}"
+STAGE11_ARRAY_SPEC="${STAGE11_ARRAY_SPEC:-}"
 STAGE11_CHUNK_IDX="${STAGE11_CHUNK_IDX:-}"
 STAGE11_GROUPS=(SAD HC)
 
@@ -61,6 +62,7 @@ Examples:
   submit_mvpa_L2_schaefer_stage.sh 12 --resume
   STAGE11_CHUNKS=500 submit_mvpa_L2_schaefer_stage.sh 11:SAD
   STAGE11_CHUNKS=500 STAGE11_CHUNK_IDX=80 submit_mvpa_L2_schaefer_stage.sh 11:SAD
+  STAGE11_CHUNKS=500 STAGE11_ARRAY_SPEC=309,310,320-359 submit_mvpa_L2_schaefer_stage.sh 11:SAD
 
 Analysis structure:
   Main prerequisite chain:
@@ -96,6 +98,7 @@ Environment overrides:
   LOG_DIR, PARTITION, ACCOUNT, TIME, MEM, CPUS
   N_JOBS, N_JOBS_CV, N_PERMUTATION, N_NULL_PERMS
   STAGE11_ACTUAL_REPEATS, STAGE11_CHUNKS, STAGE11_ARRAY_MAX_RUNNING
+  STAGE11_ARRAY_SPEC for sparse array recovery
   STAGE11_CHUNK_IDX for single-chunk recovery
 
 EOF
@@ -228,12 +231,16 @@ submit_stage11_array() {
   fi
 
   local max_task=$((STAGE11_CHUNKS - 1))
+  local array_spec="${STAGE11_ARRAY_SPEC:-0-${max_task}}"
+  if [[ "$array_spec" != *%* ]]; then
+    array_spec="${array_spec}%${STAGE11_ARRAY_MAX_RUNNING}"
+  fi
   local wrap
   wrap="$(base_wrap_prefix)$(python_cmd 11 "$group_name" '--resume --stage11_chunk_idx $SLURM_ARRAY_TASK_ID')"
 
   sbatch --parsable \
     "${dependency_args[@]}" \
-    --array="0-${max_task}%${STAGE11_ARRAY_MAX_RUNNING}" \
+    --array="$array_spec" \
     --partition="$PARTITION" \
     --account="$ACCOUNT" \
     --nodes=1 \
