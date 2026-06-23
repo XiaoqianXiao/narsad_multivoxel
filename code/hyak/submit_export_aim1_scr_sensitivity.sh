@@ -12,7 +12,7 @@ set -euo pipefail
 
 PROJECT_ROOT="${PROJECT_ROOT:-/gscratch/fang/NARSAD}"
 CONTAINER_SIF="${CONTAINER_SIF:-/gscratch/fang/images/jupyter.sif}"
-REPO_ROOT="${REPO_ROOT:-/gscratch/scrubbed/fanglab/xiaoqian/repo/narsad_multivoxel}"
+REPO_ROOT="${REPO_ROOT:-/gscratch/scrubbed/fanglab/xiaoqian/repo/narsad_multivoxel/code}"
 OUT_BASE="${OUT_BASE:-/gscratch/fang/NARSAD/MRI/derivatives/fMRI_analysis/LSS/results}"
 
 FEATURE_DIR="${FEATURE_DIR:-/output_dir/FearNetwork}"
