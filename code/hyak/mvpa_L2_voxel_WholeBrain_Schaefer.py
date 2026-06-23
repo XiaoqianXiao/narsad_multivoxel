@@ -584,6 +584,7 @@ def _standardize_aim2_trajectory_frame(df, trajectory):
         return pd.DataFrame()
     subject_col = _first_existing_column(df, ("subject_id", "Subject", "sub_ID", "sub"))
     group_col = _first_existing_column(df, ("group", "Group"))
+    drug_col = _first_existing_column(df, ("drug", "Drug"))
     trial_col = _first_existing_column(df, ("trial", "Trial", "block"))
     value_col = _first_existing_column(df, ("value", "score", "similarity", "evidence"))
     if not all((subject_col, group_col, trial_col, value_col)):
@@ -591,6 +592,7 @@ def _standardize_aim2_trajectory_frame(df, trajectory):
     out = pd.DataFrame({
         "subject_id": df[subject_col].astype(str),
         "group": df[group_col].astype(str),
+        "drug": df[drug_col].astype(str) if drug_col else pd.NA,
         "trial": pd.to_numeric(df[trial_col], errors="coerce"),
         "trajectory": trajectory,
         "value": pd.to_numeric(df[value_col], errors="coerce"),
@@ -616,10 +618,12 @@ def export_aim2_trajectory_panel(trajectory_payload):
             "CSR toward shock target",
         ))
     panel = pd.concat([frame for frame in frames if frame is not None and not frame.empty], ignore_index=True) if frames else pd.DataFrame()
-    columns = ["subject_id", "group", "trial", "trajectory", "value", "source"]
+    columns = ["subject_id", "group", "drug", "trial", "trajectory", "value", "source"]
     if panel.empty:
         panel = pd.DataFrame(columns=columns)
     else:
+        if "drug" in panel.columns:
+            panel = panel[panel["drug"].astype(str).eq("Placebo")].copy()
         panel = panel[columns]
     for output_dir in (OUT_DIR_MAIN, INTERMEDIATE_DIR):
         os.makedirs(output_dir, exist_ok=True)
@@ -1758,6 +1762,24 @@ def prepare_plot(df_sad, df_hc, name):
     # Bin trials if needed
     if BLOCK_SIZE > 1:
         df['trial'] = ((df['trial'] - 1) // BLOCK_SIZE) + 1
+    return df
+
+
+def prepare_group_drug_plot(frames, name):
+    d_list = []
+    for group, drug, frame in frames:
+        if frame is None or frame.empty:
+            continue
+        d = frame.copy()
+        d["Group"] = group
+        d["Drug"] = drug
+        d_list.append(d)
+    if not d_list:
+        return pd.DataFrame()
+    df = pd.concat(d_list, ignore_index=True)
+    df["Condition"] = name
+    if BLOCK_SIZE > 1:
+        df["trial"] = ((df["trial"] - 1) // BLOCK_SIZE) + 1
     return df
 
 
@@ -3276,54 +3298,64 @@ if stage_active(13):
     mask_sad = analysis_masks['SAD']
     mask_hc = analysis_masks['HC']
     
-    
-    # --- FIXED FUNCTION ---
-    # Load Start Data (Extinction)
-    X_ext_sad, y_ext_sad, sub_ext_sad = get_phase_data("SAD_Placebo", "ext")
-    X_ext_hc, y_ext_hc, sub_ext_hc = get_phase_data("HC_Placebo", "ext")
-    
-    # Load Target Data (Reinstatement)
-    X_rst_sad, y_rst_sad, sub_rst_sad = get_phase_data("SAD_Placebo", "rst")
-    X_rst_hc, y_rst_hc, sub_rst_hc = get_phase_data("HC_Placebo", "rst")
-    
-    # Check Reinstatement Availability
-    if X_rst_sad is None or X_rst_hc is None:
-        raise ValueError("Reinstatement data missing in data_subsets. Run Cell 5 and ensure phase3 is loaded.")
-    # Check Global Availability (for CS-)
-    if 'X_ext' in locals():
-        X_glob, y_glob, sub_glob = X_ext, y_ext, sub_ext
-    else:
-        # Fallback to group data if global is missing
-        X_glob, y_glob, sub_glob = X_ext_sad, y_ext_sad, sub_ext_sad
-    
     # =============================================================================
     # 3. Execute Analysis
     # =============================================================================
     print("\n[Step 2] Calculating Single-Trial Trajectories...")
-    
-    # A. Safety Learning
-    # Axis: Early CSS (Ext) --> CS- Centroid (Ext/Global)
-    print("  > Safety: CSS Trials projecting onto [Early CSS -> CS-]")
-    df_safe_sad = calc_trajectory(X_ext_sad, y_ext_sad, sub_ext_sad, X_glob, y_glob, sub_glob, mask_sad, COND_SAFETY_LEARN, COND_SAFETY_TARGET)
-    df_safe_hc = calc_trajectory(X_ext_hc, y_ext_hc, sub_ext_hc, X_glob, y_glob, sub_glob, mask_hc, COND_SAFETY_LEARN, COND_SAFETY_TARGET)
-    
-    # B. Threat Maintenance
-    # Axis: Early CSR (Ext) --> Reinstated CSR Centroid (Rst)
-    print("  > Threat: CSR Trials projecting onto [Early CSR -> Reinstated CSR]")
-    df_threat_sad = calc_trajectory(X_ext_sad, y_ext_sad, sub_ext_sad, X_rst_sad, y_rst_sad, sub_rst_sad, mask_sad, COND_THREAT_LEARN, COND_THREAT_LEARN)
-    df_threat_hc = calc_trajectory(X_ext_hc, y_ext_hc, sub_ext_hc, X_rst_hc, y_rst_hc, sub_rst_hc, mask_hc, COND_THREAT_LEARN, COND_THREAT_LEARN)
 
-    # C. Threat Shock Target
-    X_shock_sad, y_shock_sad, sub_shock_sad = get_shock_target_data("SAD_Placebo")
-    X_shock_hc, y_shock_hc, sub_shock_hc = get_shock_target_data("HC_Placebo")
-    if X_shock_sad is not None and X_shock_hc is not None:
-        print(f"  > Threat Shock Target: CSR Trials projecting onto [Early CSR -> shock/US target], labels={SHOCK_TARGET_LABELS}")
-        df_threat_shock_sad = calc_trajectory(X_ext_sad, y_ext_sad, sub_ext_sad, X_shock_sad, y_shock_sad, sub_shock_sad, mask_sad, COND_THREAT_LEARN, SHOCK_TARGET_LABELS)
-        df_threat_shock_hc = calc_trajectory(X_ext_hc, y_ext_hc, sub_ext_hc, X_shock_hc, y_shock_hc, sub_shock_hc, mask_hc, COND_THREAT_LEARN, SHOCK_TARGET_LABELS)
-    else:
-        print(f"  ! Threat Shock Target unavailable: no shock/US trials found for labels {SHOCK_TARGET_LABELS}.")
-        df_threat_shock_sad = pd.DataFrame()
-        df_threat_shock_hc = pd.DataFrame()
+    trajectory_frames = {"safe": {}, "threat": {}, "threat_shock": {}}
+    for group, drug, group_key, group_mask in [
+        ("SAD", "Placebo", "SAD_Placebo", mask_sad),
+        ("SAD", "Oxytocin", "SAD_Oxytocin", mask_sad),
+        ("HC", "Placebo", "HC_Placebo", mask_hc),
+        ("HC", "Oxytocin", "HC_Oxytocin", mask_hc),
+    ]:
+        try:
+            X_ext_gd, y_ext_gd, sub_ext_gd = get_phase_data(group_key, "ext")
+        except Exception as exc:
+            print(f"  ! {group_key}: extinction data unavailable for trajectories ({exc})")
+            continue
+
+        try:
+            X_rst_gd, y_rst_gd, sub_rst_gd = get_phase_data(group_key, "rst")
+        except Exception as exc:
+            print(f"  ! {group_key}: reinstatement data unavailable for threat trajectory ({exc})")
+            X_rst_gd = y_rst_gd = sub_rst_gd = None
+
+        df_safe_gd = calc_trajectory(
+            X_ext_gd, y_ext_gd, sub_ext_gd,
+            X_ext_gd, y_ext_gd, sub_ext_gd,
+            group_mask, COND_SAFETY_LEARN, COND_SAFETY_TARGET,
+        )
+        trajectory_frames["safe"][group_key] = (group, drug, df_safe_gd)
+
+        if X_rst_gd is not None:
+            df_threat_gd = calc_trajectory(
+                X_ext_gd, y_ext_gd, sub_ext_gd,
+                X_rst_gd, y_rst_gd, sub_rst_gd,
+                group_mask, COND_THREAT_LEARN, COND_THREAT_LEARN,
+            )
+        else:
+            df_threat_gd = pd.DataFrame()
+        trajectory_frames["threat"][group_key] = (group, drug, df_threat_gd)
+
+        X_shock_gd, y_shock_gd, sub_shock_gd = get_shock_target_data(group_key)
+        if X_shock_gd is not None:
+            df_threat_shock_gd = calc_trajectory(
+                X_ext_gd, y_ext_gd, sub_ext_gd,
+                X_shock_gd, y_shock_gd, sub_shock_gd,
+                group_mask, COND_THREAT_LEARN, SHOCK_TARGET_LABELS,
+            )
+        else:
+            df_threat_shock_gd = pd.DataFrame()
+        trajectory_frames["threat_shock"][group_key] = (group, drug, df_threat_shock_gd)
+
+    df_safe_sad = trajectory_frames["safe"].get("SAD_Placebo", ("SAD", "Placebo", pd.DataFrame()))[2]
+    df_safe_hc = trajectory_frames["safe"].get("HC_Placebo", ("HC", "Placebo", pd.DataFrame()))[2]
+    df_threat_sad = trajectory_frames["threat"].get("SAD_Placebo", ("SAD", "Placebo", pd.DataFrame()))[2]
+    df_threat_hc = trajectory_frames["threat"].get("HC_Placebo", ("HC", "Placebo", pd.DataFrame()))[2]
+    df_threat_shock_sad = trajectory_frames["threat_shock"].get("SAD_Placebo", ("SAD", "Placebo", pd.DataFrame()))[2]
+    df_threat_shock_hc = trajectory_frames["threat_shock"].get("HC_Placebo", ("HC", "Placebo", pd.DataFrame()))[2]
     
     # =============================================================================
     # Detailed Statistics
@@ -3335,9 +3367,9 @@ if stage_active(13):
     # =============================================================================
     # 4. Visualization
     # =============================================================================    
-    df_safe = prepare_plot(df_safe_sad, df_safe_hc, "Safety Learning")
-    df_threat = prepare_plot(df_threat_sad, df_threat_hc, "Threat Maintenance")
-    df_threat_shock = prepare_plot(df_threat_shock_sad, df_threat_shock_hc, SHOCK_TARGET_DOMAIN)
+    df_safe = prepare_group_drug_plot(trajectory_frames["safe"].values(), "Safety Learning")
+    df_threat = prepare_group_drug_plot(trajectory_frames["threat"].values(), "Threat Maintenance")
+    df_threat_shock = prepare_group_drug_plot(trajectory_frames["threat_shock"].values(), SHOCK_TARGET_DOMAIN)
     
     if df_safe.empty and df_threat.empty and df_threat_shock.empty:
         print("! No data to plot.")
@@ -3388,8 +3420,16 @@ if stage_active(13):
     def subject_trajectory_slopes(df, domain):
         rows = []
         if df is None or df.empty:
-            return pd.DataFrame(columns=["sub", "Group", "Condition", "slope", "mean_score"])
-        for (sub, group), sub_df in df.groupby(["sub", "Group"]):
+            return pd.DataFrame(columns=["sub", "Group", "Drug", "Condition", "slope", "mean_score"])
+        group_cols = ["sub", "Group"]
+        if "Drug" in df.columns:
+            group_cols.append("Drug")
+        for keys, sub_df in df.groupby(group_cols):
+            if len(group_cols) == 3:
+                sub, group, drug = keys
+            else:
+                sub, group = keys
+                drug = pd.NA
             sub_df = sub_df.sort_values("trial")
             if len(sub_df) < 3:
                 continue
@@ -3397,6 +3437,7 @@ if stage_active(13):
             rows.append({
                 "sub": sub,
                 "Group": group,
+                "Drug": drug,
                 "Condition": domain,
                 "slope": slope,
                 "mean_score": sub_df["score"].mean(),
@@ -4545,6 +4586,8 @@ if stage_active(24):
             columns.append(mean_name)
         if df is None or df.empty:
             return pd.DataFrame(columns=columns)
+        if "Drug" in df.columns:
+            df = df[df["Drug"].astype(str).eq("Placebo")].copy()
         for sub in df["sub"].unique():
             sub_data = df[df["sub"] == sub].sort_values("trial")
             if len(sub_data) < 3:

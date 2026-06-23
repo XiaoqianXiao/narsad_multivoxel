@@ -370,6 +370,8 @@ def build_aim2_trajectory_panel(stats_dir: Path) -> pd.DataFrame:
     data = pd.read_csv(path)
     if not set(columns).issubset(data.columns):
         return pd.DataFrame(columns=columns)
+    if "drug" in data.columns:
+        data = data[data["drug"].astype(str).eq("Placebo")].copy()
     out = data[columns].copy()
     out["subject_id"] = out["subject_id"].astype(str)
     out["group"] = out["group"].astype(str)

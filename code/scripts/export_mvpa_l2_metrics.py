@@ -210,16 +210,22 @@ def _trajectory_slopes(df: pd.DataFrame, condition: str, metric_name: str) -> pd
     rows = []
     if df is None or df.empty:
         return pd.DataFrame()
-    for (sub, group), sub_df in df.groupby(["sub", "Group"], dropna=False):
+    group_cols = ["sub", "Group"]
+    if "Drug" in df.columns:
+        group_cols.append("Drug")
+    for keys, sub_df in df.groupby(group_cols, dropna=False):
+        if not isinstance(keys, tuple):
+            keys = (keys,)
+        key_map = dict(zip(group_cols, keys))
         sub_df = sub_df.sort_values("trial")
         if len(sub_df) < 3:
             continue
         slope, _ = np.polyfit(pd.to_numeric(sub_df["trial"], errors="coerce"), pd.to_numeric(sub_df["score"], errors="coerce"), 1)
         rows.append(
             {
-                "sub_ID": normalize_subject_id(sub),
-                "Group": group,
-                "Drug": "Placebo",
+                "sub_ID": normalize_subject_id(key_map.get("sub")),
+                "Group": key_map.get("Group"),
+                "Drug": key_map.get("Drug", pd.NA),
                 metric_name: slope,
             }
         )
@@ -232,6 +238,7 @@ def _standardize_trial_alignment(data: pd.DataFrame, trajectory: str, value_col:
         return pd.DataFrame()
     subject_col = next((col for col in ["subject_id", "Subject", "sub_ID", "sub"] if col in data.columns), None)
     group_col = next((col for col in ["Group", "group"] if col in data.columns), None)
+    drug_col = next((col for col in ["Drug", "drug"] if col in data.columns), None)
     trial_col = next((col for col in ["trial", "Trial", "block", "Block"] if col in data.columns), None)
     score_col = value_col or next(
         (col for col in ["safety_alignment", "threat_evidence", "score", "Score", "similarity", "Similarity", "value", "evidence"] if col in data.columns),
@@ -241,11 +248,15 @@ def _standardize_trial_alignment(data: pd.DataFrame, trajectory: str, value_col:
         return pd.DataFrame()
     out = data[[subject_col, group_col, trial_col, score_col]].copy()
     out = out.rename(columns={subject_col: "subject_id", group_col: "group", trial_col: "trial", score_col: "value"})
+    if drug_col is not None:
+        out["drug"] = data[drug_col].astype(str).values
+        out = out[out["drug"].eq("Placebo")].copy()
     out["trajectory"] = trajectory
     out["trial"] = pd.to_numeric(out["trial"], errors="coerce")
     out["value"] = pd.to_numeric(out["value"], errors="coerce")
     out["group"] = out["group"].astype(str)
-    return out.dropna(subset=["trial", "value"])[["subject_id", "group", "trial", "trajectory", "value"]]
+    columns = ["subject_id", "group", "drug", "trial", "trajectory", "value"] if "drug" in out.columns else ["subject_id", "group", "trial", "trajectory", "value"]
+    return out.dropna(subset=["trial", "value"])[columns]
 
 
 def trajectory_panel_from_feature_dir(base_dir: Path) -> pd.DataFrame:
@@ -300,7 +311,8 @@ def load_trajectories(base_dir: Path) -> Optional[pd.DataFrame]:
                 sub = slopes[slopes["Condition"] == condition].copy()
                 if not sub.empty:
                     sub = ensure_subject_column(sub.rename(columns={"slope": metric}))
-                    sub["Drug"] = "Placebo"
+                    if "Drug" not in sub.columns:
+                        sub["Drug"] = "Placebo"
                     frames.append(sub[["sub_ID", "Group", "Drug", metric]])
         if isinstance(data_safe, pd.DataFrame):
             frames.append(_trajectory_slopes(data_safe, "Safety Learning", "Neural_Safety_Trajectory_Slope"))
