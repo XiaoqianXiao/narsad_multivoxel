@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "task_Visualization-Aim4.md",
+                "file": "task_Visualization-Aim1-sensitivity.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "task_Visualization-Aim4"
+              "title": "task_Visualization-Aim1-sensitivity"
             }
           }
         ]
@@ -185,6 +185,15 @@
   },
   "active": "ff85a5a39d5c68c4",
   "lastOpenFiles": [
+    "code/hyak/scripts/__pycache__/export_aim1_scr_sensitivity.cpython-310.pyc",
+    "code/hyak/scripts/__pycache__/export_aim1_decoding_primary.cpython-310.pyc",
+    "code/scripts/__pycache__/export_aim1_scr_sensitivity.cpython-310.pyc",
+    "code/scripts/__pycache__/export_aim1_decoding_primary.cpython-310.pyc",
+    "task_Visualization-Aim1-secondary.md",
+    "task_Visualization-Aim1-primary.md",
+    "task_Visualization-Aim1.md",
+    "task_Visualization-Aim1-sensitivity.md",
+    "task_Visualization-Aim4.md",
     "code/hyak/scripts/__pycache__/summarize_mvpa_l2_results.cpython-311.pyc",
     "code/hyak/scripts/__pycache__/run_mvpa_l2_sensitivity_models.cpython-311.pyc",
     "code/hyak/scripts/__pycache__/run_mvpa_l2_primary_models.cpython-311.pyc",
@@ -192,15 +201,9 @@
     "code/hyak/scripts/__pycache__/plot_figure_s2_aim2_sensitivity.cpython-311.pyc",
     "code/hyak/scripts/__pycache__/plot_figure_s2_aim2_sensitivity.cpython-310.pyc",
     "code/hyak/scripts/__pycache__/mvpa_l2_common.cpython-312.pyc",
-    "code/hyak/scripts/__pycache__/mvpa_l2_common.cpython-311.pyc",
-    "code/hyak/scripts/__pycache__/mvpa_l2_common.cpython-310.pyc",
-    "code/hyak/scripts/__pycache__/export_mvpa_l2_metrics.cpython-311.pyc",
-    "code/hyak/scripts/__pycache__/export_mvpa_l2_metrics.cpython-310.pyc",
     "code/hyak/scripts/README_mvpa_l2_pipeline.md",
-    "task_Visualization-Aim4.md",
     "task_Visualization-Aim3.md",
     "task_Visualization-Aim5.md",
-    "task_Visualization-Aim1.md",
     "task_Visualization-Aim5-sensitivity.md",
     "task_Visualization-Aim5-primary.md",
     "task_Visualization-Aim5-secondary.md",
@@ -211,9 +214,6 @@
     "task_Visualization-Aim3-sensitivity.md",
     "task_Visualization-Aim3-primary.md",
     "task_Visualization-Aim2.md",
-    "task_Visualization-Aim1-sensitivity.md",
-    "task_Visualization-Aim1-secondary.md",
-    "task_Visualization-Aim1-primary.md",
     "task_Visualization-Aim2-primary.md",
     "code/FigureS2_Aim2_Sensitivity_RobustnessHeatmap.svg",
     "code/FigureS2_Aim2_Sensitivity_RobustnessHeatmap.png",

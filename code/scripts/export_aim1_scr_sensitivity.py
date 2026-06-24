@@ -35,6 +35,42 @@ def scalar(value):
         return value
 
 
+def permutation_summary(values):
+    if values is None:
+        return {
+            "null_mean": np.nan,
+            "null_sd": np.nan,
+            "null_ci_low": np.nan,
+            "null_ci_high": np.nan,
+            "n_permutations": 0,
+        }
+    arr = np.asarray(values, dtype=float).ravel()
+    arr = arr[np.isfinite(arr)]
+    if arr.size == 0:
+        return {
+            "null_mean": np.nan,
+            "null_sd": np.nan,
+            "null_ci_low": np.nan,
+            "null_ci_high": np.nan,
+            "n_permutations": 0,
+        }
+    return {
+        "null_mean": float(np.mean(arr)),
+        "null_sd": float(np.std(arr, ddof=1)) if arr.size > 1 else 0.0,
+        "null_ci_low": float(np.quantile(arr, 0.025)),
+        "null_ci_high": float(np.quantile(arr, 0.975)),
+        "n_permutations": int(arr.size),
+    }
+
+
+def spatial_permutation_values(result):
+    for key in ["spatial_perm_dist", "perm_sim", "perm_dist_sim", "perm_dist_spatial"]:
+        values = result.get(key)
+        if values is not None:
+            return values
+    return None
+
+
 def as_bool_series(series):
     if series.dtype == bool:
         return series.fillna(False)
@@ -62,6 +98,73 @@ def add_row(rows, result, label, feature_space, test, estimate, p_value, extra=N
     if extra:
         row.update(extra)
     rows.append(row)
+
+
+def finite_vector(values):
+    if values is None:
+        return np.array([], dtype=float)
+    arr = np.asarray(values, dtype=float).ravel()
+    return arr[np.isfinite(arr)]
+
+
+def paired_raincloud_rows(result, label, feature_space):
+    """Build panel-B raincloud rows from saved 2AFC fold/subject distributions."""
+    func_matrix = result.get("func_matrix")
+    if func_matrix is None:
+        return pd.DataFrame()
+    matrix = np.asarray(func_matrix, dtype=float)
+    if matrix.shape != (2, 2):
+        return pd.DataFrame()
+    cohort = result.get("include_subjects_flag") or label
+    specs = [
+        ("SAD", result.get("cv_fold_scores_sad"), result.get("accs_hc2sad"), matrix[0, 0], matrix[1, 0]),
+        ("HC", result.get("cv_fold_scores_hc"), result.get("accs_sad2hc"), matrix[1, 1], matrix[0, 1]),
+    ]
+    rows = []
+    for target_group, within_values, cross_values, within_aggregate, cross_aggregate in specs:
+        within = finite_vector(within_values)
+        cross = finite_vector(cross_values)
+        n = int(max(len(within), len(cross), 1))
+        for i in range(n):
+            rows.append(
+                {
+                    "sensitivity_set": cohort,
+                    "feature_space": feature_space,
+                    "cohort": cohort,
+                    "target_group": target_group,
+                    "resample_id": i,
+                    "within_accuracy": float(within[i % len(within)]) if len(within) else scalar(within_aggregate),
+                    "cross_accuracy": float(cross[i % len(cross)]) if len(cross) else scalar(cross_aggregate),
+                    "within_aggregate": scalar(within_aggregate),
+                    "cross_aggregate": scalar(cross_aggregate),
+                    "within_metric_source": "cv_fold_scores" if len(within) else "aggregate_only",
+                    "cross_metric_source": "cross_subject_scores" if len(cross) else "aggregate_only",
+                }
+            )
+    return pd.DataFrame(rows)
+
+
+def write_raincloud_csv(rows, out_csv):
+    if out_csv is None:
+        return
+    out = pd.concat(rows, ignore_index=True) if rows else pd.DataFrame(
+        columns=[
+            "sensitivity_set",
+            "feature_space",
+            "cohort",
+            "target_group",
+            "resample_id",
+            "within_accuracy",
+            "cross_accuracy",
+            "within_aggregate",
+            "cross_aggregate",
+            "within_metric_source",
+            "cross_metric_source",
+        ]
+    )
+    os.makedirs(os.path.dirname(out_csv), exist_ok=True)
+    out.to_csv(out_csv, index=False)
+    print("Wrote %d Aim 1 SCR raincloud rows -> %s" % (len(out), out_csv))
 
 
 def force_choice_scores_to_2d(scores):
@@ -218,10 +321,11 @@ def add_full_model_subgroup_rows(rows, feature_dir, out_csv, feature_space, scr_
                 )
 
 
-def export(feature_dir, out_csv, feature_space, scr_groups_csv=None):
+def export(feature_dir, out_csv, feature_space, scr_groups_csv=None, raincloud_out=None):
     pattern = os.path.join(feature_dir, "checkpoints", "cell_06_aim1_*.joblib")
     paths = sorted(p for p in glob.glob(pattern) if not p.endswith("_plot.joblib"))
     rows = []
+    raincloud_rows = []
     existing = pd.DataFrame()
     if os.path.exists(out_csv):
         try:
@@ -234,6 +338,9 @@ def export(feature_dir, out_csv, feature_space, scr_groups_csv=None):
         label = result.get("analysis_label") or os.path.basename(path).replace("cell_06_", "").replace(".joblib", "")
         func_matrix = result.get("func_matrix")
         func_pvals = result.get("p_func_pvals")
+        raincloud = paired_raincloud_rows(result, label, feature_space)
+        if not raincloud.empty:
+            raincloud_rows.append(raincloud)
 
         add_row(rows, result, label, feature_space, "SAD self-decoding CV accuracy", result.get("acc_sad_cv"), result.get("p_sad"))
         add_row(rows, result, label, feature_space, "HC self-decoding CV accuracy", result.get("acc_hc_cv"), result.get("p_hc"))
@@ -245,7 +352,16 @@ def export(feature_dir, out_csv, feature_space, scr_groups_csv=None):
                 add_row(rows, result, label, feature_space, "SAD model tested on HC", func_matrix[0, 1], func_pvals[0, 1])
                 add_row(rows, result, label, feature_space, "HC model tested on SAD", func_matrix[1, 0], func_pvals[1, 0])
 
-        add_row(rows, result, label, feature_space, "SAD-HC Haufe map cosine similarity", result.get("sim_spatial"), result.get("p_sim"))
+        add_row(
+            rows,
+            result,
+            label,
+            feature_space,
+            "SAD-HC Haufe map cosine similarity",
+            result.get("sim_spatial"),
+            result.get("p_sim"),
+            extra=permutation_summary(spatial_permutation_values(result)),
+        )
 
     if not paths and not existing.empty:
         keep = existing[
@@ -256,6 +372,7 @@ def export(feature_dir, out_csv, feature_space, scr_groups_csv=None):
         rows.extend(keep.to_dict("records"))
 
     add_full_model_subgroup_rows(rows, feature_dir, out_csv, feature_space, scr_groups_csv=scr_groups_csv)
+    write_raincloud_csv(raincloud_rows, raincloud_out)
 
     out = pd.DataFrame(rows)
     os.makedirs(os.path.dirname(out_csv), exist_ok=True)
@@ -279,8 +396,13 @@ def main():
     parser.add_argument("--out", default="outputs/mvpa_l2/stats/aim1_scr_sensitivity.csv")
     parser.add_argument("--feature-space", default="FearNetwork")
     parser.add_argument("--scr-groups-csv", default=None)
+    parser.add_argument("--raincloud-out", default=None)
     args = parser.parse_args()
-    export(args.feature_dir, args.out, args.feature_space, scr_groups_csv=args.scr_groups_csv)
+    raincloud_out = args.raincloud_out
+    if raincloud_out is None:
+        root, ext = os.path.splitext(args.out)
+        raincloud_out = root + "_raincloud" + (ext or ".csv")
+    export(args.feature_dir, args.out, args.feature_space, scr_groups_csv=args.scr_groups_csv, raincloud_out=raincloud_out)
 
 
 if __name__ == "__main__":

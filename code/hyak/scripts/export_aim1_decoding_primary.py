@@ -63,6 +63,59 @@ def permutation_summary(values: object) -> Dict[str, object]:
     }
 
 
+def cosine_from_vectors(a: object, b: object) -> float:
+    """Return cosine similarity between two finite vectors."""
+    a_arr = np.asarray(a, dtype=float).ravel()
+    b_arr = np.asarray(b, dtype=float).ravel()
+    denom = np.linalg.norm(a_arr) * np.linalg.norm(b_arr)
+    if denom == 0 or not np.isfinite(denom):
+        return np.nan
+    return float(np.dot(a_arr, b_arr) / denom)
+
+
+def spatial_null_from_weight_checkpoints(feature_dir: Path) -> object:
+    """Derive a spatial null from saved SAD/HC Haufe-weight permutation files."""
+    checkpoint_dir = feature_dir / "checkpoints"
+    sad_path = checkpoint_dir / "perm_results_SAD_fear_network_2way.joblib"
+    hc_path = checkpoint_dir / "perm_results_HC_fear_network_2way.joblib"
+    if not sad_path.exists() or not hc_path.exists():
+        return None
+    sad_payload = joblib.load(sad_path)
+    hc_payload = joblib.load(hc_path)
+    if not isinstance(sad_payload, dict) or not isinstance(hc_payload, dict):
+        return None
+    sad_null = sad_payload.get("null_weights")
+    hc_null = hc_payload.get("null_weights")
+    if sad_null is None or hc_null is None:
+        return None
+    sad_null = np.asarray(sad_null, dtype=float)
+    hc_null = np.asarray(hc_null, dtype=float)
+    n_draws = min(len(sad_null), len(hc_null))
+    if n_draws == 0:
+        return None
+    sims = np.array([cosine_from_vectors(sad_null[i], hc_null[i]) for i in range(n_draws)])
+    sims = sims[np.isfinite(sims)]
+    return sims if sims.size else None
+
+
+def spatial_permutation_values(result: Dict, feature_dir: Path) -> object:
+    """Return the saved spatial permutation null distribution, if present."""
+    for key in ["spatial_perm_dist", "perm_sim", "perm_dist_sim", "perm_dist_spatial"]:
+        values = result.get(key)
+        if values is not None:
+            return values
+    return spatial_null_from_weight_checkpoints(feature_dir)
+
+
+def spatial_permutation_source(result: Dict, values: object) -> str:
+    for key in ["spatial_perm_dist", "perm_sim", "perm_dist_sim", "perm_dist_spatial"]:
+        if result.get(key) is not None:
+            return key
+    if values is not None:
+        return "perm_results_null_weights"
+    return "unavailable"
+
+
 def add_row(
     rows: List[Dict],
     result: Dict,
@@ -96,7 +149,82 @@ def add_row(
     rows.append(row)
 
 
-def export(feature_dir: Path, out: Path, feature_space: str) -> pd.DataFrame:
+def feature_label(feature_space: str) -> str:
+    """Return the Figure S1 sensitivity-set label for a feature space."""
+    labels = {
+        "FearNetwork": "FearNetwork primary",
+        "MemoryFearNetwork": "MemoryFearNetwork",
+        "Schaefer": "Schaefer/Tian parcellation",
+        "WholeBrain": "Whole brain",
+    }
+    return labels.get(str(feature_space), str(feature_space))
+
+
+def finite_vector(values: object) -> np.ndarray:
+    """Return a finite one-dimensional float vector."""
+    if values is None:
+        return np.array([], dtype=float)
+    arr = np.asarray(values, dtype=float).ravel()
+    return arr[np.isfinite(arr)]
+
+
+def paired_raincloud_rows(
+    result: Dict,
+    feature_space: str,
+    sensitivity_label: Optional[str] = None,
+) -> pd.DataFrame:
+    """Build panel-B raincloud rows from saved 2AFC fold/subject distributions."""
+    label = sensitivity_label or feature_label(feature_space)
+    func_matrix = result.get("func_matrix")
+    if func_matrix is None:
+        return pd.DataFrame()
+    matrix = np.asarray(func_matrix, dtype=float)
+    if matrix.shape != (2, 2):
+        return pd.DataFrame()
+
+    specs = [
+        ("SAD", result.get("cv_fold_scores_sad"), result.get("accs_hc2sad"), matrix[0, 0], matrix[1, 0]),
+        ("HC", result.get("cv_fold_scores_hc"), result.get("accs_sad2hc"), matrix[1, 1], matrix[0, 1]),
+    ]
+    rows: List[Dict] = []
+    for target_group, within_values, cross_values, within_aggregate, cross_aggregate in specs:
+        within = finite_vector(within_values)
+        cross = finite_vector(cross_values)
+        n = int(max(len(within), len(cross), 1))
+        for i in range(n):
+            rows.append(
+                {
+                    "sensitivity_set": label,
+                    "feature_space": feature_space,
+                    "cohort": "full_placebo",
+                    "target_group": target_group,
+                    "resample_id": i,
+                    "within_accuracy": float(within[i % len(within)]) if len(within) else scalar(within_aggregate),
+                    "cross_accuracy": float(cross[i % len(cross)]) if len(cross) else scalar(cross_aggregate),
+                    "within_aggregate": scalar(within_aggregate),
+                    "cross_aggregate": scalar(cross_aggregate),
+                    "within_metric_source": "cv_fold_scores" if len(within) else "aggregate_only",
+                    "cross_metric_source": "cross_subject_scores" if len(cross) else "aggregate_only",
+                }
+            )
+    return pd.DataFrame(rows)
+
+
+def write_raincloud_csv(table: pd.DataFrame, out: Optional[Path]) -> None:
+    if out is None:
+        return
+    out.parent.mkdir(parents=True, exist_ok=True)
+    table.to_csv(out, index=False)
+    print(f"Wrote {len(table)} Aim 1 raincloud rows -> {out}")
+
+
+def export(
+    feature_dir: Path,
+    out: Path,
+    feature_space: str,
+    raincloud_out: Optional[Path] = None,
+    sensitivity_label: Optional[str] = None,
+) -> pd.DataFrame:
     """Write Aim 1 primary decoding rows."""
     checkpoint = first_existing(
         [
@@ -149,23 +277,26 @@ def export(feature_dir: Path, out: Path, feature_space: str) -> pd.DataFrame:
                 add_row(rows, result, "SAD_to_HC", "SAD model tested on HC", matrix[0, 1], pvals[0, 1], None, feature_space)
                 add_row(rows, result, "HC_to_SAD", "HC model tested on SAD", matrix[1, 0], pvals[1, 0], None, feature_space)
         if "sim_spatial" in result:
-            rows.append(
-                {
-                    "analysis": "Aim1_Spatial_Specificity",
-                    "feature_space": feature_space,
-                    "session": "Placebo",
-                    "Group": "SAD_HC",
-                    "test": "SAD-HC Haufe map cosine similarity",
-                    "accuracy": np.nan,
-                    "accuracy_minus_chance": np.nan,
-                    "chance": np.nan,
-                    "cosine_similarity": scalar(result.get("sim_spatial")),
-                    "p_value": scalar(result.get("p_sim")),
-                    "status": "ok" if pd.notna(scalar(result.get("sim_spatial"))) else "missing_similarity",
-                }
-            )
+            spatial_row = {
+                "analysis": "Aim1_Spatial_Specificity",
+                "feature_space": feature_space,
+                "session": "Placebo",
+                "Group": "SAD_HC",
+                "test": "SAD-HC Haufe map cosine similarity",
+                "accuracy": np.nan,
+                "accuracy_minus_chance": np.nan,
+                "chance": np.nan,
+                "cosine_similarity": scalar(result.get("sim_spatial")),
+                "p_value": scalar(result.get("p_sim")),
+                "status": "ok" if pd.notna(scalar(result.get("sim_spatial"))) else "missing_similarity",
+            }
+            spatial_null = spatial_permutation_values(result, feature_dir)
+            spatial_row.update(permutation_summary(spatial_null))
+            spatial_row["spatial_null_source"] = spatial_permutation_source(result, spatial_null)
+            rows.append(spatial_row)
         table = pd.DataFrame(rows)
         table["checkpoint"] = str(checkpoint)
+        write_raincloud_csv(paired_raincloud_rows(result, feature_space, sensitivity_label), raincloud_out)
 
     if "p_value" in table.columns:
         valid = pd.to_numeric(table["p_value"], errors="coerce").notna()
@@ -185,8 +316,13 @@ def main() -> None:
     parser.add_argument("--feature-dir", type=Path, default=Path("outputs/mvpa_l2/FearNetwork"))
     parser.add_argument("--out", type=Path, default=Path("outputs/mvpa_l2/stats/aim1_decoding_primary.csv"))
     parser.add_argument("--feature-space", default="FearNetwork")
+    parser.add_argument("--raincloud-out", type=Path, default=None)
+    parser.add_argument("--sensitivity-label", default=None)
     args = parser.parse_args()
-    export(args.feature_dir, args.out, args.feature_space)
+    raincloud_out = args.raincloud_out
+    if raincloud_out is None:
+        raincloud_out = args.out.with_name(args.out.stem + "_raincloud.csv")
+    export(args.feature_dir, args.out, args.feature_space, raincloud_out=raincloud_out, sensitivity_label=args.sensitivity_label)
 
 
 if __name__ == "__main__":

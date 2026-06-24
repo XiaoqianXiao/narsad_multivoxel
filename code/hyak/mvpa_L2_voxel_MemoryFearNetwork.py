@@ -1113,6 +1113,7 @@ def run_pairwise_decoding_analysis(X, y, subjects, n_repeats=10):
             'model': final_model,
             'accuracy': avg_cv_acc, 
             'std': std_cv_acc,
+            'cv_fold_scores': np.asarray(all_repeat_scores, dtype=float),
             'best_C': gs_final.best_params_['classification__C'], 
             'haufe_pattern': A.flatten(), 
             'classes': final_model.classes_
@@ -2870,13 +2871,18 @@ if cell_active(6):
     
         results_11 = {
             "acc_sad_cv": res_sad['accuracy'], 
+            "cv_fold_scores_sad": res_sad.get('cv_fold_scores'),
             "p_sad": p_sad, 
             "acc_hc_cv": res_hc['accuracy'], 
+            "cv_fold_scores_hc": res_hc.get('cv_fold_scores'),
             "p_hc": p_hc, 
             "func_matrix": func_matrix, 
             "p_func_pvals": func_pvals,
+            "accs_sad2hc": accs_sad2hc,
+            "accs_hc2sad": accs_hc2sad,
             "sim_spatial": obs_sim, 
             "p_sim": p_sim_spatial,
+            "spatial_perm_dist": perm_sims,
             "map_sad": map_sad, 
             "map_hc": map_hc,
             "perm_dist_sad": perm_acc_sad, 
