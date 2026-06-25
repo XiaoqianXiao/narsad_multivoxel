@@ -1030,6 +1030,84 @@ def run_cross_perm(model, X, y, subs, n_iter):
         null_scores.append(compute_forced_choice_accuracy(y_shuff, scores, model.classes_))
     return np.array(null_scores)
 
+
+def run_loso_self_cross_pairs(target_group, X_target, y_target, sub_target, cross_model, self_c):
+    """Return matched subject-level self and cross decoding accuracies."""
+    rows = []
+    classes = np.asarray(cross_model.classes_)
+    keep = np.isin(y_target, classes)
+    X_target = np.asarray(X_target)[keep]
+    y_target = np.asarray(y_target)[keep]
+    sub_target = np.asarray(sub_target)[keep].astype(str)
+    for subject_id in pd.Series(sub_target).dropna().astype(str).unique():
+        test_mask = sub_target == subject_id
+        train_mask = ~test_mask
+        if not np.any(test_mask) or not np.any(train_mask):
+            continue
+        if len(np.unique(y_target[train_mask])) < 2:
+            continue
+        self_model = build_binary_pipeline()
+        self_model.set_params(classification__C=float(self_c))
+        self_model.fit(X_target[train_mask], y_target[train_mask])
+        self_scores = self_model.decision_function(X_target[test_mask])
+        cross_scores = cross_model.decision_function(X_target[test_mask])
+        rows.append({
+            "subject_id": subject_id,
+            "target_group": target_group,
+            "within_accuracy": compute_forced_choice_accuracy(y_target[test_mask], self_scores, self_model.classes_),
+            "cross_accuracy": compute_forced_choice_accuracy(y_target[test_mask], cross_scores, cross_model.classes_),
+            "n_trials": int(np.sum(test_mask)),
+            "within_metric_source": "leave_one_subject_out_refit",
+            "cross_metric_source": "opposite_group_refit_model",
+        })
+    return pd.DataFrame(rows)
+
+
+def paired_sign_flip_drop_test(pairs, n_perm=N_PERMUTATION, seed=RANDOM_STATE):
+    """Test mean within-minus-cross decoding drop with paired sign flips."""
+    if pairs is None or len(pairs) == 0:
+        return {}, np.array([], dtype=float)
+    drops = pd.to_numeric(pairs["within_accuracy"], errors="coerce") - pd.to_numeric(pairs["cross_accuracy"], errors="coerce")
+    drops = drops.replace([np.inf, -np.inf], np.nan).dropna().to_numpy(dtype=float)
+    if drops.size == 0:
+        return {}, np.array([], dtype=float)
+    observed = float(np.mean(drops))
+    rng = np.random.default_rng(seed)
+    signs = rng.choice(np.array([-1.0, 1.0]), size=(int(n_perm), drops.size))
+    null = np.mean(signs * drops, axis=1)
+    p_value = float((1 + np.sum(null >= observed)) / (len(null) + 1))
+    boot_idx = rng.integers(0, drops.size, size=(int(n_perm), drops.size))
+    boot_means = np.mean(drops[boot_idx], axis=1)
+    ci_low, ci_high = np.percentile(boot_means, [2.5, 97.5])
+    return {
+        "n_pairs": int(drops.size),
+        "within_group_accuracy": float(pd.to_numeric(pairs["within_accuracy"], errors="coerce").mean()),
+        "cross_group_accuracy": float(pd.to_numeric(pairs["cross_accuracy"], errors="coerce").mean()),
+        "functional_drop": observed,
+        "drop_ci_low": float(ci_low),
+        "drop_ci_high": float(ci_high),
+        "functional_drop_p": p_value,
+        "n_permutations": int(len(null)),
+        "test": "paired_sign_flip_mean_within_minus_cross",
+    }, null
+
+
+def build_functional_drop_outputs(
+    X_sad, y_sad, sub_sad, X_hc, y_hc, sub_hc, model_sad, model_hc, best_c_sad, best_c_hc
+):
+    """Build visualization-ready paired rows and self-vs-cross drop tests."""
+    sad_pairs = run_loso_self_cross_pairs("SAD", X_sad, y_sad, sub_sad, model_hc, best_c_sad)
+    hc_pairs = run_loso_self_cross_pairs("HC", X_hc, y_hc, sub_hc, model_sad, best_c_hc)
+    pairs = pd.concat([sad_pairs, hc_pairs], ignore_index=True) if not sad_pairs.empty or not hc_pairs.empty else pd.DataFrame()
+    tests = {}
+    nulls = {}
+    for group, group_pairs in pairs.groupby("target_group", dropna=True):
+        test, null = paired_sign_flip_drop_test(group_pairs, n_perm=N_PERMUTATION, seed=RANDOM_STATE + (0 if group == "SAD" else 1000))
+        if test:
+            tests[group] = test
+            nulls[group] = null
+    return pairs, tests, nulls
+
     
 def run_spatial_perm(seed, maps, groups):
     rng = np.random.default_rng(seed)
@@ -2828,6 +2906,20 @@ if cell_active(6):
             delayed(run_cross_perm)(model_hc, X_sad, y_sad, sub_sad, iters_per_job) for _ in range(N_JOBS)))
         p_hc2sad = np.mean(perm_hc2sad >= mean_hc2sad)
 
+        functional_drop_pairs, functional_drop_tests, functional_drop_nulls = build_functional_drop_outputs(
+            X_sad, y_sad, sub_sad,
+            X_hc, y_hc, sub_hc,
+            model_sad, model_hc,
+            best_c_sad, best_c_hc,
+        )
+        for group_name, drop_test in functional_drop_tests.items():
+            print(
+                f"  > {group_name} self-vs-cross drop: "
+                f"drop={drop_test['functional_drop']:.4f}, "
+                f"p={drop_test['functional_drop_p']:.4f}, "
+                f"n={drop_test['n_pairs']}"
+            )
+
         # =============================================================================
         # TEST 3: Spatial Specificity
         # =============================================================================
@@ -2880,6 +2972,9 @@ if cell_active(6):
             "p_func_pvals": func_pvals,
             "accs_sad2hc": accs_sad2hc,
             "accs_hc2sad": accs_hc2sad,
+            "functional_drop_pairs": functional_drop_pairs,
+            "functional_drop_tests": functional_drop_tests,
+            "functional_drop_nulls": functional_drop_nulls,
             "sim_spatial": obs_sim, 
             "p_sim": p_sim_spatial,
             "spatial_perm_dist": perm_sims,

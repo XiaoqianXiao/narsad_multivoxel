@@ -8,6 +8,8 @@ from typing import Dict, List, Optional
 import joblib
 import numpy as np
 import pandas as pd
+from sklearn.base import clone
+from statsmodels.stats.multitest import multipletests
 
 
 def scalar(value: object) -> object:
@@ -27,6 +29,15 @@ def read_result(path: Path) -> Dict:
     if not isinstance(result, dict):
         raise ValueError(f"Checkpoint does not contain a results_11 dictionary: {path}")
     return result
+
+
+def read_checkpoint(path: Path) -> tuple[Dict, Dict]:
+    """Read a checkpoint and return its results_11 dictionary plus full payload."""
+    payload = joblib.load(path)
+    result = payload.get("results_11", payload) if isinstance(payload, dict) else payload
+    if not isinstance(result, dict):
+        raise ValueError(f"Checkpoint does not contain a results_11 dictionary: {path}")
+    return result, payload if isinstance(payload, dict) else {}
 
 
 def first_existing(paths: List[Path]) -> Optional[Path]:
@@ -210,6 +221,141 @@ def paired_raincloud_rows(
     return pd.DataFrame(rows)
 
 
+def checkpoint_group_data(payload: Dict, group: str) -> Optional[tuple[np.ndarray, np.ndarray, np.ndarray]]:
+    """Return placebo extinction data for one group from a Stage 6 checkpoint payload."""
+    subsets = payload.get("data_subsets") if isinstance(payload, dict) else None
+    if not isinstance(subsets, dict):
+        return None
+    group_data = subsets.get(f"{group}_Placebo")
+    phase_data = group_data.get("ext") if isinstance(group_data, dict) else None
+    if not isinstance(phase_data, dict) or any(key not in phase_data for key in ("X", "y", "sub")):
+        return None
+    return np.asarray(phase_data["X"]), np.asarray(phase_data["y"]), np.asarray(phase_data["sub"]).astype(str)
+
+
+def forced_choice_predict(scores: object, classes: object) -> np.ndarray:
+    """Predict labels from binary or multiclass decision scores."""
+    scores_arr = np.asarray(scores)
+    if scores_arr.ndim == 1:
+        scores_arr = np.column_stack((-scores_arr, scores_arr))
+    class_arr = np.asarray(classes)
+    return class_arr[np.argmax(scores_arr, axis=1)]
+
+
+def forced_choice_accuracy(model: object, X: np.ndarray, y: np.ndarray) -> float:
+    """Return trial-wise forced-choice accuracy for a fitted model."""
+    return float(np.mean(np.asarray(y) == forced_choice_predict(model.decision_function(X), model.classes_)))
+
+
+def reconstruct_functional_drop_pairs(result: Dict, payload: Dict, feature_space: str, label: str) -> pd.DataFrame:
+    """Reconstruct matched subject-level self/cross rows from saved models and data."""
+    models = {"SAD": result.get("model_sad"), "HC": result.get("model_hc")}
+    best_c = {"SAD": result.get("best_c_sad", 1.0), "HC": result.get("best_c_hc", 1.0)}
+    if any(model is None for model in models.values()):
+        return pd.DataFrame()
+    data = {group: checkpoint_group_data(payload, group) for group in ["SAD", "HC"]}
+    if any(value is None for value in data.values()):
+        return pd.DataFrame()
+    rows = []
+    for target_group, source_group in [("SAD", "HC"), ("HC", "SAD")]:
+        X_target, y_target, sub_target = data[target_group]
+        source_model = models[source_group]
+        keep = np.isin(y_target, source_model.classes_)
+        X_target = X_target[keep]
+        y_target = y_target[keep]
+        sub_target = sub_target[keep]
+        for subject_id in pd.Series(sub_target).dropna().astype(str).unique():
+            test_mask = sub_target == subject_id
+            train_mask = ~test_mask
+            if not np.any(test_mask) or not np.any(train_mask) or len(np.unique(y_target[train_mask])) < 2:
+                continue
+            self_model = clone(models[target_group])
+            if hasattr(self_model, "set_params"):
+                self_model.set_params(classification__C=float(best_c[target_group]))
+                self_model.set_params(classification__n_jobs=1)
+            self_model.fit(X_target[train_mask], y_target[train_mask])
+            rows.append({
+                "sensitivity_set": label,
+                "feature_space": feature_space,
+                "cohort": "full_placebo",
+                "target_group": target_group,
+                "subject_id": subject_id,
+                "resample_id": subject_id,
+                "within_accuracy": forced_choice_accuracy(self_model, X_target[test_mask], y_target[test_mask]),
+                "cross_accuracy": forced_choice_accuracy(source_model, X_target[test_mask], y_target[test_mask]),
+                "within_aggregate": scalar(result.get("acc_sad_cv" if target_group == "SAD" else "acc_hc_cv")),
+                "cross_aggregate": scalar(np.asarray(result.get("func_matrix"), dtype=float)[1, 0] if target_group == "SAD" else np.asarray(result.get("func_matrix"), dtype=float)[0, 1]),
+                "n_trials": int(np.sum(test_mask)),
+                "within_metric_source": "leave_one_subject_out_refit",
+                "cross_metric_source": "opposite_group_refit_model",
+                "distribution_source": "checkpoint_reconstruction",
+            })
+    return pd.DataFrame(rows)
+
+
+def functional_drop_pairs(result: Dict, payload: Dict, feature_space: str, label: str) -> pd.DataFrame:
+    """Return saved or reconstructed matched rows for self-vs-cross visualization."""
+    saved = result.get("functional_drop_pairs")
+    if saved is not None:
+        frame = pd.DataFrame(saved).copy()
+        if not frame.empty:
+            frame["sensitivity_set"] = label
+            frame["feature_space"] = feature_space
+            frame["cohort"] = frame.get("cohort", "full_placebo")
+            frame["resample_id"] = frame.get("resample_id", frame.get("subject_id", pd.Series(np.arange(len(frame)), index=frame.index))).astype(str)
+            frame["distribution_source"] = "checkpoint_functional_drop_pairs"
+            return frame
+    return reconstruct_functional_drop_pairs(result, payload, feature_space, label)
+
+
+def paired_sign_flip_drop_test(pairs: pd.DataFrame, n_perm: int = 10000, seed: int = 20260624) -> tuple[Dict, np.ndarray]:
+    """Run a paired sign-flip test on within-minus-cross accuracy."""
+    if pairs is None or pairs.empty:
+        return {}, np.array([], dtype=float)
+    drops = pd.to_numeric(pairs["within_accuracy"], errors="coerce") - pd.to_numeric(pairs["cross_accuracy"], errors="coerce")
+    drops = drops.replace([np.inf, -np.inf], np.nan).dropna().to_numpy(dtype=float)
+    if drops.size == 0:
+        return {}, np.array([], dtype=float)
+    observed = float(np.mean(drops))
+    rng = np.random.default_rng(seed)
+    signs = rng.choice(np.array([-1.0, 1.0]), size=(int(n_perm), drops.size))
+    null = np.mean(signs * drops, axis=1)
+    p_value = float((1 + np.sum(null >= observed)) / (len(null) + 1))
+    boot_idx = rng.integers(0, drops.size, size=(int(n_perm), drops.size))
+    boot_means = np.mean(drops[boot_idx], axis=1)
+    ci_low, ci_high = np.percentile(boot_means, [2.5, 97.5])
+    return {
+        "n_pairs": int(drops.size),
+        "within_group_accuracy": float(pd.to_numeric(pairs["within_accuracy"], errors="coerce").mean()),
+        "cross_group_accuracy": float(pd.to_numeric(pairs["cross_accuracy"], errors="coerce").mean()),
+        "functional_drop": observed,
+        "drop_ci_low": float(ci_low),
+        "drop_ci_high": float(ci_high),
+        "functional_drop_p": p_value,
+        "n_permutations": int(len(null)),
+        "test": "paired_sign_flip_mean_within_minus_cross",
+    }, null
+
+
+def functional_drop_test_rows(result: Dict, pairs: pd.DataFrame, feature_space: str, label: str) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Return self-vs-cross drop-test rows and optional null-distribution rows."""
+    saved_tests = result.get("functional_drop_tests")
+    tests = []
+    null_rows = []
+    for group in ["SAD", "HC"]:
+        group_pairs = pairs[pairs["target_group"].astype(str).eq(group)].copy() if not pairs.empty else pd.DataFrame()
+        if isinstance(saved_tests, dict) and group in saved_tests:
+            test = dict(saved_tests[group])
+        else:
+            test, null = paired_sign_flip_drop_test(group_pairs, seed=20260624 + (0 if group == "SAD" else 1000))
+            for i, value in enumerate(null):
+                null_rows.append({"sensitivity_set": label, "feature_space": feature_space, "cohort": "full_placebo", "target_group": group, "permutation_id": i, "null_functional_drop": value})
+        if test:
+            test.update({"sensitivity_set": label, "feature_space": feature_space, "cohort": "full_placebo", "target_group": group})
+            tests.append(test)
+    return pd.DataFrame(tests), pd.DataFrame(null_rows)
+
+
 def write_raincloud_csv(table: pd.DataFrame, out: Optional[Path]) -> None:
     if out is None:
         return
@@ -223,6 +369,8 @@ def export(
     out: Path,
     feature_space: str,
     raincloud_out: Optional[Path] = None,
+    drop_tests_out: Optional[Path] = None,
+    drop_nulls_out: Optional[Path] = None,
     sensitivity_label: Optional[str] = None,
 ) -> pd.DataFrame:
     """Write Aim 1 primary decoding rows."""
@@ -246,7 +394,7 @@ def export(
             ]
         )
     else:
-        result = read_result(checkpoint)
+        result, payload = read_checkpoint(checkpoint)
         rows: List[Dict] = []
         add_row(
             rows,
@@ -296,14 +444,33 @@ def export(
             rows.append(spatial_row)
         table = pd.DataFrame(rows)
         table["checkpoint"] = str(checkpoint)
-        write_raincloud_csv(paired_raincloud_rows(result, feature_space, sensitivity_label), raincloud_out)
+        label = sensitivity_label or feature_label(feature_space)
+        pairs = functional_drop_pairs(result, payload, feature_space, label)
+        if pairs.empty:
+            pairs = paired_raincloud_rows(result, feature_space, sensitivity_label)
+        write_raincloud_csv(pairs, raincloud_out)
+        drop_tests, drop_nulls = functional_drop_test_rows(result, pairs, feature_space, label)
+        if not drop_tests.empty:
+            valid = pd.to_numeric(drop_tests["functional_drop_p"], errors="coerce").notna()
+            drop_tests["functional_drop_q"] = np.nan
+            if valid.any():
+                drop_tests.loc[valid, "functional_drop_q"] = multipletests(
+                    pd.to_numeric(drop_tests.loc[valid, "functional_drop_p"], errors="coerce"),
+                    method="fdr_bh",
+                )[1]
+        if drop_tests_out is not None:
+            drop_tests_out.parent.mkdir(parents=True, exist_ok=True)
+            drop_tests.to_csv(drop_tests_out, index=False)
+            print(f"Wrote {len(drop_tests)} Aim 1 functional-drop test rows -> {drop_tests_out}")
+        if drop_nulls_out is not None:
+            drop_nulls_out.parent.mkdir(parents=True, exist_ok=True)
+            drop_nulls.to_csv(drop_nulls_out, index=False)
+            print(f"Wrote {len(drop_nulls)} Aim 1 functional-drop null rows -> {drop_nulls_out}")
 
     if "p_value" in table.columns:
         valid = pd.to_numeric(table["p_value"], errors="coerce").notna()
         table["q"] = np.nan
         if valid.any():
-            from statsmodels.stats.multitest import multipletests
-
             table.loc[valid, "q"] = multipletests(pd.to_numeric(table.loc[valid, "p_value"], errors="coerce"), method="fdr_bh")[1]
     out.parent.mkdir(parents=True, exist_ok=True)
     table.to_csv(out, index=False)
@@ -317,12 +484,24 @@ def main() -> None:
     parser.add_argument("--out", type=Path, default=Path("outputs/mvpa_l2/stats/aim1_decoding_primary.csv"))
     parser.add_argument("--feature-space", default="FearNetwork")
     parser.add_argument("--raincloud-out", type=Path, default=None)
+    parser.add_argument("--drop-tests-out", type=Path, default=None)
+    parser.add_argument("--drop-nulls-out", type=Path, default=None)
     parser.add_argument("--sensitivity-label", default=None)
     args = parser.parse_args()
     raincloud_out = args.raincloud_out
     if raincloud_out is None:
         raincloud_out = args.out.with_name(args.out.stem + "_raincloud.csv")
-    export(args.feature_dir, args.out, args.feature_space, raincloud_out=raincloud_out, sensitivity_label=args.sensitivity_label)
+    drop_tests_out = args.drop_tests_out or args.out.with_name(args.out.stem + "_functional_drop_tests.csv")
+    drop_nulls_out = args.drop_nulls_out or args.out.with_name(args.out.stem + "_functional_drop_nulls.csv")
+    export(
+        args.feature_dir,
+        args.out,
+        args.feature_space,
+        raincloud_out=raincloud_out,
+        drop_tests_out=drop_tests_out,
+        drop_nulls_out=drop_nulls_out,
+        sensitivity_label=args.sensitivity_label,
+    )
 
 
 if __name__ == "__main__":

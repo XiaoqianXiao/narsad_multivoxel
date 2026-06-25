@@ -16,6 +16,7 @@ import os
 import joblib
 import numpy as np
 import pandas as pd
+from statsmodels.stats.multitest import multipletests
 
 
 SCR_FLAGS = [
@@ -142,6 +143,79 @@ def paired_raincloud_rows(result, label, feature_space):
                 }
             )
     return pd.DataFrame(rows)
+
+
+def functional_drop_pairs(result, label, feature_space):
+    """Return saved self-vs-cross paired rows when available."""
+    saved = result.get("functional_drop_pairs")
+    if saved is None:
+        return pd.DataFrame()
+    frame = pd.DataFrame(saved).copy()
+    if frame.empty:
+        return frame
+    cohort = result.get("include_subjects_flag") or label
+    frame["sensitivity_set"] = cohort
+    frame["feature_space"] = feature_space
+    frame["cohort"] = cohort
+    frame["resample_id"] = frame.get("resample_id", frame.get("subject_id", pd.Series(np.arange(len(frame)), index=frame.index))).astype(str)
+    frame["distribution_source"] = "checkpoint_functional_drop_pairs"
+    return frame
+
+
+def paired_sign_flip_drop_test(pairs, n_perm=10000, seed=20260624):
+    """Run a paired sign-flip test on within-minus-cross accuracy."""
+    if pairs is None or pairs.empty:
+        return {}, np.array([], dtype=float)
+    drops = pd.to_numeric(pairs["within_accuracy"], errors="coerce") - pd.to_numeric(pairs["cross_accuracy"], errors="coerce")
+    drops = drops.replace([np.inf, -np.inf], np.nan).dropna().to_numpy(dtype=float)
+    if drops.size == 0:
+        return {}, np.array([], dtype=float)
+    observed = float(np.mean(drops))
+    rng = np.random.default_rng(seed)
+    signs = rng.choice(np.array([-1.0, 1.0]), size=(int(n_perm), drops.size))
+    null = np.mean(signs * drops, axis=1)
+    p_value = float((1 + np.sum(null >= observed)) / (len(null) + 1))
+    boot_idx = rng.integers(0, drops.size, size=(int(n_perm), drops.size))
+    boot_means = np.mean(drops[boot_idx], axis=1)
+    ci_low, ci_high = np.percentile(boot_means, [2.5, 97.5])
+    return {
+        "n_pairs": int(drops.size),
+        "within_group_accuracy": float(pd.to_numeric(pairs["within_accuracy"], errors="coerce").mean()),
+        "cross_group_accuracy": float(pd.to_numeric(pairs["cross_accuracy"], errors="coerce").mean()),
+        "functional_drop": observed,
+        "drop_ci_low": float(ci_low),
+        "drop_ci_high": float(ci_high),
+        "functional_drop_p": p_value,
+        "n_permutations": int(len(null)),
+        "test": "paired_sign_flip_mean_within_minus_cross",
+    }, null
+
+
+def functional_drop_test_rows(result, pairs, label, feature_space):
+    """Return self-vs-cross drop-test rows and optional null-distribution rows."""
+    saved_tests = result.get("functional_drop_tests")
+    cohort = result.get("include_subjects_flag") or label
+    tests = []
+    null_rows = []
+    for group in ["SAD", "HC"]:
+        group_pairs = pairs[pairs["target_group"].astype(str).eq(group)].copy() if pairs is not None and not pairs.empty else pd.DataFrame()
+        if isinstance(saved_tests, dict) and group in saved_tests:
+            test = dict(saved_tests[group])
+        else:
+            test, null = paired_sign_flip_drop_test(group_pairs, seed=20260624 + (0 if group == "SAD" else 1000))
+            for i, value in enumerate(null):
+                null_rows.append({
+                    "sensitivity_set": cohort,
+                    "feature_space": feature_space,
+                    "cohort": cohort,
+                    "target_group": group,
+                    "permutation_id": i,
+                    "null_functional_drop": value,
+                })
+        if test:
+            test.update({"sensitivity_set": cohort, "feature_space": feature_space, "cohort": cohort, "target_group": group})
+            tests.append(test)
+    return pd.DataFrame(tests), pd.DataFrame(null_rows)
 
 
 def write_raincloud_csv(rows, out_csv):
@@ -321,11 +395,13 @@ def add_full_model_subgroup_rows(rows, feature_dir, out_csv, feature_space, scr_
                 )
 
 
-def export(feature_dir, out_csv, feature_space, scr_groups_csv=None, raincloud_out=None):
+def export(feature_dir, out_csv, feature_space, scr_groups_csv=None, raincloud_out=None, drop_tests_out=None, drop_nulls_out=None):
     pattern = os.path.join(feature_dir, "checkpoints", "cell_06_aim1_*.joblib")
     paths = sorted(p for p in glob.glob(pattern) if not p.endswith("_plot.joblib"))
     rows = []
     raincloud_rows = []
+    drop_test_rows = []
+    drop_null_rows = []
     existing = pd.DataFrame()
     if os.path.exists(out_csv):
         try:
@@ -338,9 +414,15 @@ def export(feature_dir, out_csv, feature_space, scr_groups_csv=None, raincloud_o
         label = result.get("analysis_label") or os.path.basename(path).replace("cell_06_", "").replace(".joblib", "")
         func_matrix = result.get("func_matrix")
         func_pvals = result.get("p_func_pvals")
-        raincloud = paired_raincloud_rows(result, label, feature_space)
+        drop_pairs = functional_drop_pairs(result, label, feature_space)
+        raincloud = drop_pairs if not drop_pairs.empty else paired_raincloud_rows(result, label, feature_space)
         if not raincloud.empty:
             raincloud_rows.append(raincloud)
+        drop_tests, drop_nulls = functional_drop_test_rows(result, drop_pairs, label, feature_space)
+        if not drop_tests.empty:
+            drop_test_rows.append(drop_tests)
+        if not drop_nulls.empty:
+            drop_null_rows.append(drop_nulls)
 
         add_row(rows, result, label, feature_space, "SAD self-decoding CV accuracy", result.get("acc_sad_cv"), result.get("p_sad"))
         add_row(rows, result, label, feature_space, "HC self-decoding CV accuracy", result.get("acc_hc_cv"), result.get("p_hc"))
@@ -374,6 +456,38 @@ def export(feature_dir, out_csv, feature_space, scr_groups_csv=None, raincloud_o
     add_full_model_subgroup_rows(rows, feature_dir, out_csv, feature_space, scr_groups_csv=scr_groups_csv)
     write_raincloud_csv(raincloud_rows, raincloud_out)
 
+    if drop_tests_out is not None:
+        drop_tests_table = pd.concat(drop_test_rows, ignore_index=True) if drop_test_rows else pd.DataFrame()
+        if drop_tests_table.empty:
+            drop_tests_table = pd.DataFrame(columns=[
+                "sensitivity_set", "feature_space", "cohort", "target_group", "n_pairs",
+                "within_group_accuracy", "cross_group_accuracy", "functional_drop",
+                "drop_ci_low", "drop_ci_high", "functional_drop_p", "functional_drop_q",
+                "n_permutations", "test",
+            ])
+        if not drop_tests_table.empty:
+            valid = pd.to_numeric(drop_tests_table["functional_drop_p"], errors="coerce").notna()
+            drop_tests_table["functional_drop_q"] = np.nan
+            if valid.any():
+                drop_tests_table.loc[valid, "functional_drop_q"] = multipletests(
+                    pd.to_numeric(drop_tests_table.loc[valid, "functional_drop_p"], errors="coerce"),
+                    method="fdr_bh",
+                )[1]
+        os.makedirs(os.path.dirname(drop_tests_out), exist_ok=True)
+        drop_tests_table.to_csv(drop_tests_out, index=False)
+        print("Wrote %d Aim 1 SCR functional-drop test rows -> %s" % (len(drop_tests_table), drop_tests_out))
+
+    if drop_nulls_out is not None:
+        drop_nulls_table = pd.concat(drop_null_rows, ignore_index=True) if drop_null_rows else pd.DataFrame()
+        if drop_nulls_table.empty:
+            drop_nulls_table = pd.DataFrame(columns=[
+                "sensitivity_set", "feature_space", "cohort", "target_group",
+                "permutation_id", "null_functional_drop",
+            ])
+        os.makedirs(os.path.dirname(drop_nulls_out), exist_ok=True)
+        drop_nulls_table.to_csv(drop_nulls_out, index=False)
+        print("Wrote %d Aim 1 SCR functional-drop null rows -> %s" % (len(drop_nulls_table), drop_nulls_out))
+
     out = pd.DataFrame(rows)
     os.makedirs(os.path.dirname(out_csv), exist_ok=True)
     if out.empty and os.path.exists(out_csv):
@@ -397,12 +511,25 @@ def main():
     parser.add_argument("--feature-space", default="FearNetwork")
     parser.add_argument("--scr-groups-csv", default=None)
     parser.add_argument("--raincloud-out", default=None)
+    parser.add_argument("--drop-tests-out", default=None)
+    parser.add_argument("--drop-nulls-out", default=None)
     args = parser.parse_args()
     raincloud_out = args.raincloud_out
     if raincloud_out is None:
         root, ext = os.path.splitext(args.out)
         raincloud_out = root + "_raincloud" + (ext or ".csv")
-    export(args.feature_dir, args.out, args.feature_space, scr_groups_csv=args.scr_groups_csv, raincloud_out=raincloud_out)
+    root, ext = os.path.splitext(args.out)
+    drop_tests_out = args.drop_tests_out or root + "_functional_drop_tests" + (ext or ".csv")
+    drop_nulls_out = args.drop_nulls_out or root + "_functional_drop_nulls" + (ext or ".csv")
+    export(
+        args.feature_dir,
+        args.out,
+        args.feature_space,
+        scr_groups_csv=args.scr_groups_csv,
+        raincloud_out=raincloud_out,
+        drop_tests_out=drop_tests_out,
+        drop_nulls_out=drop_nulls_out,
+    )
 
 
 if __name__ == "__main__":
