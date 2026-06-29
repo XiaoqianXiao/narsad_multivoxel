@@ -25,6 +25,60 @@ SCR_FLAGS="${SCR_FLAGS:-}"
 SCR_FLAGS_OUT="$OUT_ROOT/harmonized/scr_sensitivity_groups.csv"
 CLINICAL_OUTLIER_Z="${CLINICAL_OUTLIER_Z:-3.0}"
 
+PROJECT_ROOT="${PROJECT_ROOT:-/gscratch/fang/NARSAD}"
+CONTAINER_SIF="${CONTAINER_SIF:-/gscratch/fang/images/jupyter.sif}"
+OUT_BASE="${OUT_BASE:-/gscratch/fang/NARSAD/MRI/derivatives/fMRI_analysis/LSS/results}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="${REPO_ROOT:-$(cd "$SCRIPT_DIR/.." && pwd)}"
+
+python_is_modern() {
+  "$PYTHON_BIN" - <<'PY' >/dev/null 2>&1
+import sys
+raise SystemExit(0 if sys.version_info >= (3, 7) else 1)
+PY
+}
+
+running_in_container() {
+  [[ -n "${APPTAINER_CONTAINER:-}" || -n "${SINGULARITY_CONTAINER:-}" || "${MVPA_L2_IN_CONTAINER:-}" == "1" ]]
+}
+
+on_hyak_filesystem() {
+  [[ -d /gscratch || "$REPO_ROOT" == /gscratch/* || "$OUT_BASE" == /gscratch/* ]]
+}
+
+if ! python_is_modern && ! running_in_container && on_hyak_filesystem; then
+  if ! command -v apptainer >/dev/null 2>&1; then
+    module load apptainer 2>/dev/null || true
+  fi
+  if command -v apptainer >/dev/null 2>&1 && [[ -f "$CONTAINER_SIF" ]]; then
+    echo "Python $("$PYTHON_BIN" -c 'import sys; print(sys.version.split()[0])' 2>/dev/null || echo unknown) is too old; relaunching post-Hyak workflow inside ${CONTAINER_SIF}."
+    bind_args=(-B "${REPO_ROOT}:/app")
+    [[ -d "$PROJECT_ROOT" ]] && bind_args+=(-B "${PROJECT_ROOT}:${PROJECT_ROOT}")
+    [[ -d "$OUT_BASE" ]] && bind_args+=(-B "${OUT_BASE}:/output_dir")
+    if [[ -n "$SCR_DIR" && "$SCR_DIR" = /* && -d "$SCR_DIR" && "$SCR_DIR" != "$PROJECT_ROOT"* && "$SCR_DIR" != "$OUT_BASE"* ]]; then
+      bind_args+=(-B "${SCR_DIR}:${SCR_DIR}")
+    fi
+    exec env \
+      FEAR_DIR="$FEAR_DIR" \
+      MEMORY_DIR="$MEMORY_DIR" \
+      SCHAEFER_DIR="$SCHAEFER_DIR" \
+      SCR_DIR="$SCR_DIR" \
+      OUT_ROOT="$OUT_ROOT" \
+      SCR_FLAGS="$SCR_FLAGS" \
+      CLINICAL_OUTLIER_Z="$CLINICAL_OUTLIER_Z" \
+      PROJECT_ROOT="$PROJECT_ROOT" \
+      CONTAINER_SIF="$CONTAINER_SIF" \
+      OUT_BASE="$OUT_BASE" \
+      REPO_ROOT="$REPO_ROOT" \
+      apptainer exec "${bind_args[@]}" "$CONTAINER_SIF" bash -lc '
+      cd /app
+      export MVPA_L2_IN_CONTAINER=1
+      export PYTHON_BIN=python3
+      bash scripts/run_mvpa_l2_posthyak.sh
+    '
+  fi
+fi
+
 "$PYTHON_BIN" - <<'PY'
 import sys
 if sys.version_info < (3, 7):
@@ -44,7 +98,7 @@ if [[ -n "$SCR_FLAGS" && -f "$SCR_FLAGS" ]]; then
   echo "Using prebuilt SCR sensitivity flags -> $SCR_FLAGS_OUT"
 elif [[ -n "$SCR_FLAGS" ]]; then
   echo "ERROR: SCR_FLAGS was set but the file does not exist: $SCR_FLAGS" >&2
-  echo "Expected a prebuilt CSV such as /app/outputs/mvpa_l2/harmonized/scr_sensitivity_groups.csv" >&2
+  echo "Expected a prebuilt CSV such as /output_dir/mvpa_l2/harmonized/scr_sensitivity_groups.csv inside the container." >&2
   exit 1
 else
   "$PYTHON_BIN" scripts/build_scr_sensitivity_groups.py \
