@@ -3,7 +3,6 @@ __pycache__/
 *.pyc
 .ipython_tmp/
 .nbconvert_out/
-scr_analysis_outputs/
 /data
 /outputs
 task*.md
