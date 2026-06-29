@@ -9,7 +9,7 @@ set -euo pipefail
 # Usage:
 #   hyak/submit_mvpa_L2_aim1_scr_sensitivity.sh
 #   N_PERMUTATION=1000 hyak/submit_mvpa_L2_aim1_scr_sensitivity.sh
-#   SCR_FLAGS=/path/to/scr_sensitivity_groups.csv hyak/submit_mvpa_L2_aim1_scr_sensitivity.sh
+#   SCR_FLAGS_HOST=/path/to/scr_sensitivity_groups.csv hyak/submit_mvpa_L2_aim1_scr_sensitivity.sh
 
 PROJECT_ROOT="${PROJECT_ROOT:-/gscratch/fang/NARSAD}"
 CONTAINER_SIF="${CONTAINER_SIF:-/gscratch/fang/images/jupyter.sif}"
@@ -19,8 +19,8 @@ OUT_BASE="${OUT_BASE:-/gscratch/fang/NARSAD/MRI/derivatives/fMRI_analysis/LSS/re
 OUT_DIR="${OUT_DIR:-/output_dir/FearNetwork}"
 ROI_DIR="${FEAR_ROI_DIR:-${PROJECT_ROOT}/ROI/Gillian_anatomically_constrained}"
 
-SCR_FLAGS_HOST="${SCR_FLAGS:-${REPO_ROOT}/outputs/mvpa_l2/harmonized/scr_sensitivity_groups.csv}"
-SCR_FLAGS_CONTAINER="/repo/outputs/mvpa_l2/harmonized/scr_sensitivity_groups.csv"
+SCR_FLAGS_HOST="${SCR_FLAGS_HOST:-${SCR_FLAGS:-${OUT_BASE}/mvpa_l2/harmonized/scr_sensitivity_groups.csv}}"
+SCR_FLAGS_CONTAINER="${SCR_FLAGS_CONTAINER:-/output_dir/mvpa_l2/harmonized/scr_sensitivity_groups.csv}"
 
 LOG_DIR="${LOG_DIR:-${PROJECT_ROOT}/logs/mvpa_l2_aim1_scr_sensitivity}"
 PARTITION="${PARTITION:-ckpt-all}"
@@ -34,7 +34,7 @@ N_JOBS_CV="${N_JOBS_CV:-1}"
 N_PERMUTATION="${N_PERMUTATION:-1000}"
 N_NULL_PERMS="${N_NULL_PERMS:-5000}"
 
-SCR_FLAGS=(
+SCR_FLAG_COLUMNS=(
   SCR_Physiological_Responder
   SCR_Simple_Acquisition_Differential_Learner
   SCR_Habituation_Adjusted_Learner
@@ -49,7 +49,8 @@ ERROR: SCR subgroup CSV not found:
 Build it first, for example:
   bash scripts/run_mvpa_l2_posthyak.sh
 
-or set SCR_FLAGS=/path/to/scr_sensitivity_groups.csv.
+or set SCR_FLAGS_HOST=/path/to/scr_sensitivity_groups.csv and, if needed,
+SCR_FLAGS_CONTAINER=/container/path/to/scr_sensitivity_groups.csv.
 EOF
   exit 1
 fi
@@ -81,7 +82,7 @@ submit_flag() {
   echo "Submitted Analysis 1 SCR sensitivity ${flag}: job ${job_id}"
 }
 
-for flag in "${SCR_FLAGS[@]}"; do
+for flag in "${SCR_FLAG_COLUMNS[@]}"; do
   submit_flag "$flag"
 done
 

@@ -19,7 +19,7 @@ OUT_BASE="${OUT_BASE:-/gscratch/fang/NARSAD/MRI/derivatives/fMRI_analysis/LSS/re
 FEAR_DIR="${FEAR_DIR:-/output_dir/FearNetwork}"
 MEMORY_DIR="${MEMORY_DIR:-/output_dir/MemoryFearNetwork}"
 SCHAEFER_DIR="${SCHAEFER_DIR:-}"
-SCR_FLAGS="${SCR_FLAGS:-/app/outputs/mvpa_l2/harmonized/scr_sensitivity_groups.csv}"
+SCR_FLAGS="${SCR_FLAGS:-/output_dir/mvpa_l2/harmonized/scr_sensitivity_groups.csv}"
 SCR_DIR="${SCR_DIR:-/app/scr_analysis_outputs}"
 OUT_ROOT="${OUT_ROOT:-/output_dir/mvpa_l2}"
 
@@ -45,7 +45,7 @@ Defaults:
   CONTAINER_SIF=/gscratch/fang/images/jupyter.sif
   FEAR_DIR=/output_dir/FearNetwork
   MEMORY_DIR=/output_dir/MemoryFearNetwork
-  SCR_FLAGS=/app/outputs/mvpa_l2/harmonized/scr_sensitivity_groups.csv
+  SCR_FLAGS=/output_dir/mvpa_l2/harmonized/scr_sensitivity_groups.csv
   SCHAEFER_DIR is empty, so whole-brain/parcellation sensitivity is skipped.
   SCR_DIR is only used as a fallback when SCR_FLAGS is missing.
 EOF
