@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+from __future__ import annotations
+
 """Generate Figure S2 Aim 2 sensitivity heatmaps."""
 
 import argparse
