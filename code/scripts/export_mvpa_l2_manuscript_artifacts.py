@@ -44,9 +44,12 @@ PRIMARY_TABLE_COLUMNS = [
 
 
 def read_csv_if_exists(path: Path) -> pd.DataFrame:
-    if not path.exists():
+    if not path.exists() or path.stat().st_size == 0:
         return pd.DataFrame()
-    return pd.read_csv(path)
+    try:
+        return pd.read_csv(path)
+    except pd.errors.EmptyDataError:
+        return pd.DataFrame()
 
 
 def _markdown_table(df: pd.DataFrame) -> str:
@@ -320,7 +323,10 @@ def build_aim2_geometry_panel(stats_dir: Path) -> pd.DataFrame:
         path = stats_dir / name
         if not path.exists():
             continue
-        panel = standardize_aim2_geometry_panel(pd.read_csv(path), path.name)
+        panel_data = read_csv_if_exists(path)
+        if panel_data.empty:
+            continue
+        panel = standardize_aim2_geometry_panel(panel_data, path.name)
         if not panel.empty:
             return panel
     return pd.DataFrame(columns=GEOMETRY_PANEL_COLUMNS)
@@ -367,7 +373,9 @@ def build_aim2_trajectory_panel(stats_dir: Path) -> pd.DataFrame:
     columns = ["subject_id", "group", "trial", "trajectory", "value"]
     if not path.exists():
         return pd.DataFrame(columns=columns)
-    data = pd.read_csv(path)
+    data = read_csv_if_exists(path)
+    if data.empty:
+        return pd.DataFrame(columns=columns)
     if not set(columns).issubset(data.columns):
         return pd.DataFrame(columns=columns)
     if "drug" in data.columns:
