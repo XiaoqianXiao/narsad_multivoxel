@@ -5,6 +5,5 @@ __pycache__/
 .nbconvert_out/
 scr_analysis_outputs/
 /data
-/results
 /outputs
 task*.md

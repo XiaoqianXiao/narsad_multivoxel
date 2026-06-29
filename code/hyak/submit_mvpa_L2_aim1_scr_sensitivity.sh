@@ -55,6 +55,17 @@ EOF
   exit 1
 fi
 
+scr_flag_lines="$(wc -l < "$SCR_FLAGS_HOST" | tr -d '[:space:]')"
+if [[ ! -s "$SCR_FLAGS_HOST" || "$scr_flag_lines" -lt 2 ]]; then
+  cat >&2 <<EOF
+ERROR: SCR subgroup CSV contains no subject rows:
+  $SCR_FLAGS_HOST
+
+Rebuild or restore the SCR sensitivity groups CSV before submitting Stage 6.
+EOF
+  exit 1
+fi
+
 mkdir -p "$LOG_DIR"
 mkdir -p "$OUT_BASE"
 module load apptainer 2>/dev/null || true

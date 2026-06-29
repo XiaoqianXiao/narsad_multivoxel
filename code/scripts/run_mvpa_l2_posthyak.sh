@@ -90,8 +90,24 @@ if sys.version_info < (3, 7):
 print(f"Using Python: {sys.executable} ({sys.version.split()[0]})")
 PY
 
+validate_scr_flags() {
+  local path="$1"
+  local n_lines
+  if [[ ! -s "$path" ]]; then
+    echo "ERROR: SCR sensitivity flags are missing or empty: $path" >&2
+    exit 1
+  fi
+  n_lines="$(wc -l < "$path" | tr -d '[:space:]')"
+  if [[ "$n_lines" -lt 2 ]]; then
+    echo "ERROR: SCR sensitivity flags contain no subject rows: $path" >&2
+    echo "Provide a valid SCR_FLAGS file or set SCR_DIR to the directory containing the SCR subject-list outputs." >&2
+    exit 1
+  fi
+}
+
 mkdir -p "$(dirname "$SCR_FLAGS_OUT")"
 if [[ -n "$SCR_FLAGS" && -f "$SCR_FLAGS" ]]; then
+  validate_scr_flags "$SCR_FLAGS"
   if [[ "$SCR_FLAGS" != "$SCR_FLAGS_OUT" ]]; then
     cp "$SCR_FLAGS" "$SCR_FLAGS_OUT"
   fi
@@ -100,10 +116,14 @@ elif [[ -n "$SCR_FLAGS" ]]; then
   echo "ERROR: SCR_FLAGS was set but the file does not exist: $SCR_FLAGS" >&2
   echo "Expected a prebuilt CSV such as /output_dir/mvpa_l2/harmonized/scr_sensitivity_groups.csv inside the container." >&2
   exit 1
+elif [[ -f "$SCR_FLAGS_OUT" ]]; then
+  validate_scr_flags "$SCR_FLAGS_OUT"
+  echo "Using existing SCR sensitivity flags -> $SCR_FLAGS_OUT"
 else
   "$PYTHON_BIN" scripts/build_scr_sensitivity_groups.py \
     --scr-dir "$SCR_DIR" \
     --out "$SCR_FLAGS_OUT"
+  validate_scr_flags "$SCR_FLAGS_OUT"
 fi
 
 FEATURE_ARGS=(

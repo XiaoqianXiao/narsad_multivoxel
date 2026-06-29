@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+from __future__ import annotations
+
 """Export Aim 1 primary decoding results from the primary Stage 6 checkpoint."""
 
 import argparse
