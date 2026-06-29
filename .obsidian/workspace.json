@@ -185,6 +185,7 @@
   },
   "active": "ff85a5a39d5c68c4",
   "lastOpenFiles": [
+    "code/hyak/submit_build_scr_sensitivity_groups.sh",
     "code/hyak/scripts/__pycache__/export_aim1_scr_sensitivity.cpython-310.pyc",
     "code/hyak/scripts/__pycache__/export_aim1_decoding_primary.cpython-310.pyc",
     "code/scripts/__pycache__/export_aim1_scr_sensitivity.cpython-310.pyc",
@@ -200,7 +201,6 @@
     "code/hyak/scripts/__pycache__/run_mvpa_l2_primary_models.cpython-310.pyc",
     "code/hyak/scripts/__pycache__/plot_figure_s2_aim2_sensitivity.cpython-311.pyc",
     "code/hyak/scripts/__pycache__/plot_figure_s2_aim2_sensitivity.cpython-310.pyc",
-    "code/hyak/scripts/__pycache__/mvpa_l2_common.cpython-312.pyc",
     "code/hyak/scripts/README_mvpa_l2_pipeline.md",
     "task_Visualization-Aim3.md",
     "task_Visualization-Aim5.md",
