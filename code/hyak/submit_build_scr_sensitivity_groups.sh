@@ -48,9 +48,8 @@ inner_cmd=$(
   cat <<EOF
 set -euo pipefail
 cd /app
-python3 scripts/build_scr_sensitivity_groups.py \\
-  --scr-dir /scr_results \\
-  --out /output_dir/mvpa_l2/harmonized/scr_sensitivity_groups.csv
+SCR_GROUPS_OUT="/output_dir/mvpa_l2/harmonized/scr_sensitivity_groups.csv"
+python3 scripts/build_scr_sensitivity_groups.py --scr-dir /scr_results --out "\${SCR_GROUPS_OUT}"
 python3 - <<'PY'
 from pathlib import Path
 path = Path("/output_dir/mvpa_l2/harmonized/scr_sensitivity_groups.csv")
