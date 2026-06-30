@@ -342,16 +342,38 @@ def paired_sign_flip_drop_test(pairs: pd.DataFrame, n_perm: int = 10000, seed: i
 def functional_drop_test_rows(result: Dict, pairs: pd.DataFrame, feature_space: str, label: str) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Return self-vs-cross drop-test rows and optional null-distribution rows."""
     saved_tests = result.get("functional_drop_tests")
+    saved_nulls = result.get("functional_drop_nulls")
     tests = []
     null_rows = []
     for group in ["SAD", "HC"]:
         group_pairs = pairs[pairs["target_group"].astype(str).eq(group)].copy() if not pairs.empty else pd.DataFrame()
         if isinstance(saved_tests, dict) and group in saved_tests:
             test = dict(saved_tests[group])
+            if isinstance(saved_nulls, dict) and group in saved_nulls:
+                null = np.asarray(saved_nulls[group], dtype=float).ravel()
+                for i, value in enumerate(null):
+                    if np.isfinite(value):
+                        null_rows.append({
+                            "sensitivity_set": label,
+                            "feature_space": feature_space,
+                            "cohort": "full_placebo",
+                            "target_group": group,
+                            "permutation_id": i,
+                            "null_functional_drop": float(value),
+                            "null_source": "checkpoint_functional_drop_nulls",
+                        })
         else:
             test, null = paired_sign_flip_drop_test(group_pairs, seed=20260624 + (0 if group == "SAD" else 1000))
             for i, value in enumerate(null):
-                null_rows.append({"sensitivity_set": label, "feature_space": feature_space, "cohort": "full_placebo", "target_group": group, "permutation_id": i, "null_functional_drop": value})
+                null_rows.append({
+                    "sensitivity_set": label,
+                    "feature_space": feature_space,
+                    "cohort": "full_placebo",
+                    "target_group": group,
+                    "permutation_id": i,
+                    "null_functional_drop": value,
+                    "null_source": "exporter_reconstructed_sign_flip",
+                })
         if test:
             test.update({"sensitivity_set": label, "feature_space": feature_space, "cohort": "full_placebo", "target_group": group})
             tests.append(test)
