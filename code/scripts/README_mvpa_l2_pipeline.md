@@ -95,6 +95,9 @@ python3 scripts/export_aim1_scr_sensitivity.py \
 - `outputs/mvpa_l2/harmonized/scr_sensitivity_groups.csv`: SCR responder/learner flags.
 - `outputs/mvpa_l2/harmonized/mvpa_l2_subject_metrics.csv`: harmonized subject-level neural, clinical, drug, and SCR variables.
 - `outputs/mvpa_l2/stats/aim2_group_difference.csv`: placebo SAD vs HC models.
+- `outputs/mvpa_l2/stats/aim1_mask_feature_sensitivity.csv`: Aim 1 feature-space sensitivity rows for FearNetwork, MemoryFearNetwork, and optional Schaefer/whole-brain.
+- `outputs/mvpa_l2/stats/aim1_mask_feature_sensitivity_functional_drop_tests.csv`: paired self-minus-cross sign-flip tests for Aim 1 feature-space sensitivity.
+- `outputs/mvpa_l2/stats/aim1_mask_feature_sensitivity_functional_drop_nulls.csv`: paired self-minus-cross sign-flip null distributions for Aim 1 feature-space sensitivity; this is used by Figure S1 Panel B null histograms.
 - `outputs/mvpa_l2/stats/aim3_clinical_relevance.csv`: anxiety-symptom association models.
 - `outputs/mvpa_l2/stats/aim4_scr_convergence.csv`: neural-SCR convergence models.
 - `outputs/mvpa_l2/stats/aim5_oxytocin_modulation.csv`: `Group * Drug` modulation models.

@@ -146,6 +146,23 @@ fi
   --out "$OUT_ROOT/stats/aim1_decoding_primary.csv" \
   --feature-space "FearNetwork"
 
+FEATURE_AIM1_ARGS=(
+  --feature-dir "FearNetwork=$FEAR_DIR"
+  --feature-dir "MemoryFearNetwork=$MEMORY_DIR"
+)
+
+if [[ -n "$SCHAEFER_DIR" ]]; then
+  FEATURE_AIM1_ARGS+=(--feature-dir "Schaefer=$SCHAEFER_DIR")
+fi
+
+"$PYTHON_BIN" scripts/export_aim1_feature_sensitivity.py \
+  "${FEATURE_AIM1_ARGS[@]}" \
+  --out "$OUT_ROOT/stats/aim1_mask_feature_sensitivity.csv" \
+  --wide-out "$OUT_ROOT/stats/aim1_mask_feature_sensitivity_wide.csv" \
+  --raincloud-out "$OUT_ROOT/stats/aim1_mask_feature_sensitivity_raincloud.csv" \
+  --drop-tests-out "$OUT_ROOT/stats/aim1_mask_feature_sensitivity_functional_drop_tests.csv" \
+  --drop-nulls-out "$OUT_ROOT/stats/aim1_mask_feature_sensitivity_functional_drop_nulls.csv"
+
 "$PYTHON_BIN" scripts/run_mvpa_l2_primary_models.py \
   --input "$OUT_ROOT/harmonized/mvpa_l2_subject_metrics.csv" \
   --clinical-outlier-z "$CLINICAL_OUTLIER_Z" \
