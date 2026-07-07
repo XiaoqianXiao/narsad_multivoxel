@@ -194,23 +194,33 @@ def paired_sign_flip_drop_test(pairs, n_perm=10000, seed=20260624):
 def functional_drop_test_rows(result, pairs, label, feature_space):
     """Return self-vs-cross drop-test rows and optional null-distribution rows."""
     saved_tests = result.get("functional_drop_tests")
+    saved_nulls = result.get("functional_drop_nulls")
     cohort = result.get("include_subjects_flag") or label
     tests = []
     null_rows = []
     for group in ["SAD", "HC"]:
         group_pairs = pairs[pairs["target_group"].astype(str).eq(group)].copy() if pairs is not None and not pairs.empty else pd.DataFrame()
+        null = np.array([], dtype=float)
         if isinstance(saved_tests, dict) and group in saved_tests:
             test = dict(saved_tests[group])
+            if isinstance(saved_nulls, dict) and group in saved_nulls:
+                null = finite_vector(saved_nulls[group])
+            else:
+                _, null = paired_sign_flip_drop_test(group_pairs, seed=20260624 + (0 if group == "SAD" else 1000))
         else:
             test, null = paired_sign_flip_drop_test(group_pairs, seed=20260624 + (0 if group == "SAD" else 1000))
-            for i, value in enumerate(null):
+        for i, value in enumerate(null):
+            if np.isfinite(value):
                 null_rows.append({
                     "sensitivity_set": cohort,
                     "feature_space": feature_space,
                     "cohort": cohort,
                     "target_group": group,
                     "permutation_id": i,
-                    "null_functional_drop": value,
+                    "null_functional_drop": float(value),
+                    "null_source": "checkpoint_functional_drop_nulls"
+                    if isinstance(saved_nulls, dict) and group in saved_nulls
+                    else "exporter_reconstructed_sign_flip",
                 })
         if test:
             test.update({"sensitivity_set": cohort, "feature_space": feature_space, "cohort": cohort, "target_group": group})
