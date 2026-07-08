@@ -38,6 +38,7 @@ PYTHON_BIN="${PYTHON_BIN:-python3}"
 SCR_FLAGS="${SCR_FLAGS:-}"
 SCR_FLAGS_OUT="$OUT_ROOT/harmonized/scr_sensitivity_groups.csv"
 CLINICAL_OUTLIER_Z="${CLINICAL_OUTLIER_Z:-3.0}"
+RUN_AIM1_SCR="${RUN_AIM1_SCR:-1}"
 
 python_is_modern() {
   "$PYTHON_BIN" - <<'PY' >/dev/null 2>&1
@@ -74,6 +75,7 @@ if ! python_is_modern && ! running_in_container && on_hyak_filesystem; then
       OUT_ROOT="$OUT_ROOT" \
       SCR_FLAGS="$SCR_FLAGS" \
       CLINICAL_OUTLIER_Z="$CLINICAL_OUTLIER_Z" \
+      RUN_AIM1_SCR="$RUN_AIM1_SCR" \
       PROJECT_ROOT="$PROJECT_ROOT" \
       CONTAINER_SIF="$CONTAINER_SIF" \
       OUT_BASE="$OUT_BASE" \
@@ -170,6 +172,13 @@ fi
   --raincloud-out "$OUT_ROOT/stats/aim1_mask_feature_sensitivity_raincloud.csv" \
   --drop-tests-out "$OUT_ROOT/stats/aim1_mask_feature_sensitivity_functional_drop_tests.csv" \
   --drop-nulls-out "$OUT_ROOT/stats/aim1_mask_feature_sensitivity_functional_drop_nulls.csv"
+
+if [[ "$RUN_AIM1_SCR" == "1" ]]; then
+  "$PYTHON_BIN" scripts/export_aim1_scr_sensitivity.py \
+    --feature-dir "$FEAR_DIR" \
+    --out "$OUT_ROOT/stats/aim1_scr_sensitivity.csv" \
+    --feature-space "FearNetwork"
+fi
 
 "$PYTHON_BIN" scripts/run_mvpa_l2_primary_models.py \
   --input "$OUT_ROOT/harmonized/mvpa_l2_subject_metrics.csv" \
