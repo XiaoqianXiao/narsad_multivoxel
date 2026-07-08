@@ -10,6 +10,7 @@ set -euo pipefail
 #   hyak/submit_mvpa_L2_aim1_scr_sensitivity.sh
 #   N_PERMUTATION=1000 hyak/submit_mvpa_L2_aim1_scr_sensitivity.sh
 #   SCR_FLAGS_HOST=/path/to/scr_sensitivity_groups.csv hyak/submit_mvpa_L2_aim1_scr_sensitivity.sh
+#   SCR_FLAGS_TO_RUN="SCR_Simple_Acquisition_Differential_Learner SCR_Habituation_Adjusted_Learner" hyak/submit_mvpa_L2_aim1_scr_sensitivity.sh
 
 PROJECT_ROOT="${PROJECT_ROOT:-/gscratch/fang/NARSAD}"
 CONTAINER_SIF="${CONTAINER_SIF:-/gscratch/fang/images/jupyter.sif}"
@@ -33,6 +34,9 @@ N_JOBS="${N_JOBS:-16}"
 N_JOBS_CV="${N_JOBS_CV:-1}"
 N_PERMUTATION="${N_PERMUTATION:-1000}"
 N_NULL_PERMS="${N_NULL_PERMS:-5000}"
+SBATCH_RETRIES="${SBATCH_RETRIES:-3}"
+SBATCH_RETRY_SLEEP="${SBATCH_RETRY_SLEEP:-20}"
+SCR_FLAGS_TO_RUN="${SCR_FLAGS_TO_RUN:-}"
 
 SCR_FLAG_COLUMNS=(
   SCR_Physiological_Responder
@@ -40,6 +44,10 @@ SCR_FLAG_COLUMNS=(
   SCR_Habituation_Adjusted_Learner
   SCR_Late_Phase_Sensitivity_Learner
 )
+
+if [[ -n "$SCR_FLAGS_TO_RUN" ]]; then
+  read -r -a SCR_FLAG_COLUMNS <<< "$SCR_FLAGS_TO_RUN"
+fi
 
 if [[ ! -f "$SCR_FLAGS_HOST" ]]; then
   cat >&2 <<EOF
@@ -76,20 +84,32 @@ submit_flag() {
   label="$(printf '%s' "$label" | tr '[:upper:]' '[:lower:]')"
 
   local job_id
-  job_id=$(
-    sbatch --parsable \
-      --partition="$PARTITION" \
-      --account="$ACCOUNT" \
-      --nodes=1 \
-      --ntasks=1 \
-      --cpus-per-task="$CPUS" \
-      --mem="$MEM" \
-      --time="$TIME" \
-      --job-name="mvpa_a1_${flag}" \
-      --output="$LOG_DIR/mvpa_a1_${flag}_%j.out" \
-      --error="$LOG_DIR/mvpa_a1_${flag}_%j.err" \
-      --wrap="export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 N_PERMUTATION=${N_PERMUTATION} N_NULL_PERMS=${N_NULL_PERMS}; apptainer exec -B ${PROJECT_ROOT}:${PROJECT_ROOT} -B ${REPO_ROOT}:/repo -B ${APP_PATH}:/app -B ${OUT_BASE}:/output_dir ${CONTAINER_SIF} python3 /app/mvpa_L2_voxel_FearNetwork.py --project_root ${PROJECT_ROOT} --output_dir ${OUT_DIR} --roi_dir ${ROI_DIR} --n_jobs ${N_JOBS} --n_jobs_cv ${N_JOBS_CV} --n_permutation ${N_PERMUTATION} --n_null_perms ${N_NULL_PERMS} --stage 6 --include_subjects_csv ${SCR_FLAGS_CONTAINER} --include_subjects_flag ${flag} --include_subjects_column sub_ID --analysis_label ${label}"
-  )
+  local attempt=1
+  while true; do
+    if job_id=$(
+      sbatch --parsable \
+        --partition="$PARTITION" \
+        --account="$ACCOUNT" \
+        --nodes=1 \
+        --ntasks=1 \
+        --cpus-per-task="$CPUS" \
+        --mem="$MEM" \
+        --time="$TIME" \
+        --job-name="mvpa_a1_${flag}" \
+        --output="$LOG_DIR/mvpa_a1_${flag}_%j.out" \
+        --error="$LOG_DIR/mvpa_a1_${flag}_%j.err" \
+        --wrap="export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 N_PERMUTATION=${N_PERMUTATION} N_NULL_PERMS=${N_NULL_PERMS}; apptainer exec -B ${PROJECT_ROOT}:${PROJECT_ROOT} -B ${REPO_ROOT}:/repo -B ${APP_PATH}:/app -B ${OUT_BASE}:/output_dir ${CONTAINER_SIF} python3 /app/mvpa_L2_voxel_FearNetwork.py --project_root ${PROJECT_ROOT} --output_dir ${OUT_DIR} --roi_dir ${ROI_DIR} --n_jobs ${N_JOBS} --n_jobs_cv ${N_JOBS_CV} --n_permutation ${N_PERMUTATION} --n_null_perms ${N_NULL_PERMS} --stage 6 --include_subjects_csv ${SCR_FLAGS_CONTAINER} --include_subjects_flag ${flag} --include_subjects_column sub_ID --analysis_label ${label}"
+    ); then
+      break
+    fi
+    if [[ "$attempt" -ge "$SBATCH_RETRIES" ]]; then
+      echo "ERROR: failed to submit ${flag} after ${attempt} attempt(s)." >&2
+      return 1
+    fi
+    echo "WARN: sbatch failed for ${flag}; retrying in ${SBATCH_RETRY_SLEEP}s (${attempt}/${SBATCH_RETRIES})..." >&2
+    sleep "$SBATCH_RETRY_SLEEP"
+    attempt=$((attempt + 1))
+  done
   echo "Submitted Analysis 1 SCR sensitivity ${flag}: job ${job_id}"
 }
 
