@@ -339,41 +339,78 @@ def paired_sign_flip_drop_test(pairs: pd.DataFrame, n_perm: int = 10000, seed: i
     }, null
 
 
+def finite_vector(values: object) -> np.ndarray:
+    if values is None:
+        return np.array([], dtype=float)
+    arr = np.asarray(values, dtype=float).ravel()
+    return arr[np.isfinite(arr)]
+
+
+def aggregate_drop_test(result: Dict, group: str) -> tuple[Dict, np.ndarray]:
+    """Use the same aggregate self/cross values shown in Panel B dumbbells."""
+    matrix = result.get("func_matrix")
+    if matrix is None:
+        return {}, np.array([], dtype=float)
+    matrix = np.asarray(matrix, dtype=float)
+    if matrix.shape != (2, 2):
+        return {}, np.array([], dtype=float)
+
+    if group == "SAD":
+        within = scalar(result.get("acc_sad_cv", matrix[0, 0]))
+        cross = scalar(matrix[1, 0])
+        within_null = finite_vector(result.get("perm_dist_sad"))
+        cross_null = finite_vector(result.get("perm_dist_hc2sad"))
+    elif group == "HC":
+        within = scalar(result.get("acc_hc_cv", matrix[1, 1]))
+        cross = scalar(matrix[0, 1])
+        within_null = finite_vector(result.get("perm_dist_hc"))
+        cross_null = finite_vector(result.get("perm_dist_sad2hc"))
+    else:
+        return {}, np.array([], dtype=float)
+
+    if pd.isna(within) or pd.isna(cross):
+        return {}, np.array([], dtype=float)
+
+    observed = float(within - cross)
+    n_null = min(len(within_null), len(cross_null))
+    null = within_null[:n_null] - cross_null[:n_null] if n_null else np.array([], dtype=float)
+    null = null[np.isfinite(null)]
+    if len(null):
+        p_value = float((1 + np.sum(null >= observed)) / (len(null) + 1))
+        ci_low, ci_high = np.percentile(null, [2.5, 97.5])
+    else:
+        p_value = np.nan
+        ci_low, ci_high = np.nan, np.nan
+
+    return {
+        "n_pairs": 1,
+        "within_group_accuracy": float(within),
+        "cross_group_accuracy": float(cross),
+        "functional_drop": observed,
+        "drop_ci_low": float(ci_low) if pd.notna(ci_low) else np.nan,
+        "drop_ci_high": float(ci_high) if pd.notna(ci_high) else np.nan,
+        "functional_drop_p": p_value,
+        "n_permutations": int(len(null)),
+        "test": "aggregate_self_minus_cross",
+    }, null
+
+
 def functional_drop_test_rows(result: Dict, pairs: pd.DataFrame, feature_space: str, label: str) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Return self-vs-cross drop-test rows and optional null-distribution rows."""
-    saved_tests = result.get("functional_drop_tests")
-    saved_nulls = result.get("functional_drop_nulls")
+    """Return aggregate self-vs-cross drop-test rows and optional null rows."""
     tests = []
     null_rows = []
     for group in ["SAD", "HC"]:
-        group_pairs = pairs[pairs["target_group"].astype(str).eq(group)].copy() if not pairs.empty else pd.DataFrame()
-        if isinstance(saved_tests, dict) and group in saved_tests:
-            test = dict(saved_tests[group])
-            if isinstance(saved_nulls, dict) and group in saved_nulls:
-                null = np.asarray(saved_nulls[group], dtype=float).ravel()
-                for i, value in enumerate(null):
-                    if np.isfinite(value):
-                        null_rows.append({
-                            "sensitivity_set": label,
-                            "feature_space": feature_space,
-                            "cohort": "full_placebo",
-                            "target_group": group,
-                            "permutation_id": i,
-                            "null_functional_drop": float(value),
-                            "null_source": "checkpoint_functional_drop_nulls",
-                        })
-        else:
-            test, null = paired_sign_flip_drop_test(group_pairs, seed=20260624 + (0 if group == "SAD" else 1000))
-            for i, value in enumerate(null):
-                null_rows.append({
-                    "sensitivity_set": label,
-                    "feature_space": feature_space,
-                    "cohort": "full_placebo",
-                    "target_group": group,
-                    "permutation_id": i,
-                    "null_functional_drop": value,
-                    "null_source": "exporter_reconstructed_sign_flip",
-                })
+        test, null = aggregate_drop_test(result, group)
+        for i, value in enumerate(null):
+            null_rows.append({
+                "sensitivity_set": label,
+                "feature_space": feature_space,
+                "cohort": "full_placebo",
+                "target_group": group,
+                "permutation_id": i,
+                "null_functional_drop": value,
+                "null_source": "aggregate_self_minus_cross_null",
+            })
         if test:
             test.update({"sensitivity_set": label, "feature_space": feature_space, "cohort": "full_placebo", "target_group": group})
             tests.append(test)

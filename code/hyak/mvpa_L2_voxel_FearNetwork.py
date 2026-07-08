@@ -1253,19 +1253,60 @@ def paired_sign_flip_drop_test(pairs, n_perm=N_PERMUTATION, seed=RANDOM_STATE):
 
 
 def build_functional_drop_outputs(
-    X_sad, y_sad, sub_sad, X_hc, y_hc, sub_hc, model_sad, model_hc, best_c_sad, best_c_hc
+    X_sad, y_sad, sub_sad, X_hc, y_hc, sub_hc, model_sad, model_hc, best_c_sad, best_c_hc,
+    acc_sad_cv=None, acc_hc_cv=None, mean_sad2hc=None, mean_hc2sad=None,
+    perm_acc_sad=None, perm_acc_hc=None, perm_sad2hc=None, perm_hc2sad=None
 ):
-    """Build visualization-ready paired rows and self-vs-cross drop tests."""
+    """Build paired rows and aggregate self-vs-cross drop tests."""
     sad_pairs = run_loso_self_cross_pairs("SAD", X_sad, y_sad, sub_sad, model_hc, best_c_sad)
     hc_pairs = run_loso_self_cross_pairs("HC", X_hc, y_hc, sub_hc, model_sad, best_c_hc)
     pairs = pd.concat([sad_pairs, hc_pairs], ignore_index=True) if not sad_pairs.empty or not hc_pairs.empty else pd.DataFrame()
     tests = {}
     nulls = {}
-    for group, group_pairs in pairs.groupby("target_group", dropna=True):
-        test, null = paired_sign_flip_drop_test(group_pairs, n_perm=N_PERMUTATION, seed=RANDOM_STATE + (0 if group == "SAD" else 1000))
-        if test:
-            tests[group] = test
-            nulls[group] = null
+    def finite_vector_local(values):
+        if values is None:
+            return np.array([], dtype=float)
+        arr = np.asarray(values, dtype=float).ravel()
+        return arr[np.isfinite(arr)]
+    aggregate_specs = {
+        "SAD": (acc_sad_cv, mean_hc2sad, perm_acc_sad, perm_hc2sad),
+        "HC": (acc_hc_cv, mean_sad2hc, perm_acc_hc, perm_sad2hc),
+    }
+    for group, (within, cross, within_null, cross_null) in aggregate_specs.items():
+        if within is None or cross is None:
+            continue
+        within = float(within)
+        cross = float(cross)
+        observed = within - cross
+        within_null = finite_vector_local(within_null)
+        cross_null = finite_vector_local(cross_null)
+        n_null = min(len(within_null), len(cross_null))
+        null = within_null[:n_null] - cross_null[:n_null] if n_null else np.array([], dtype=float)
+        null = null[np.isfinite(null)]
+        if len(null):
+            p_value = float((1 + np.sum(null >= observed)) / (len(null) + 1))
+            ci_low, ci_high = np.percentile(null, [2.5, 97.5])
+        else:
+            p_value = np.nan
+            ci_low, ci_high = np.nan, np.nan
+        tests[group] = {
+            "n_pairs": 1,
+            "within_group_accuracy": within,
+            "cross_group_accuracy": cross,
+            "functional_drop": observed,
+            "drop_ci_low": float(ci_low) if np.isfinite(ci_low) else np.nan,
+            "drop_ci_high": float(ci_high) if np.isfinite(ci_high) else np.nan,
+            "functional_drop_p": p_value,
+            "n_permutations": int(len(null)),
+            "test": "aggregate_self_minus_cross",
+        }
+        nulls[group] = null
+    if not tests:
+        for group, group_pairs in pairs.groupby("target_group", dropna=True):
+            test, null = paired_sign_flip_drop_test(group_pairs, n_perm=N_PERMUTATION, seed=RANDOM_STATE + (0 if group == "SAD" else 1000))
+            if test:
+                tests[group] = test
+                nulls[group] = null
     return pairs, tests, nulls
 
     
@@ -3120,6 +3161,14 @@ if cell_active(6):
             X_hc, y_hc, sub_hc,
             model_sad, model_hc,
             best_c_sad, best_c_hc,
+            acc_sad_cv=res_sad['accuracy'],
+            acc_hc_cv=res_hc['accuracy'],
+            mean_sad2hc=mean_sad2hc,
+            mean_hc2sad=mean_hc2sad,
+            perm_acc_sad=perm_acc_sad,
+            perm_acc_hc=perm_acc_hc,
+            perm_sad2hc=perm_sad2hc,
+            perm_hc2sad=perm_hc2sad,
         )
         for group_name, drop_test in functional_drop_tests.items():
             print(
@@ -3191,6 +3240,8 @@ if cell_active(6):
             "map_hc": map_hc,
             "perm_dist_sad": perm_acc_sad, 
             "perm_dist_hc": perm_acc_hc,
+            "perm_dist_sad2hc": perm_sad2hc,
+            "perm_dist_hc2sad": perm_hc2sad,
             "model_sad": res_sad['model'], # The refitted SAD pipeline
             "model_hc": res_hc['model'],    # The refitted HC pipeline
             "best_c_sad": best_c_sad,
