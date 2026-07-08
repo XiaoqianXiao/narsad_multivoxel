@@ -15,21 +15,29 @@ set -euo pipefail
 #   SCHAEFER_DIR=/path/wholebrain_parcellation_schaefer \
 #   bash scripts/run_mvpa_l2_posthyak.sh
 
-FEAR_DIR="${FEAR_DIR:-outputs/mvpa_l2/FearNetwork}"
-MEMORY_DIR="${MEMORY_DIR:-outputs/mvpa_l2/MemoryFearNetwork}"
-SCHAEFER_DIR="${SCHAEFER_DIR:-}"
-SCR_DIR="${SCR_DIR:-scr_analysis_outputs}"
-OUT_ROOT="${OUT_ROOT:-outputs/mvpa_l2}"
-PYTHON_BIN="${PYTHON_BIN:-python3}"
-SCR_FLAGS="${SCR_FLAGS:-}"
-SCR_FLAGS_OUT="$OUT_ROOT/harmonized/scr_sensitivity_groups.csv"
-CLINICAL_OUTLIER_Z="${CLINICAL_OUTLIER_Z:-3.0}"
-
 PROJECT_ROOT="${PROJECT_ROOT:-/gscratch/fang/NARSAD}"
 CONTAINER_SIF="${CONTAINER_SIF:-/gscratch/fang/images/jupyter.sif}"
 OUT_BASE="${OUT_BASE:-/gscratch/fang/NARSAD/MRI/derivatives/fMRI_analysis/LSS/results}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="${REPO_ROOT:-$(cd "$SCRIPT_DIR/.." && pwd)}"
+
+if [[ -d "$OUT_BASE" || "$REPO_ROOT" == /gscratch/* ]]; then
+  FEAR_DIR="${FEAR_DIR:-$OUT_BASE/FearNetwork}"
+  MEMORY_DIR="${MEMORY_DIR:-$OUT_BASE/MemoryFearNetwork}"
+  SCHAEFER_DIR="${SCHAEFER_DIR:-$OUT_BASE/WholeBrain_Schaefer}"
+  SCR_DIR="${SCR_DIR:-$OUT_BASE/scr_analysis_outputs}"
+  OUT_ROOT="${OUT_ROOT:-$OUT_BASE/mvpa_l2}"
+else
+  FEAR_DIR="${FEAR_DIR:-outputs/mvpa_l2/FearNetwork}"
+  MEMORY_DIR="${MEMORY_DIR:-outputs/mvpa_l2/MemoryFearNetwork}"
+  SCHAEFER_DIR="${SCHAEFER_DIR:-}"
+  SCR_DIR="${SCR_DIR:-scr_analysis_outputs}"
+  OUT_ROOT="${OUT_ROOT:-outputs/mvpa_l2}"
+fi
+PYTHON_BIN="${PYTHON_BIN:-python3}"
+SCR_FLAGS="${SCR_FLAGS:-}"
+SCR_FLAGS_OUT="$OUT_ROOT/harmonized/scr_sensitivity_groups.csv"
+CLINICAL_OUTLIER_Z="${CLINICAL_OUTLIER_Z:-3.0}"
 
 python_is_modern() {
   "$PYTHON_BIN" - <<'PY' >/dev/null 2>&1

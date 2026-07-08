@@ -21,7 +21,7 @@ def parse_feature_dir(value: str) -> Tuple[str, Path]:
 
 
 def first_value(frame: pd.DataFrame, test: str, value_col: str) -> float:
-    if frame.empty or value_col not in frame.columns:
+    if frame.empty or "test" not in frame.columns or value_col not in frame.columns:
         return np.nan
     match = frame[frame["test"].astype(str).eq(test)]
     if match.empty:
@@ -31,7 +31,7 @@ def first_value(frame: pd.DataFrame, test: str, value_col: str) -> float:
 
 def compatibility_rows(table: pd.DataFrame, feature_space: str, checkpoint: object) -> List[Dict[str, object]]:
     rows: List[Dict[str, object]] = []
-    if table.empty:
+    if table.empty or "test" not in table.columns:
         return rows
     label = feature_label(feature_space)
     mappings = [
@@ -67,24 +67,28 @@ def compatibility_rows(table: pd.DataFrame, feature_space: str, checkpoint: obje
 
 
 def wide_row(table: pd.DataFrame, feature_space: str) -> Dict[str, object]:
+    status = "missing"
+    if not table.empty:
+        if "test" in table.columns:
+            status = "ok"
+        elif "status" in table.columns and table["status"].notna().any():
+            status = str(table["status"].dropna().iloc[0])
+    sad_to_hc = first_value(table, "SAD model tested on HC", "accuracy")
+    hc_to_sad = first_value(table, "HC model tested on SAD", "accuracy")
+    cross_values = [value for value in [sad_to_hc, hc_to_sad] if pd.notna(value)]
     return {
         "mask_or_feature_space": feature_label(feature_space),
         "feature_space": feature_space,
         "session": "Placebo",
-        "status": "ok" if not table.empty else "missing",
+        "status": status,
         "SAD self": first_value(table, "SAD self-decoding CV accuracy", "accuracy"),
         "SAD self p": first_value(table, "SAD self-decoding CV accuracy", "p_value"),
         "HC self": first_value(table, "HC self-decoding CV accuracy", "accuracy"),
         "HC self p": first_value(table, "HC self-decoding CV accuracy", "p_value"),
-        "Cross-group generalization index": np.nanmean(
-            [
-                first_value(table, "SAD model tested on HC", "accuracy"),
-                first_value(table, "HC model tested on SAD", "accuracy"),
-            ]
-        ),
-        "SAD -> HC": first_value(table, "SAD model tested on HC", "accuracy"),
+        "Cross-group generalization index": float(np.mean(cross_values)) if cross_values else np.nan,
+        "SAD -> HC": sad_to_hc,
         "SAD -> HC p": first_value(table, "SAD model tested on HC", "p_value"),
-        "HC -> SAD": first_value(table, "HC model tested on SAD", "accuracy"),
+        "HC -> SAD": hc_to_sad,
         "HC -> SAD p": first_value(table, "HC model tested on SAD", "p_value"),
         "Full SAD model on SAD subgroup": np.nan,
         "Full HC model on HC subgroup": np.nan,
