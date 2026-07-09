@@ -843,8 +843,9 @@ def _standardize_aim2_trajectory_frame(df, trajectory):
         "drug": df[drug_col].astype(str) if drug_col else pd.NA,
         "trial": pd.to_numeric(df[trial_col], errors="coerce"),
         "trajectory": trajectory,
+        "trajectory_metric": "target_centroid_cosine",
         "value": pd.to_numeric(df[value_col], errors="coerce"),
-        "source": "true_trial_projection",
+        "source": "true_target_centroid_cosine",
     })
     return out.dropna(subset=["trial", "value"])
 
@@ -866,7 +867,7 @@ def export_aim2_trajectory_panel(trajectory_payload):
             "CSR toward shock target",
         ))
     panel = pd.concat([frame for frame in frames if frame is not None and not frame.empty], ignore_index=True) if frames else pd.DataFrame()
-    columns = ["subject_id", "group", "drug", "trial", "trajectory", "value", "source"]
+    columns = ["subject_id", "group", "drug", "trial", "trajectory", "trajectory_metric", "value", "source"]
     if panel.empty:
         panel = pd.DataFrame(columns=columns)
     else:

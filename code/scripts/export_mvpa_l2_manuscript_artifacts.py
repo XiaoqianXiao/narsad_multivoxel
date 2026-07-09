@@ -370,13 +370,15 @@ def standardize_aim2_geometry_panel(data: pd.DataFrame, source_name: str) -> pd.
 def build_aim2_trajectory_panel(stats_dir: Path) -> pd.DataFrame:
     """Load Figure 2 panel-D input only from the true upstream trajectory export."""
     path = stats_dir / "aim2_trajectory_panel.csv"
-    columns = ["subject_id", "group", "trial", "trajectory", "value"]
+    columns = ["subject_id", "group", "trial", "trajectory", "trajectory_metric", "value"]
     if not path.exists():
         return pd.DataFrame(columns=columns)
     data = read_csv_if_exists(path)
     if data.empty:
         return pd.DataFrame(columns=columns)
     if not set(columns).issubset(data.columns):
+        return pd.DataFrame(columns=columns)
+    if not data["trajectory_metric"].astype(str).eq("target_centroid_cosine").all():
         return pd.DataFrame(columns=columns)
     if "drug" in data.columns:
         data = data[data["drug"].astype(str).eq("Placebo")].copy()

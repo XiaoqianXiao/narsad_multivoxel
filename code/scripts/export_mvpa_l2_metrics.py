@@ -33,6 +33,8 @@ DEFAULT_FEATURE_DIRS = {
     "WholeBrain_Schaefer": Path("outputs/mvpa_l2/WholeBrain_Schaefer"),
 }
 
+AIM2_TRAJECTORY_METRIC = "target_centroid_cosine"
+
 
 def parse_feature_dir(values: Optional[List[str]]) -> Dict[str, Path]:
     if not values:
@@ -252,10 +254,11 @@ def _standardize_trial_alignment(data: pd.DataFrame, trajectory: str, value_col:
         out["drug"] = data[drug_col].astype(str).values
         out = out[out["drug"].eq("Placebo")].copy()
     out["trajectory"] = trajectory
+    out["trajectory_metric"] = AIM2_TRAJECTORY_METRIC
     out["trial"] = pd.to_numeric(out["trial"], errors="coerce")
     out["value"] = pd.to_numeric(out["value"], errors="coerce")
     out["group"] = out["group"].astype(str)
-    columns = ["subject_id", "group", "drug", "trial", "trajectory", "value"] if "drug" in out.columns else ["subject_id", "group", "trial", "trajectory", "value"]
+    columns = ["subject_id", "group", "drug", "trial", "trajectory", "trajectory_metric", "value"] if "drug" in out.columns else ["subject_id", "group", "trial", "trajectory", "trajectory_metric", "value"]
     return out.dropna(subset=["trial", "value"])[columns]
 
 
@@ -274,6 +277,8 @@ def trajectory_panel_from_feature_dir(base_dir: Path) -> pd.DataFrame:
     results = payload_value(payload14, "results_13_2") or payload14
     frames = []
     if isinstance(results, dict):
+        if results.get("trajectory_metric") != AIM2_TRAJECTORY_METRIC:
+            return pd.DataFrame()
         data_safe = results.get("data_safe")
         data_threat = results.get("data_threat")
         if isinstance(data_safe, pd.DataFrame):
@@ -469,7 +474,7 @@ def export_aim2_panel_inputs(subject_df: pd.DataFrame, feature_dirs: Dict[str, P
     if feature_space in feature_dirs:
         trajectory = trajectory_panel_from_feature_dir(feature_dirs[feature_space])
     if trajectory.empty:
-        trajectory = pd.DataFrame(columns=["subject_id", "group", "trial", "trajectory", "value"])
+        trajectory = pd.DataFrame(columns=["subject_id", "group", "trial", "trajectory", "trajectory_metric", "value"])
     write_csv(trajectory, stats_dir / "aim2_trajectory_panel.csv")
     print(f"Wrote Aim 2 panel inputs -> {stats_dir / 'aim2_geometry_panel.csv'} and {stats_dir / 'aim2_trajectory_panel.csv'}")
 
