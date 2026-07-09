@@ -1466,6 +1466,15 @@ def build_functional_drop_outputs(
     return pairs, tests, nulls
 
 
+def make_permutation_chunks(n_permutations, n_jobs):
+    """Split permutations across jobs without dropping the remainder."""
+    n_permutations = int(n_permutations)
+    n_jobs = max(1, int(n_jobs))
+    active_jobs = min(n_jobs, max(1, n_permutations))
+    base, remainder = divmod(n_permutations, active_jobs)
+    return [base + (idx < remainder) for idx in range(active_jobs)]
+
+
 def run_spatial_perm(seed, maps, groups):
     rng = np.random.default_rng(seed)
     shuffled = rng.permutation(groups)
@@ -2209,9 +2218,9 @@ if stage_active(6):
     
     # Permutation Test (Comparing Observed CV Score against Null CV Scores)
     print(f"Running Permutation Test (Self-Decoding, {N_PERMUTATION} iter)...")
-    iters_per_job = N_PERMUTATION // N_JOBS
-    perm_acc_sad = np.concatenate(Parallel(n_jobs=N_JOBS)(delayed(run_perm_simple)(X_sad, y_sad, sub_sad, iters_per_job) for _ in range(N_JOBS)))
-    perm_acc_hc = np.concatenate(Parallel(n_jobs=N_JOBS)(delayed(run_perm_simple)(X_hc, y_hc, sub_hc, iters_per_job) for _ in range(N_JOBS)))
+    permutation_chunks = make_permutation_chunks(N_PERMUTATION, N_JOBS)
+    perm_acc_sad = np.concatenate(Parallel(n_jobs=N_JOBS)(delayed(run_perm_simple)(X_sad, y_sad, sub_sad, n_iter) for n_iter in permutation_chunks))
+    perm_acc_hc = np.concatenate(Parallel(n_jobs=N_JOBS)(delayed(run_perm_simple)(X_hc, y_hc, sub_hc, n_iter) for n_iter in permutation_chunks))
     
     # =============================================================================
     # TEST 2: Functional Specificity (Cross-Decoding)
@@ -2235,11 +2244,11 @@ if stage_active(6):
     # Permutation Test (Cross-Decoding)
     print(f"Running Permutation Test (Cross-Decoding, {N_PERMUTATION} iter)...")
     perm_sad2hc = np.concatenate(Parallel(n_jobs=N_JOBS)(
-        delayed(run_cross_perm)(model_sad, X_hc, y_hc, sub_hc, iters_per_job) for _ in range(N_JOBS)))
+        delayed(run_cross_perm)(model_sad, X_hc, y_hc, sub_hc, n_iter) for n_iter in permutation_chunks))
     p_sad2hc = np.mean(perm_sad2hc >= mean_sad2hc)
     
     perm_hc2sad = np.concatenate(Parallel(n_jobs=N_JOBS)(
-        delayed(run_cross_perm)(model_hc, X_sad, y_sad, sub_sad, iters_per_job) for _ in range(N_JOBS)))
+        delayed(run_cross_perm)(model_hc, X_sad, y_sad, sub_sad, n_iter) for n_iter in permutation_chunks))
     p_hc2sad = np.mean(perm_hc2sad >= mean_hc2sad)
 
     functional_drop_pairs, functional_drop_tests, functional_drop_nulls = build_functional_drop_outputs(

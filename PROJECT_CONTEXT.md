@@ -47,7 +47,7 @@ Aims 1-4 focus on placebo-session participants. Aim 5 includes both placebo and 
 
 - **Aims 1-4:** placebo-session participants only.
 - **Aim 5:** placebo and oxytocin sessions.
-- **SCR sensitivity cohorts:** used for sensitivity analyses. Because `Group x Drug` subgroups may be small, SCR-defined sensitivity analyses should duplicate the Aim 1-4 placebo-focused analysis logic and should not split by drug unless sample size supports it.
+- **SCR sensitivity cohorts:** used for sensitivity analyses. Because `Group x Drug` subgroups may be small, SCR-defined sensitivity analyses should pool placebo and oxytocin participants within each SCR-defined subgroup rather than restricting to placebo only or splitting by drug, unless an analysis is explicitly designed as an Aim 5 `Group x Drug` sensitivity check.
 
 SCR sensitivity cohort flags:
 

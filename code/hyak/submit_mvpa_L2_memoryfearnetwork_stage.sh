@@ -23,10 +23,10 @@ PARTITION="${PARTITION:-ckpt-all}"
 ACCOUNT="${ACCOUNT:-fang}"
 TIME="${TIME:-96:00:00}"
 MEM="${MEM:-100G}"
-CPUS="${CPUS:-16}"
+CPUS="${CPUS:-24}"
 
 # Parallel settings. Keep CV serial by default to avoid nested oversubscription.
-N_JOBS="${N_JOBS:-16}"
+N_JOBS="${N_JOBS:-24}"
 N_JOBS_CV="${N_JOBS_CV:-1}"
 N_PERMUTATION="${N_PERMUTATION:-5000}"
 N_NULL_PERMS="${N_NULL_PERMS:-5000}"

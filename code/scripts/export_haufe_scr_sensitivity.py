@@ -2,10 +2,11 @@
 """Export SCR-subgroup Haufe spatial-pattern stability checks.
 
 This is a lightweight sensitivity analysis for the Haufe-transformed maps used
-in the MVPA L2 report. It retrains the placebo CSR-vs-CSS linear decoder within
-SCR-defined subject subsets, computes Haufe activation patterns using the same
-scaled-covariance transform as the primary script, and compares the selected
-voxel ROI distribution with the full placebo-sample Haufe pattern.
+in the MVPA L2 report. It retrains the CSR-vs-CSS linear decoder within
+SCR-defined subject subsets pooled across placebo and oxytocin sessions,
+computes Haufe activation patterns using the same scaled-covariance transform
+as the primary script, and compares the selected voxel ROI distribution with
+the full placebo-sample Haufe pattern.
 """
 
 import argparse
@@ -186,6 +187,30 @@ def load_roi_fdr_masks(feature_dir, roi_labels, alpha=0.05):
     return masks, counts
 
 
+def combine_group_extinction(data_subsets, keys):
+    frames = []
+    for key in keys:
+        data = data_subsets.get(key, {}).get("ext")
+        if not isinstance(data, dict):
+            continue
+        if not {"X", "y", "sub"}.issubset(data):
+            continue
+        frames.append(
+            {
+                "X": np.asarray(data["X"]),
+                "y": np.asarray(data["y"]),
+                "sub": np.asarray(data["sub"]).astype(str),
+            }
+        )
+    if not frames:
+        return {"X": np.empty((0, 0)), "y": np.asarray([]), "sub": np.asarray([])}
+    return {
+        "X": np.concatenate([frame["X"] for frame in frames], axis=0),
+        "y": np.concatenate([frame["y"] for frame in frames], axis=0),
+        "sub": np.concatenate([frame["sub"] for frame in frames], axis=0),
+    }
+
+
 def export(feature_dir, scr_groups_csv, out_summary, out_roi, feature_space="FearNetwork", min_subjects=6):
     feature_dir = Path(feature_dir)
     cell6 = load_joblib(feature_dir / "checkpoints" / "cell_06.joblib")
@@ -203,8 +228,8 @@ def export(feature_dir, scr_groups_csv, out_summary, out_roi, feature_space="Fea
     }
     c_values = {"SAD": result.get("best_c_sad", 0.01), "HC": result.get("best_c_hc", 0.01)}
     datasets = {
-        "SAD": cell6["data_subsets"]["SAD_Placebo"]["ext"],
-        "HC": cell6["data_subsets"]["HC_Placebo"]["ext"],
+        "SAD": combine_group_extinction(cell6["data_subsets"], ["SAD_Placebo", "SAD_Oxytocin"]),
+        "HC": combine_group_extinction(cell6["data_subsets"], ["HC_Placebo", "HC_Oxytocin"]),
     }
 
     full_dist = {}
@@ -233,7 +258,7 @@ def export(feature_dir, scr_groups_csv, out_summary, out_roi, feature_space="Fea
             n_classes = int(len(np.unique(y))) if len(y) else 0
             base = {
                 "feature_space": feature_space,
-                "session": "Placebo",
+                "session": "pooled_drug",
                 "scr_cohort": flag,
                 "group": group,
                 "top_n_selected_voxels": int(top_n),
@@ -270,7 +295,7 @@ def export(feature_dir, scr_groups_csv, out_summary, out_roi, feature_space="Fea
             summary_rows.append(row)
             dist_df.insert(0, "group", group)
             dist_df.insert(0, "scr_cohort", flag)
-            dist_df.insert(0, "session", "Placebo")
+            dist_df.insert(0, "session", "pooled_drug")
             dist_df.insert(0, "feature_space", feature_space)
             dist_df["top_n_selected_voxels"] = int(top_n)
             dist_df["full_group_roi_fdr_voxels"] = int(roi_fdr_counts.get(group, 0))
@@ -292,7 +317,13 @@ def export(feature_dir, scr_groups_csv, out_summary, out_roi, feature_space="Fea
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--feature-dir", default="outputs/mvpa_l2/FearNetwork")
-    parser.add_argument("--scr-groups-csv", default="outputs/mvpa_l2/harmonized/scr_sensitivity_groups.csv")
+    parser.add_argument(
+        "--scr-groups-csv",
+        "--scr-flags",
+        dest="scr_groups_csv",
+        default="outputs/mvpa_l2/harmonized/scr_sensitivity_groups.csv",
+        help="SCR sensitivity group/flag CSV.",
+    )
     parser.add_argument("--out-summary", default="outputs/mvpa_l2/stats/aim2_haufe_scr_sensitivity.csv")
     parser.add_argument("--out-roi", default="outputs/mvpa_l2/stats/aim2_haufe_scr_sensitivity_roi_distribution.csv")
     parser.add_argument("--feature-space", default="FearNetwork")

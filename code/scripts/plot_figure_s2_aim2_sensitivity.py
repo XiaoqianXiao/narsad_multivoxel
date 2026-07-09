@@ -295,7 +295,7 @@ def make_figure(data: pd.DataFrame, output_png: Path, output_svg: Path, mock: bo
         axes[1],
         subgroup_matrix,
         subgroup_annotations,
-        "B. Across SCR-defined participant subgroups",
+        "B. Across SCR-defined participant subgroups (pooled drug)",
         metrics,
         vlim,
     )
@@ -313,6 +313,12 @@ def make_figure(data: pd.DataFrame, output_png: Path, output_svg: Path, mock: bo
         "Positive values indicate SAD > HC; negative values indicate SAD < HC. "
         "\u2020 FDR q < .05; * nominal p < .05.",
         fontsize=9,
+    )
+    fig.text(
+        0.01,
+        0.01,
+        "SCR-defined subgroup sensitivity checks pool placebo and oxytocin participants within each subgroup because subgroup sample sizes are small.",
+        fontsize=8,
     )
     fig.savefig(output_png, dpi=300)
     fig.savefig(output_svg)

@@ -21,22 +21,45 @@ from mvpa_l2_common import (
 
 
 GROUP_TERM = "C(Group, Treatment(reference='HC'))[T.SAD]"
+DRUG_TERM = "C(Drug, Treatment(reference='Placebo'))"
 DRUG_INTERACTION_TERM = "C(Group, Treatment(reference='HC'))[T.SAD]:C(Drug, Treatment(reference='Placebo'))[T.Oxytocin]"
 
 
-def run_group_model(df: pd.DataFrame, label: str, feature_space: str, covariates: List[str]) -> List[Dict]:
+def run_group_model(
+    df: pd.DataFrame,
+    label: str,
+    feature_space: str,
+    covariates: List[str],
+    drug_scope: str = "placebo",
+) -> List[Dict]:
     rows = []
-    sub = df[(df["FeatureSpace"] == feature_space) & (df["Drug"] == "Placebo")].copy()
+    sub = df[df["FeatureSpace"] == feature_space].copy()
+    session = "pooled_drug"
+    predictor_terms = ["C(Group, Treatment(reference='HC'))"]
+    if drug_scope == "placebo":
+        sub = sub[sub["Drug"] == "Placebo"].copy()
+        session = "Placebo"
+    elif sub["Drug"].dropna().nunique() > 1:
+        predictor_terms.append(DRUG_TERM)
+
     for metric in CORE_NEURAL_METRICS:
         row = fit_lm(
             sub,
             outcome=metric,
-            predictor_terms=["C(Group, Treatment(reference='HC'))"],
+            predictor_terms=predictor_terms,
             covariates=covariates,
             term_of_interest=GROUP_TERM,
             min_n=10,
         )
-        row.update({"analysis": "Sensitivity_Aim2_Group", "sensitivity": label, "metric": metric, "feature_space": feature_space})
+        row.update(
+            {
+                "analysis": "Sensitivity_Aim2_Group",
+                "sensitivity": label,
+                "metric": metric,
+                "feature_space": feature_space,
+                "session": session,
+            }
+        )
         rows.append(row)
     return rows
 
@@ -131,7 +154,7 @@ def main() -> None:
         if len(sub) == 0:
             print(f"[WARN] Empty cohort: {flag}")
             continue
-        rows.extend(run_group_model(sub, label, args.primary_feature_space, covariates))
+        rows.extend(run_group_model(sub, label, args.primary_feature_space, covariates, drug_scope="pooled"))
         rows.extend(run_scr_model(sub, label, args.primary_feature_space, covariates))
         if cell_count_ok(sub, args.min_cell_n):
             rows.extend(run_drug_model(sub, label, args.primary_feature_space, covariates))

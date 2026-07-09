@@ -8,7 +8,7 @@ set -euo pipefail
 #
 # Usage:
 #   hyak/submit_mvpa_L2_aim1_scr_sensitivity.sh
-#   N_PERMUTATION=1000 hyak/submit_mvpa_L2_aim1_scr_sensitivity.sh
+#   N_PERMUTATION=1000 hyak/submit_mvpa_L2_aim1_scr_sensitivity.sh  # optional quick test override
 #   SCR_FLAGS_HOST=/path/to/scr_sensitivity_groups.csv hyak/submit_mvpa_L2_aim1_scr_sensitivity.sh
 #   SCR_FLAGS_TO_RUN="SCR_Simple_Acquisition_Differential_Learner SCR_Habituation_Adjusted_Learner" hyak/submit_mvpa_L2_aim1_scr_sensitivity.sh
 
@@ -28,11 +28,11 @@ PARTITION="${PARTITION:-ckpt-all}"
 ACCOUNT="${ACCOUNT:-fang}"
 TIME="${TIME:-48:00:00}"
 MEM="${MEM:-100G}"
-CPUS="${CPUS:-16}"
+CPUS="${CPUS:-24}"
 
-N_JOBS="${N_JOBS:-16}"
+N_JOBS="${N_JOBS:-24}"
 N_JOBS_CV="${N_JOBS_CV:-1}"
-N_PERMUTATION="${N_PERMUTATION:-1000}"
+N_PERMUTATION="${N_PERMUTATION:-5000}"
 N_NULL_PERMS="${N_NULL_PERMS:-5000}"
 SBATCH_RETRIES="${SBATCH_RETRIES:-3}"
 SBATCH_RETRY_SLEEP="${SBATCH_RETRY_SLEEP:-20}"

@@ -1149,7 +1149,16 @@ def build_functional_drop_outputs(
                 nulls[group] = null
     return pairs, tests, nulls
 
-    
+
+def make_permutation_chunks(n_permutations, n_jobs):
+    """Split permutations across jobs without dropping the remainder."""
+    n_permutations = int(n_permutations)
+    n_jobs = max(1, int(n_jobs))
+    active_jobs = min(n_jobs, max(1, n_permutations))
+    base, remainder = divmod(n_permutations, active_jobs)
+    return [base + (idx < remainder) for idx in range(active_jobs)]
+
+
 def run_spatial_perm(seed, maps, groups):
     rng = np.random.default_rng(seed)
     shuffled = rng.permutation(groups)
@@ -2914,9 +2923,9 @@ if cell_active(6):
 
         # Permutation Test (Comparing Observed CV Score against Null CV Scores)
         print(f"Running Permutation Test (Self-Decoding, {N_PERMUTATION} iter)...")
-        iters_per_job = N_PERMUTATION // N_JOBS
-        perm_acc_sad = np.concatenate(Parallel(n_jobs=N_JOBS)(delayed(run_perm_simple)(X_sad, y_sad, sub_sad, iters_per_job) for _ in range(N_JOBS)))
-        perm_acc_hc = np.concatenate(Parallel(n_jobs=N_JOBS)(delayed(run_perm_simple)(X_hc, y_hc, sub_hc, iters_per_job) for _ in range(N_JOBS)))
+        permutation_chunks = make_permutation_chunks(N_PERMUTATION, N_JOBS)
+        perm_acc_sad = np.concatenate(Parallel(n_jobs=N_JOBS)(delayed(run_perm_simple)(X_sad, y_sad, sub_sad, n_iter) for n_iter in permutation_chunks))
+        perm_acc_hc = np.concatenate(Parallel(n_jobs=N_JOBS)(delayed(run_perm_simple)(X_hc, y_hc, sub_hc, n_iter) for n_iter in permutation_chunks))
 
         # =============================================================================
         # TEST 2: Functional Specificity (Cross-Decoding)
@@ -2940,11 +2949,11 @@ if cell_active(6):
         # Permutation Test (Cross-Decoding)
         print(f"Running Permutation Test (Cross-Decoding, {N_PERMUTATION} iter)...")
         perm_sad2hc = np.concatenate(Parallel(n_jobs=N_JOBS)(
-            delayed(run_cross_perm)(model_sad, X_hc, y_hc, sub_hc, iters_per_job) for _ in range(N_JOBS)))
+            delayed(run_cross_perm)(model_sad, X_hc, y_hc, sub_hc, n_iter) for n_iter in permutation_chunks))
         p_sad2hc = np.mean(perm_sad2hc >= mean_sad2hc)
 
         perm_hc2sad = np.concatenate(Parallel(n_jobs=N_JOBS)(
-            delayed(run_cross_perm)(model_hc, X_sad, y_sad, sub_sad, iters_per_job) for _ in range(N_JOBS)))
+            delayed(run_cross_perm)(model_hc, X_sad, y_sad, sub_sad, n_iter) for n_iter in permutation_chunks))
         p_hc2sad = np.mean(perm_hc2sad >= mean_hc2sad)
 
         functional_drop_pairs, functional_drop_tests, functional_drop_nulls = build_functional_drop_outputs(
@@ -3139,10 +3148,10 @@ if cell_active(7):
         model_ext = results_11["model_sad"] if grp == "SAD" else results_11["model_hc"]
         obs_accs = run_cross_decoding(model_ext, X_rst, y_rst, sub_rst, model_ext.classes_)
         obs_mean = float(np.mean(obs_accs))
-        iters_per_job = max(1, N_PERMUTATION // max(1, N_JOBS))
+        permutation_chunks = make_permutation_chunks(N_PERMUTATION, N_JOBS)
         perm_dist_corrected = np.concatenate(Parallel(n_jobs=N_JOBS)(
-            delayed(run_strict_forced_choice_perm)(model_ext, X_rst, y_rst, sub_rst, iters_per_job)
-            for _ in range(max(1, N_JOBS))
+            delayed(run_strict_forced_choice_perm)(model_ext, X_rst, y_rst, sub_rst, n_iter)
+            for n_iter in permutation_chunks
         ))
         p_val = float(np.mean(perm_dist_corrected >= obs_mean)) if len(perm_dist_corrected) else np.nan
         strict_cross_phase_results[grp] = {

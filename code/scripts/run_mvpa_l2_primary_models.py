@@ -61,6 +61,26 @@ AIM2_SECONDARY_METRICS = {
 }
 
 AIM2_PRIMARY_METRICS = set(CORE_NEURAL_METRICS)
+AIM2_METRIC_TO_QUESTION = {
+    metric: question
+    for question, metrics in AIM2_QUESTION_METRICS.items()
+    for metric in metrics
+}
+
+
+def neural_question_fields(metric: str) -> Dict[str, object]:
+    question = AIM2_METRIC_TO_QUESTION.get(metric)
+    if question is None:
+        return {
+            "aim2_question": None,
+            "aim2_question_order": 999,
+            "aim2_question_label": None,
+        }
+    return {
+        "aim2_question": question,
+        "aim2_question_order": list(AIM2_QUESTION_METRICS).index(question) + 1,
+        "aim2_question_label": AIM2_QUESTION_LABELS[question],
+    }
 
 
 def clinical_hierarchy_fields(clinical_score: str) -> Dict[str, object]:
@@ -207,6 +227,7 @@ def run_aim3(df: pd.DataFrame, feature_space: str, covariates: List[str], clinic
                         }
                     )
                     row.update(clinical_hierarchy_fields(clinical))
+                    row.update(neural_question_fields(metric))
                     row.update(metric_hierarchy_fields(metric))
                     rows.append(row)
                     continue
@@ -237,6 +258,7 @@ def run_aim3(df: pd.DataFrame, feature_space: str, covariates: List[str], clinic
                     }
                 )
                 row.update(clinical_hierarchy_fields(clinical))
+                row.update(neural_question_fields(metric))
                 row.update(metric_hierarchy_fields(metric))
                 rows.append(row)
     return pd.DataFrame(rows)
@@ -270,6 +292,7 @@ def run_aim4(df: pd.DataFrame, feature_space: str, covariates: List[str]) -> pd.
                         "feature_space": feature_space,
                     }
                 )
+                row.update(neural_question_fields(metric))
                 row.update(metric_hierarchy_fields(metric))
                 rows.append(row)
     return pd.DataFrame(rows)
@@ -291,6 +314,7 @@ def run_aim5(df: pd.DataFrame, feature_space: str, covariates: List[str]) -> pd.
         if metric not in sub.columns:
             row = {"status": "missing_outcome", "n": 0, "outcome": metric}
             row.update({"analysis": "Aim5_Group_x_Drug", "metric": metric, "feature_space": feature_space})
+            row.update(neural_question_fields(metric))
             row.update(metric_hierarchy_fields(metric))
             rows.append(row)
             continue
@@ -328,6 +352,7 @@ def run_aim5(df: pd.DataFrame, feature_space: str, covariates: List[str]) -> pd.
                 ),
             }
             row.update({"analysis": "Aim5_Group_x_Drug", "metric": metric, "feature_space": feature_space})
+            row.update(neural_question_fields(metric))
             row.update(metric_hierarchy_fields(metric))
             rows.append(row)
             continue
@@ -349,6 +374,7 @@ def run_aim5(df: pd.DataFrame, feature_space: str, covariates: List[str]) -> pd.
                 "covariates_used": ",".join([cov for cov in covariates if cov in sub.columns]),
             }
         )
+        row.update(neural_question_fields(metric))
         row.update(metric_hierarchy_fields(metric))
         rows.append(row)
     return pd.DataFrame(rows)
@@ -384,25 +410,28 @@ def main() -> None:
             table = add_fdr(table, family_cols=["analysis", "aim2_question"])
             table = table.rename(columns={"q": "q_within_question"})
             table["q"] = table["q_within_question"]
-        elif name == "aim3_clinical_relevance" and "Group" in table.columns:
-            table = add_fdr(table, family_cols=["analysis", "Group"])
-            table = table.rename(columns={"q": "q_within_group"})
-            table["q"] = table["q_within_group"]
-            table["correction_family"] = table["Group"].astype(str)
+            table["correction_family"] = table["aim2_question"].astype(str)
+        elif name == "aim3_clinical_relevance" and {"Group", "aim2_question"}.issubset(table.columns):
+            table = add_fdr(table, family_cols=["analysis", "Group", "aim2_question"])
+            table = table.rename(columns={"q": "q_within_question"})
+            table["q"] = table["q_within_question"]
+            table["correction_family"] = table["Group"].astype(str) + " | " + table["aim2_question"].astype(str)
             if "clinical_score" in table.columns:
                 clinical_table = add_fdr(table.copy(), family_cols=["analysis", "Group", "clinical_score"])
                 table["q_within_group_clinical_score"] = clinical_table["q"]
                 table["aim3_clinical_score_family"] = (
                     table["Group"].astype(str) + " | " + table["clinical_score"].astype(str)
                 )
-        elif name == "aim4_scr_convergence" and "Group" in table.columns:
-            table = add_fdr(table, family_cols=["analysis", "Group"])
-            table = table.rename(columns={"q": "q_within_group"})
-            table["q"] = table["q_within_group"]
-            table["correction_family"] = table["Group"].astype(str)
-        elif name == "aim5_oxytocin_modulation" and "metric_role" in table.columns:
-            table = add_fdr(table, family_cols=["analysis", "metric_role"])
-            table["correction_family"] = table["metric_role"].astype(str)
+        elif name == "aim4_scr_convergence" and {"Group", "aim2_question"}.issubset(table.columns):
+            table = add_fdr(table, family_cols=["analysis", "Group", "aim2_question"])
+            table = table.rename(columns={"q": "q_within_question"})
+            table["q"] = table["q_within_question"]
+            table["correction_family"] = table["Group"].astype(str) + " | " + table["aim2_question"].astype(str)
+        elif name == "aim5_oxytocin_modulation" and {"metric_role", "aim2_question"}.issubset(table.columns):
+            table = add_fdr(table, family_cols=["analysis", "metric_role", "aim2_question"])
+            table = table.rename(columns={"q": "q_within_question"})
+            table["q"] = table["q_within_question"]
+            table["correction_family"] = table["metric_role"].astype(str) + " | " + table["aim2_question"].astype(str)
         else:
             table = add_fdr(table, family_cols=["analysis"])
         write_csv(table, args.out_dir / f"{name}.csv")
