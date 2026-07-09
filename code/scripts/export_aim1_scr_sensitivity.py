@@ -477,8 +477,26 @@ def export(feature_dir, out_csv, feature_space, scr_groups_csv=None, raincloud_o
             func_matrix = np.asarray(func_matrix)
             func_pvals = np.asarray(func_pvals)
             if func_matrix.shape == (2, 2) and func_pvals.shape == (2, 2):
-                add_row(rows, result, label, feature_space, "SAD model tested on HC", func_matrix[0, 1], func_pvals[0, 1])
-                add_row(rows, result, label, feature_space, "HC model tested on SAD", func_matrix[1, 0], func_pvals[1, 0])
+                add_row(
+                    rows,
+                    result,
+                    label,
+                    feature_space,
+                    "SAD model tested on HC",
+                    func_matrix[0, 1],
+                    func_pvals[0, 1],
+                    extra=permutation_summary(result.get("perm_dist_sad2hc")),
+                )
+                add_row(
+                    rows,
+                    result,
+                    label,
+                    feature_space,
+                    "HC model tested on SAD",
+                    func_matrix[1, 0],
+                    func_pvals[1, 0],
+                    extra=permutation_summary(result.get("perm_dist_hc2sad")),
+                )
 
         add_row(
             rows,

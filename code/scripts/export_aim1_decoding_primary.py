@@ -483,8 +483,26 @@ def export(
             matrix = np.asarray(func_matrix)
             pvals = np.asarray(func_pvals) if func_pvals is not None else np.full_like(matrix, np.nan, dtype=float)
             if matrix.shape == (2, 2):
-                add_row(rows, result, "SAD_to_HC", "SAD model tested on HC", matrix[0, 1], pvals[0, 1], None, feature_space)
-                add_row(rows, result, "HC_to_SAD", "HC model tested on SAD", matrix[1, 0], pvals[1, 0], None, feature_space)
+                add_row(
+                    rows,
+                    result,
+                    "SAD_to_HC",
+                    "SAD model tested on HC",
+                    matrix[0, 1],
+                    pvals[0, 1],
+                    result.get("perm_dist_sad2hc"),
+                    feature_space,
+                )
+                add_row(
+                    rows,
+                    result,
+                    "HC_to_SAD",
+                    "HC model tested on SAD",
+                    matrix[1, 0],
+                    pvals[1, 0],
+                    result.get("perm_dist_hc2sad"),
+                    feature_space,
+                )
         if "sim_spatial" in result:
             spatial_row = {
                 "analysis": "Aim1_Spatial_Specificity",

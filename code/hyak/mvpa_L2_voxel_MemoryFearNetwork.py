@@ -855,11 +855,11 @@ def export_aim2_trajectory_panel(trajectory_payload):
     if isinstance(trajectory_payload, dict):
         frames.append(_standardize_aim2_trajectory_frame(
             trajectory_payload.get("data_safe"),
-            "CSS toward target safety",
+            "CSS similarity to CS- safety",
         ))
         frames.append(_standardize_aim2_trajectory_frame(
             trajectory_payload.get("data_threat"),
-            "CSR toward target threat",
+            "CSR similarity to CSR threat",
         ))
         frames.append(_standardize_aim2_trajectory_frame(
             trajectory_payload.get("data_threat_shock"),
@@ -1770,7 +1770,7 @@ def tag_df(df, grp, cond):
 
 def calc_trajectory(X_learn, y_learn, sub_learn, X_targ, y_targ, sub_targ, mask, cond_l, cond_t):
     """
-    Projects individual trials onto the axis defined by (Early Start -> Target Centroid).
+    Scores individual learning trials by cosine similarity to the target-condition centroid.
     """
     unique_subs = np.unique(sub_learn)
     res = {'sub': [], 'trial': [], 'score': []}
@@ -1786,26 +1786,19 @@ def calc_trajectory(X_learn, y_learn, sub_learn, X_targ, y_targ, sub_targ, mask,
         xl = X_learn[mask_sub_l][:, mask]
         xt = X_targ[mask_sub_t][:, mask]
 
-        # 2. Define Start Point (Early Learning Centroid)
-        # We take the first half of the trials as the 'Start' state
-        half_idx = len(xl) // 2
-        vec_start = np.mean(xl[:half_idx], axis=0)
-        
-        # 3. Define Target Point (Centroid of the Goal)
+        # Define target point: centroid of the goal/reference condition.
         vec_target = np.mean(xt, axis=0)
+        target_norm = np.linalg.norm(vec_target)
         
-        # 4. Define the Axis Vector (Direction of Learning)
-        axis_vec = vec_target - vec_start
-        axis_norm = np.linalg.norm(axis_vec)
-        
-        if axis_norm == 0:
+        if target_norm == 0:
             continue
 
-        # 5. Project each individual trial onto that axis
-        # Score = (Trial_Vector - Start_Vector) dot Axis_Vector / |Axis_Vector|^2
+        # Score each trial directly against the target/reference centroid.
         for i, trial_vec in enumerate(xl):
-            relative_vec = trial_vec - vec_start
-            score = np.dot(relative_vec, axis_vec) / (axis_norm**2)
+            trial_norm = np.linalg.norm(trial_vec)
+            if trial_norm == 0:
+                continue
+            score = np.dot(trial_vec, vec_target) / (trial_norm * target_norm)
             
             res['sub'].append(sub)
             res['trial'].append(i + 1)
@@ -4258,11 +4251,20 @@ if cell_active(14):
             and isinstance(loaded_trajectory.get("trajectory_slopes"), pd.DataFrame)
             and "Drug" in loaded_trajectory.get("trajectory_slopes").columns
         )
-        if isinstance(loaded_trajectory, dict) and "data_threat_shock" in loaded_trajectory and has_drug_cells:
+        has_target_centroid_cosine = (
+            isinstance(loaded_trajectory, dict)
+            and loaded_trajectory.get("trajectory_metric") == "target_centroid_cosine"
+        )
+        if (
+            isinstance(loaded_trajectory, dict)
+            and "data_threat_shock" in loaded_trajectory
+            and has_drug_cells
+            and has_target_centroid_cosine
+        ):
             print(f"  [LOAD] Found existing Trajectory results in {cache_cell12_part2}. Skipping calculation...")
             cache_cell12_payload = loaded_trajectory
         else:
-            print(f"  [RECALC] Existing Trajectory cache lacks shock-target or Drug-resolved metrics; recomputing.")
+            print(f"  [RECALC] Existing Trajectory cache lacks shock-target, Drug-resolved metrics, or target-centroid cosine scores; recomputing.")
 
     if cache_cell12_payload is not None:
         results_13_2 = cache_cell12_payload
@@ -4401,6 +4403,7 @@ if cell_active(14):
             'data_threat_shock': df_threat_shock,
             'trajectory_slopes': trajectory_slopes,
             'primary_metric': 'safety_trajectory_slope',
+            'trajectory_metric': 'target_centroid_cosine',
             'feature_space': feature_space_13b,
             'shock_target_labels': SHOCK_TARGET_LABELS,
         }
@@ -4425,9 +4428,10 @@ if cell_active(14):
                          palette={'SAD': '#c44e52', 'HC': '#4c72b0'}, 
                          lw=3, marker="o", err_style="band", ax=axes[0])
             axes[0].set_title("A. Safety Trajectory\n(Target = CS-)")
-            axes[0].set_ylabel("Similarity Score (0=Start, 1=Target)")
-            axes[0].axhline(0, color='gray', ls='--', label='Start (Fear)')
-            axes[0].axhline(1, color='#2ca02c', ls='-', lw=2, label='Target (CS-)')
+            axes[0].set_title("A. Safety Trajectory\nsim(CSS trial, CS- centroid)")
+            axes[0].set_ylabel("Cosine similarity to target centroid")
+            axes[0].axhline(0, color='gray', ls='--', label='Zero similarity')
+            axes[0].axhline(1, color='#2ca02c', ls='-', lw=2, label='Target centroid')
             axes[0].legend(loc='upper left')
 
         # 2. Threat Plot
@@ -4435,10 +4439,10 @@ if cell_active(14):
             sns.lineplot(data=df_threat, x='trial', y='score', hue='Group', 
                          palette={'SAD': '#c44e52', 'HC': '#4c72b0'}, 
                          lw=3, marker="s", err_style="band", ax=axes[1])
-            axes[1].set_title("B. Threat Maintenance\n(Target = Reinstated CSR)")
+            axes[1].set_title("B. Threat Maintenance\nsim(CSR trial, CSR centroid)")
             axes[1].set_xlabel(f"Trial (Block Size: {BLOCK_SIZE})")
-            axes[1].axhline(0, color='gray', ls='--', label='Start (Ext Early)')
-            axes[1].axhline(1, color='#d62728', ls='-', lw=2, label='Target (Reinstated CSR)')
+            axes[1].axhline(0, color='gray', ls='--', label='Zero similarity')
+            axes[1].axhline(1, color='#d62728', ls='-', lw=2, label='Target centroid')
             axes[1].legend(loc='upper left')
         else:
             axes[1].axis('off')
@@ -4450,8 +4454,8 @@ if cell_active(14):
                          lw=3, marker="^", err_style="band", ax=axes[2])
             axes[2].set_title("C. Threat Acquisition\n(Target = Shock/US)")
             axes[2].set_xlabel(f"Trial (Block Size: {BLOCK_SIZE})")
-            axes[2].axhline(0, color='gray', ls='--', label='Start (Ext Early)')
-            axes[2].axhline(1, color='#8c1d40', ls='-', lw=2, label='Target (Shock/US)')
+            axes[2].axhline(0, color='gray', ls='--', label='Zero similarity')
+            axes[2].axhline(1, color='#8c1d40', ls='-', lw=2, label='Target centroid')
             axes[2].legend(loc='upper left')
         else:
             axes[2].axis('off')
