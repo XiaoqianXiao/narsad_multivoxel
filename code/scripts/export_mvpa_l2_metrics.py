@@ -33,7 +33,7 @@ DEFAULT_FEATURE_DIRS = {
     "WholeBrain_Schaefer": Path("outputs/mvpa_l2/WholeBrain_Schaefer"),
 }
 
-AIM2_TRAJECTORY_METRIC = "target_centroid_correlation_distance"
+AIM2_TRAJECTORY_METRIC = "early_to_target_normalized_projection"
 
 
 def parse_feature_dir(values: Optional[List[str]]) -> Dict[str, Path]:

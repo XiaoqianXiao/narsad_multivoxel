@@ -620,9 +620,9 @@ def _standardize_aim2_trajectory_frame(df, trajectory):
         "drug": df[drug_col].astype(str) if drug_col else pd.NA,
         "trial": pd.to_numeric(df[trial_col], errors="coerce"),
         "trajectory": trajectory,
-        "trajectory_metric": "target_centroid_correlation_distance",
+        "trajectory_metric": "early_to_target_normalized_projection",
         "value": pd.to_numeric(df[value_col], errors="coerce"),
-        "source": "true_target_centroid_correlation_distance",
+        "source": "true_early_to_target_normalized_projection",
     })
     return out.dropna(subset=["trial", "value"])
 
@@ -633,11 +633,11 @@ def export_aim2_trajectory_panel(trajectory_payload):
     if isinstance(trajectory_payload, dict):
         frames.append(_standardize_aim2_trajectory_frame(
             trajectory_payload.get("data_safe"),
-            "CSS distance to CS- safety",
+            "CSS projection to CS- safety",
         ))
         frames.append(_standardize_aim2_trajectory_frame(
             trajectory_payload.get("data_threat"),
-            "CSR distance to CSR threat",
+            "CSR projection to CSR threat",
         ))
         frames.append(_standardize_aim2_trajectory_frame(
             trajectory_payload.get("data_threat_shock"),
@@ -1823,7 +1823,7 @@ def tag_df(df, grp, cond):
 
 
 def calc_trajectory(X_learn, y_learn, sub_learn, X_targ, y_targ, sub_targ, mask, cond_l, cond_t):
-    """Score individual learning trials by correlation distance to the target-condition centroid."""
+    """Score individual learning trials by normalized projection from early learning to target."""
     unique_subs = np.intersect1d(np.unique(sub_learn), np.unique(sub_targ))
     res = {'sub': [], 'trial': [], 'score': []}
     
@@ -1836,21 +1836,18 @@ def calc_trajectory(X_learn, y_learn, sub_learn, X_targ, y_targ, sub_targ, mask,
         xl = X_learn[mask_sub_l][:, mask]
         xt = X_targ[mask_sub_t][:, mask]
         
-        vec_target = np.mean(xt, axis=0)
-        target_centered = vec_target - np.mean(vec_target)
-        target_norm = norm(target_centered)
-        if target_norm == 0:
+        cutoff = max(1, len(xl) // 2)
+        p_start = np.mean(xl[:cutoff], axis=0)
+        p_target = np.mean(xt, axis=0)
+        axis = p_target - p_start
+        sq_norm = np.dot(axis, axis)
+        if sq_norm == 0:
             continue
 
-        for i, trial_vec in enumerate(xl):
-            trial_centered = trial_vec - np.mean(trial_vec)
-            trial_norm = norm(trial_centered)
-            if trial_norm == 0:
-                continue
-            corr = np.dot(trial_centered, target_centered) / (trial_norm * target_norm)
-            score = 1 - corr
+        scores = np.dot(xl - p_start, axis) / sq_norm
+        for trial, score in enumerate(scores, 1):
             res['sub'].append(sub)
-            res['trial'].append(i + 1)
+            res['trial'].append(trial)
             res['score'].append(score)
             
     return pd.DataFrame(res)
@@ -3610,8 +3607,10 @@ if stage_active(13):
                          palette={'SAD': '#c44e52', 'HC': '#4c72b0'}, 
                          lw=3, marker="o", err_style="band", ax=axes[0])
             axes[0].set_title("A. Safety Trajectory\n(Target = CS-)")
-            axes[0].set_title("A. Safety Trajectory\nCSS trial distance to CS- centroid")
-            axes[0].set_ylabel("Correlation distance to target centroid")
+            axes[0].set_title("A. Safety Trajectory\nCSS projection toward CS- centroid")
+            axes[0].set_ylabel("Similarity score (0=start, 1=target)")
+            axes[0].axhline(0, color='gray', ls='--', label='Start')
+            axes[0].axhline(1, color='#2ca02c', ls='-', lw=2, label='Target')
             axes[0].legend(loc='upper left')
     
         # 2. Threat Plot
@@ -3619,8 +3618,10 @@ if stage_active(13):
             sns.lineplot(data=df_threat, x='trial', y='score', hue='Group', 
                          palette={'SAD': '#c44e52', 'HC': '#4c72b0'}, 
                          lw=3, marker="s", err_style="band", ax=axes[1])
-            axes[1].set_title("B. Threat Maintenance\nCSR trial distance to CSR centroid")
+            axes[1].set_title("B. Threat Maintenance\nCSR projection toward CSR centroid")
             axes[1].set_xlabel(f"Trial (Block Size: {BLOCK_SIZE})")
+            axes[1].axhline(0, color='gray', ls='--', label='Start')
+            axes[1].axhline(1, color='#d62728', ls='-', lw=2, label='Target')
             axes[1].legend(loc='upper left')
 
         if not df_threat_shock.empty:
@@ -3629,6 +3630,8 @@ if stage_active(13):
                          lw=3, marker="^", err_style="band", ax=axes[2])
             axes[2].set_title("C. Threat Acquisition\n(Target = Shock/US)")
             axes[2].set_xlabel(f"Trial (Block Size: {BLOCK_SIZE})")
+            axes[2].axhline(0, color='gray', ls='--', label='Start')
+            axes[2].axhline(1, color='#9467bd', ls='-', lw=2, label='Target')
             axes[2].legend(loc='upper left')
         else:
             axes[2].axis('off')
@@ -3682,7 +3685,7 @@ if stage_active(13):
         'shock_target_labels': SHOCK_TARGET_LABELS,
         'trajectory_slopes': trajectory_slopes,
         'primary_metric': 'safety_trajectory_slope',
-        'trajectory_metric': 'target_centroid_correlation_distance',
+        'trajectory_metric': 'early_to_target_normalized_projection',
         'feature_space': feature_space_13b,
     }
     results_13_2 = results_13
