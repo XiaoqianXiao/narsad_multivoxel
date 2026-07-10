@@ -33,6 +33,8 @@ N_NULL_PERMS="${N_NULL_PERMS:-5000}"
 STAGE11_ACTUAL_REPEATS="${STAGE11_ACTUAL_REPEATS:-${N_NULL_PERMS}}"
 STAGE11_CHUNKS="${STAGE11_CHUNKS:-100}"
 STAGE11_ARRAY_MAX_RUNNING="${STAGE11_ARRAY_MAX_RUNNING:-20}"
+STAGE11_MASK_MODE="${STAGE11_MASK_MODE:-current}"
+STAGE11_SCORING="${STAGE11_SCORING:-auto}"
 
 # Analysis-bearing notebook cells in execution order.
 PRE_STAGE11_STAGES=(6 7 10)
@@ -203,7 +205,7 @@ submit_stage() {
       --job-name="mvpa_fear_${job_suffix}" \
       --output="$LOG_DIR/mvpa_fear_${job_suffix}_%j.out" \
       --error="$LOG_DIR/mvpa_fear_${job_suffix}_%j.err" \
-      --wrap="export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 N_PERMUTATION=${N_PERMUTATION} N_NULL_PERMS=${N_NULL_PERMS}; apptainer exec -B ${PROJECT_ROOT}:${PROJECT_ROOT} -B ${APP_PATH}:/app -B ${OUT_BASE}:/output_dir ${CONTAINER_SIF} python3 /app/mvpa_L2_voxel_FearNetwork.py --project_root ${PROJECT_ROOT} --output_dir ${OUT_DIR} --roi_dir ${ROI_DIR} --n_jobs ${N_JOBS} --n_jobs_cv ${N_JOBS_CV} --n_permutation ${N_PERMUTATION} --n_null_perms ${N_NULL_PERMS} --stage ${stage} --stage11_group ${stage11_group} ${EXTRA_ARGS}"
+      --wrap="export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 N_PERMUTATION=${N_PERMUTATION} N_NULL_PERMS=${N_NULL_PERMS} STAGE11_MASK_MODE=${STAGE11_MASK_MODE} STAGE11_SCORING=${STAGE11_SCORING}; apptainer exec -B ${PROJECT_ROOT}:${PROJECT_ROOT} -B ${APP_PATH}:/app -B ${OUT_BASE}:/output_dir ${CONTAINER_SIF} python3 /app/mvpa_L2_voxel_FearNetwork.py --project_root ${PROJECT_ROOT} --output_dir ${OUT_DIR} --roi_dir ${ROI_DIR} --n_jobs ${N_JOBS} --n_jobs_cv ${N_JOBS_CV} --n_permutation ${N_PERMUTATION} --n_null_perms ${N_NULL_PERMS} --stage ${stage} --stage11_group ${stage11_group} --stage11_mask_mode ${STAGE11_MASK_MODE} --stage11_scoring ${STAGE11_SCORING} ${EXTRA_ARGS}"
   )
   echo "$job_id"
 }
@@ -232,7 +234,7 @@ submit_stage11_array() {
       --job-name="mvpa_fear_$(stage_output_suffix 11)_${group_name}" \
       --output="$LOG_DIR/mvpa_fear_$(stage_output_suffix 11)_${group_name}_%A_%a.out" \
       --error="$LOG_DIR/mvpa_fear_$(stage_output_suffix 11)_${group_name}_%A_%a.err" \
-      --wrap="export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 N_PERMUTATION=${N_PERMUTATION} N_NULL_PERMS=${N_NULL_PERMS} STAGE11_ACTUAL_REPEATS=${STAGE11_ACTUAL_REPEATS} STAGE11_CHUNK_COUNT=${STAGE11_CHUNKS}; apptainer exec -B ${PROJECT_ROOT}:${PROJECT_ROOT} -B ${APP_PATH}:/app -B ${OUT_BASE}:/output_dir ${CONTAINER_SIF} python3 /app/mvpa_L2_voxel_FearNetwork.py --project_root ${PROJECT_ROOT} --output_dir ${OUT_DIR} --roi_dir ${ROI_DIR} --n_jobs ${N_JOBS} --n_jobs_cv ${N_JOBS_CV} --n_permutation ${N_PERMUTATION} --n_null_perms ${N_NULL_PERMS} --stage11_actual_repeats ${STAGE11_ACTUAL_REPEATS} --stage11_chunk_count ${STAGE11_CHUNKS} --stage11_chunk_idx \$SLURM_ARRAY_TASK_ID --stage 11 --stage11_group ${group_name} ${EXTRA_ARGS}"
+      --wrap="export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 N_PERMUTATION=${N_PERMUTATION} N_NULL_PERMS=${N_NULL_PERMS} STAGE11_ACTUAL_REPEATS=${STAGE11_ACTUAL_REPEATS} STAGE11_CHUNK_COUNT=${STAGE11_CHUNKS} STAGE11_MASK_MODE=${STAGE11_MASK_MODE} STAGE11_SCORING=${STAGE11_SCORING}; apptainer exec -B ${PROJECT_ROOT}:${PROJECT_ROOT} -B ${APP_PATH}:/app -B ${OUT_BASE}:/output_dir ${CONTAINER_SIF} python3 /app/mvpa_L2_voxel_FearNetwork.py --project_root ${PROJECT_ROOT} --output_dir ${OUT_DIR} --roi_dir ${ROI_DIR} --n_jobs ${N_JOBS} --n_jobs_cv ${N_JOBS_CV} --n_permutation ${N_PERMUTATION} --n_null_perms ${N_NULL_PERMS} --stage11_actual_repeats ${STAGE11_ACTUAL_REPEATS} --stage11_chunk_count ${STAGE11_CHUNKS} --stage11_chunk_idx \$SLURM_ARRAY_TASK_ID --stage 11 --stage11_group ${group_name} --stage11_mask_mode ${STAGE11_MASK_MODE} --stage11_scoring ${STAGE11_SCORING} ${EXTRA_ARGS}"
   )
   echo "$job_id"
 }
@@ -260,7 +262,7 @@ submit_stage11_chunk() {
       --job-name="mvpa_fear_$(stage_output_suffix 11)_${group_name}_chunk${chunk_idx}" \
       --output="$LOG_DIR/mvpa_fear_$(stage_output_suffix 11)_${group_name}_chunk${chunk_idx}_%j.out" \
       --error="$LOG_DIR/mvpa_fear_$(stage_output_suffix 11)_${group_name}_chunk${chunk_idx}_%j.err" \
-      --wrap="export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 N_PERMUTATION=${N_PERMUTATION} N_NULL_PERMS=${N_NULL_PERMS} STAGE11_ACTUAL_REPEATS=${STAGE11_ACTUAL_REPEATS} STAGE11_CHUNK_COUNT=${STAGE11_CHUNKS}; apptainer exec -B ${PROJECT_ROOT}:${PROJECT_ROOT} -B ${APP_PATH}:/app -B ${OUT_BASE}:/output_dir ${CONTAINER_SIF} python3 /app/mvpa_L2_voxel_FearNetwork.py --project_root ${PROJECT_ROOT} --output_dir ${OUT_DIR} --roi_dir ${ROI_DIR} --n_jobs ${N_JOBS} --n_jobs_cv ${N_JOBS_CV} --n_permutation ${N_PERMUTATION} --n_null_perms ${N_NULL_PERMS} --stage11_actual_repeats ${STAGE11_ACTUAL_REPEATS} --stage11_chunk_count ${STAGE11_CHUNKS} --stage11_chunk_idx ${chunk_idx} --stage 11 --stage11_group ${group_name} ${EXTRA_ARGS}"
+      --wrap="export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 N_PERMUTATION=${N_PERMUTATION} N_NULL_PERMS=${N_NULL_PERMS} STAGE11_ACTUAL_REPEATS=${STAGE11_ACTUAL_REPEATS} STAGE11_CHUNK_COUNT=${STAGE11_CHUNKS} STAGE11_MASK_MODE=${STAGE11_MASK_MODE} STAGE11_SCORING=${STAGE11_SCORING}; apptainer exec -B ${PROJECT_ROOT}:${PROJECT_ROOT} -B ${APP_PATH}:/app -B ${OUT_BASE}:/output_dir ${CONTAINER_SIF} python3 /app/mvpa_L2_voxel_FearNetwork.py --project_root ${PROJECT_ROOT} --output_dir ${OUT_DIR} --roi_dir ${ROI_DIR} --n_jobs ${N_JOBS} --n_jobs_cv ${N_JOBS_CV} --n_permutation ${N_PERMUTATION} --n_null_perms ${N_NULL_PERMS} --stage11_actual_repeats ${STAGE11_ACTUAL_REPEATS} --stage11_chunk_count ${STAGE11_CHUNKS} --stage11_chunk_idx ${chunk_idx} --stage 11 --stage11_group ${group_name} --stage11_mask_mode ${STAGE11_MASK_MODE} --stage11_scoring ${STAGE11_SCORING} ${EXTRA_ARGS}"
   )
   echo "$job_id"
 }
@@ -286,7 +288,7 @@ submit_stage11_merge() {
       --job-name="mvpa_fear_$(stage_output_suffix 11)_${group_name}_merge" \
       --output="$LOG_DIR/mvpa_fear_$(stage_output_suffix 11)_${group_name}_merge_%j.out" \
       --error="$LOG_DIR/mvpa_fear_$(stage_output_suffix 11)_${group_name}_merge_%j.err" \
-      --wrap="export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 N_PERMUTATION=${N_PERMUTATION} N_NULL_PERMS=${N_NULL_PERMS} STAGE11_ACTUAL_REPEATS=${STAGE11_ACTUAL_REPEATS} STAGE11_CHUNK_COUNT=${STAGE11_CHUNKS}; apptainer exec -B ${PROJECT_ROOT}:${PROJECT_ROOT} -B ${APP_PATH}:/app -B ${OUT_BASE}:/output_dir ${CONTAINER_SIF} python3 /app/mvpa_L2_voxel_FearNetwork.py --project_root ${PROJECT_ROOT} --output_dir ${OUT_DIR} --roi_dir ${ROI_DIR} --n_jobs ${N_JOBS} --n_jobs_cv ${N_JOBS_CV} --n_permutation ${N_PERMUTATION} --n_null_perms ${N_NULL_PERMS} --stage11_actual_repeats ${STAGE11_ACTUAL_REPEATS} --stage11_chunk_count ${STAGE11_CHUNKS} --stage11_merge --stage 11 --stage11_group ${group_name} ${EXTRA_ARGS}"
+      --wrap="export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 N_PERMUTATION=${N_PERMUTATION} N_NULL_PERMS=${N_NULL_PERMS} STAGE11_ACTUAL_REPEATS=${STAGE11_ACTUAL_REPEATS} STAGE11_CHUNK_COUNT=${STAGE11_CHUNKS} STAGE11_MASK_MODE=${STAGE11_MASK_MODE} STAGE11_SCORING=${STAGE11_SCORING}; apptainer exec -B ${PROJECT_ROOT}:${PROJECT_ROOT} -B ${APP_PATH}:/app -B ${OUT_BASE}:/output_dir ${CONTAINER_SIF} python3 /app/mvpa_L2_voxel_FearNetwork.py --project_root ${PROJECT_ROOT} --output_dir ${OUT_DIR} --roi_dir ${ROI_DIR} --n_jobs ${N_JOBS} --n_jobs_cv ${N_JOBS_CV} --n_permutation ${N_PERMUTATION} --n_null_perms ${N_NULL_PERMS} --stage11_actual_repeats ${STAGE11_ACTUAL_REPEATS} --stage11_chunk_count ${STAGE11_CHUNKS} --stage11_merge --stage 11 --stage11_group ${group_name} --stage11_mask_mode ${STAGE11_MASK_MODE} --stage11_scoring ${STAGE11_SCORING} ${EXTRA_ARGS}"
   )
   echo "$job_id"
 }

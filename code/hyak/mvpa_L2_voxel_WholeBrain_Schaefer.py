@@ -198,7 +198,48 @@ def parse_runtime_args():
         default=os.environ.get("STAGE11_MERGE", "0") == "1",
         help="Merge stage 11 permutation-importance chunks instead of computing a chunk.",
     )
+    parser.add_argument(
+        "--stage11_mask_mode",
+        default=os.environ.get("STAGE11_MASK_MODE", "current"),
+        choices=["current", "original_notebook"],
+        help=(
+            "Stage 11 feature-mask policy. 'current' keeps the current whole-brain "
+            "FDR/all-positive sensitivity behavior; 'original_notebook' uses the "
+            "empirical/FDR mask directly and disables fallback."
+        ),
+    )
+    parser.add_argument(
+        "--stage11_scoring",
+        default=os.environ.get("STAGE11_SCORING", "auto"),
+        choices=["auto", "decision_margin", "forced_choice"],
+        help=(
+            "Permutation-importance scorer for Stage 11. 'auto' maps current -> "
+            "decision_margin and original_notebook -> forced_choice."
+        ),
+    )
     return parser.parse_known_args()
+
+
+def resolve_stage11_scoring_label(mask_mode, scoring):
+    if scoring == "auto":
+        return "forced_choice" if mask_mode == "original_notebook" else "decision_margin"
+    return scoring
+
+
+def stage11_scorer_name_from_label(scoring_label):
+    if scoring_label == "forced_choice":
+        return "forced_choice_scorer"
+    if scoring_label == "decision_margin":
+        return "decision_margin_scorer"
+    raise ValueError(f"Unknown Stage 11 scoring label: {scoring_label}")
+
+
+def get_stage11_scorer_func():
+    if STAGE11_SCORING == "forced_choice":
+        return forced_choice_scorer
+    if STAGE11_SCORING == "decision_margin":
+        return decision_margin_scorer
+    raise ValueError(f"Unknown Stage 11 scoring label: {STAGE11_SCORING}")
 
 
 _args, _ = parse_runtime_args()
@@ -215,6 +256,9 @@ STAGE11_ACTUAL_REPEATS = _args.stage11_actual_repeats
 STAGE11_CHUNK_IDX = _args.stage11_chunk_idx
 STAGE11_CHUNK_COUNT = _args.stage11_chunk_count
 STAGE11_MERGE = _args.stage11_merge
+STAGE11_MASK_MODE = _args.stage11_mask_mode
+STAGE11_SCORING = resolve_stage11_scoring_label(STAGE11_MASK_MODE, _args.stage11_scoring)
+STAGE11_SCORER_NAME = stage11_scorer_name_from_label(STAGE11_SCORING)
 
 
 def configure_blas_threads():
@@ -323,7 +367,7 @@ def load_intermediate(name: str):
 def ensure_importance_loaded():
     """Ensure importance scores/masks are available using user-selected source."""
     global importance_scores, importance_masks, importance_mask_permutated, importance_scores_permutated
-    global importance_masks_all_positive
+    global importance_masks_all_positive, importance_diagnostics_permutated
     if (
         "importance_scores" in globals()
         and importance_scores
@@ -335,6 +379,7 @@ def ensure_importance_loaded():
     merged_scores = {}
     merged_masks = {}
     merged_p_values = {}
+    merged_diagnostics = {}
     merged_all_positive_masks = {}
     required_groups = ("SAD", "HC")
 
@@ -344,6 +389,7 @@ def ensure_importance_loaded():
         merged_scores.update(prev.get("importance_scores_permutated", prev.get("importance_scores", {})))
         merged_masks.update(prev.get("importance_mask_permutated", prev.get("importance_masks_permutated", prev.get("importance_masks", {}))))
         merged_p_values.update(prev.get("p_values_permutated", {}))
+        merged_diagnostics.update(prev.get("importance_diagnostics_permutated", {}))
         merged_all_positive_masks.update(prev.get(
             "importance_masks_all_positive",
             prev.get("importance_masks_top100_positive", prev.get("importance_mask_top100_positive", {}))
@@ -428,6 +474,7 @@ def ensure_importance_loaded():
     importance_masks = merged_masks
     importance_scores_permutated = merged_scores
     importance_mask_permutated = merged_masks
+    importance_diagnostics_permutated = merged_diagnostics
     importance_masks_all_positive = merged_all_positive_masks
     if merged_p_values:
         globals()["p_values_permutated"] = merged_p_values
@@ -440,6 +487,40 @@ def make_all_positive_importance_mask(scores):
     mask = np.zeros(scores.shape, dtype=bool)
     mask[np.isfinite(scores) & (scores > 0)] = True
     return mask
+
+
+def _stage11_loaded_mode_for_group(group_name):
+    diagnostics = globals().get("importance_diagnostics_permutated", {})
+    diag = diagnostics.get(group_name, {}) if isinstance(diagnostics, dict) else {}
+    if isinstance(diag, dict):
+        mode = diag.get("stage11_mask_mode")
+        if mode:
+            return str(mode)
+        scoring = str(diag.get("importance_scoring", ""))
+        if scoring == "forced_choice_scorer":
+            return "original_notebook"
+    return "current"
+
+
+def _stage11_loaded_scoring_for_group(group_name):
+    diagnostics = globals().get("importance_diagnostics_permutated", {})
+    diag = diagnostics.get(group_name, {}) if isinstance(diagnostics, dict) else {}
+    if isinstance(diag, dict):
+        scoring = diag.get("stage11_scoring") or diag.get("importance_scoring")
+        if scoring:
+            return str(scoring)
+    return STAGE11_SCORER_NAME
+
+
+def _validate_stage11_mode_for_downstream(group_name, label):
+    loaded_mode = _stage11_loaded_mode_for_group(group_name)
+    if STAGE11_MASK_MODE != loaded_mode:
+        raise ValueError(
+            f"{label}: requested STAGE11_MASK_MODE={STAGE11_MASK_MODE}, but loaded "
+            f"Stage 11 mask for {group_name} was generated with mode={loaded_mode}. "
+            "Use a separate output directory or rerun Stage 11 and all downstream stages "
+            "with the same mask mode."
+        )
 
 
 def get_analysis_feature_masks(label):
@@ -461,15 +542,25 @@ def get_analysis_feature_masks(label):
                 f"{sorted(importance_masks.keys())}. Run/merge Stage 11 for {grp} before "
                 "rerunning this analysis."
             )
+        _validate_stage11_mode_for_downstream(grp, label)
         fdr_mask = np.asarray(importance_masks[grp], dtype=bool)
         fdr_n = int(np.sum(fdr_mask))
         positive_mask = np.asarray(importance_masks_all_positive.get(grp), dtype=bool)
         positive_n = int(np.sum(positive_mask)) if positive_mask.size else 0
 
         if fdr_n < MIN_FDR_FEATURES_FOR_PRIMARY and positive_n > 0:
+            if STAGE11_MASK_MODE == "original_notebook":
+                raise ValueError(
+                    f"{label} {grp}: original_notebook mask has {fdr_n} FDR features "
+                    f"(< {MIN_FDR_FEATURES_FOR_PRIMARY}). The original-notebook policy disables "
+                    "the all-positive fallback; inspect Stage 11 outputs or choose "
+                    "STAGE11_MASK_MODE=current."
+                )
             selected_masks[grp] = positive_mask
             feature_space[grp] = {
                 "source": "all_positive_permutation_importance_sensitivity",
+                "stage11_mask_mode": STAGE11_MASK_MODE,
+                "stage11_scoring": _stage11_loaded_scoring_for_group(grp),
                 "n_features": positive_n,
                 "primary_fdr_n_features": fdr_n,
                 "threshold": f"FDR feature count < {MIN_FDR_FEATURES_FOR_PRIMARY}",
@@ -488,6 +579,8 @@ def get_analysis_feature_masks(label):
             selected_masks[grp] = fdr_mask
             feature_space[grp] = {
                 "source": "whole_brain_fdr_permutation_importance",
+                "stage11_mask_mode": STAGE11_MASK_MODE,
+                "stage11_scoring": _stage11_loaded_scoring_for_group(grp),
                 "n_features": fdr_n,
                 "primary_fdr_n_features": fdr_n,
                 "threshold": "q < 0.05 and positive importance",
@@ -2509,7 +2602,8 @@ if stage_active(11):
     importance_diagnostics_permutated = {}
     stage11_group = _args.stage11_group.upper()
     stage11_groups = ['SAD', 'HC'] if stage11_group == "ALL" else [stage11_group]
-    stage11_chunk_dir = os.path.join(CHECKPOINT_DIR, "stage11_importance_chunks")
+    stage11_chunk_suffix = "" if (STAGE11_MASK_MODE == "current" and STAGE11_SCORING == "decision_margin") else f"_{STAGE11_MASK_MODE}_{STAGE11_SCORING}"
+    stage11_chunk_dir = os.path.join(CHECKPOINT_DIR, f"stage11_importance_chunks{stage11_chunk_suffix}")
     os.makedirs(stage11_chunk_dir, exist_ok=True)
 
     def stage11_merge_payload(prev):
@@ -2577,7 +2671,14 @@ if stage_active(11):
             "q_p05": float(np.nanpercentile(q_values, 5)),
             "q_median": float(np.nanmedian(q_values)),
             "null_permutations": int(null_n),
-            "importance_scoring": "decision_margin_scorer",
+            "importance_scoring": STAGE11_SCORER_NAME,
+            "stage11_scoring": STAGE11_SCORING,
+            "stage11_mask_mode": STAGE11_MASK_MODE,
+            "stage11_fallback_policy": (
+                "all_positive_if_fdr_mask_too_small"
+                if STAGE11_MASK_MODE == "current"
+                else "disabled_original_notebook"
+            ),
         }
         payload = {
             "importance_mask_permutated": {group_name: sig_mask},
@@ -2597,6 +2698,9 @@ if stage_active(11):
                 f"when whole-brain FDR selects fewer than {MIN_FDR_FEATURES_FOR_PRIMARY} features."
             ),
             "fdr_method": "fdr_bh_whole_brain",
+            "stage11_mask_mode": STAGE11_MASK_MODE,
+            "stage11_scoring": STAGE11_SCORING,
+            "importance_scoring": STAGE11_SCORER_NAME,
         }
         group_ckpt = os.path.join(CHECKPOINT_DIR, f"stage11_importance_{group_name}.joblib")
         group_intermediate = _intermediate_path(f"stage11_importance_masks_{group_name}")
@@ -2641,6 +2745,7 @@ if stage_active(11):
             return
 
         X_target, y_target, model_template = stage11_prepare_group(group_name)
+        stage11_scorer = get_stage11_scorer_func()
         print(
             f"--- Stage 11 importance chunk {chunk_idx + 1}/{chunk_count} for {group_name}: "
             f"actual repeats {actual_start}:{actual_end}, null perms {null_start}:{null_end} ---"
@@ -2653,7 +2758,7 @@ if stage_active(11):
                 X_target,
                 y_target,
                 n_repeats=actual_repeats,
-                scoring=decision_margin_scorer,
+                scoring=stage11_scorer,
                 n_jobs=N_JOBS,
                 random_state=RANDOM_STATE + actual_start,
             )
@@ -2669,7 +2774,7 @@ if stage_active(11):
                 X_target,
                 y_shuffled,
                 n_repeats=1,
-                scoring=decision_margin_scorer,
+                scoring=stage11_scorer,
                 n_jobs=N_JOBS,
                 random_state=RANDOM_STATE + 100000 + perm_idx,
             )
@@ -2688,6 +2793,9 @@ if stage_active(11):
             "null_start": null_start,
             "null_end": null_end,
             "null_dist": null_dist,
+            "stage11_mask_mode": STAGE11_MASK_MODE,
+            "stage11_scoring": STAGE11_SCORING,
+            "importance_scoring": STAGE11_SCORER_NAME,
         }
         out_path = stage11_chunk_path(group_name, chunk_idx)
         tmp_path = f"{out_path}.tmp.{os.getpid()}"
@@ -2732,6 +2840,18 @@ if stage_active(11):
             missing_keys = sorted(required_keys.difference(payload))
             if missing_keys:
                 corrupt_paths.append(f"{path} (missing keys: {', '.join(missing_keys)})")
+                continue
+            if payload.get("stage11_mask_mode", STAGE11_MASK_MODE) != STAGE11_MASK_MODE:
+                corrupt_paths.append(
+                    f"{path} (stage11_mask_mode={payload.get('stage11_mask_mode')}, "
+                    f"requested {STAGE11_MASK_MODE})"
+                )
+                continue
+            if payload.get("stage11_scoring", STAGE11_SCORING) != STAGE11_SCORING:
+                corrupt_paths.append(
+                    f"{path} (stage11_scoring={payload.get('stage11_scoring')}, "
+                    f"requested {STAGE11_SCORING})"
+                )
                 continue
             payloads.append((path, payload))
 
@@ -2784,7 +2904,8 @@ if stage_active(11):
     print(
         f"--- Stage 11 empirical permutation-importance masks "
         f"(group={stage11_group}, null={N_NULL_PERMS}, actual_repeats={STAGE11_ACTUAL_REPEATS}, "
-        f"chunks={STAGE11_CHUNK_COUNT}, merge={STAGE11_MERGE}, correction=whole-brain FDR) ---"
+        f"chunks={STAGE11_CHUNK_COUNT}, merge={STAGE11_MERGE}, correction=whole-brain FDR, "
+        f"mask_mode={STAGE11_MASK_MODE}, scoring={STAGE11_SCORING}) ---"
     )
 
     for group_name in stage11_groups:
@@ -2855,6 +2976,9 @@ if stage_active(11):
         "importance_diagnostics_permutated": importance_diagnostics_permutated,
         "feature_space_reports": feature_space_reports,
         "fdr_method": "fdr_bh_whole_brain",
+        "stage11_mask_mode": STAGE11_MASK_MODE,
+        "stage11_scoring": STAGE11_SCORING,
+        "importance_scoring": STAGE11_SCORER_NAME,
         "fallback_sensitivity_rule": (
             "Use all positive permutation-importance voxels when whole-brain FDR "
             f"selects fewer than {MIN_FDR_FEATURES_FOR_PRIMARY} features."
@@ -2874,6 +2998,9 @@ if stage_active(11):
         "importance_diagnostics_permutated": importance_diagnostics_permutated,
         "feature_space_reports": feature_space_reports,
         "fdr_method": "fdr_bh_whole_brain",
+        "stage11_mask_mode": STAGE11_MASK_MODE,
+        "stage11_scoring": STAGE11_SCORING,
+        "importance_scoring": STAGE11_SCORER_NAME,
         "fallback_sensitivity_rule": (
             "Use all positive permutation-importance voxels when whole-brain FDR "
             f"selects fewer than {MIN_FDR_FEATURES_FOR_PRIMARY} features."
@@ -2902,6 +3029,9 @@ if stage_active(11):
             "importance_diagnostics_permutated": {grp: importance_diagnostics_permutated.get(grp)},
             "feature_space_reports": {grp: feature_space_reports.get(grp)},
             "fdr_method": "fdr_bh_whole_brain",
+            "stage11_mask_mode": STAGE11_MASK_MODE,
+            "stage11_scoring": STAGE11_SCORING,
+            "importance_scoring": STAGE11_SCORER_NAME,
             "fallback_sensitivity_rule": (
                 "Use all positive permutation-importance voxels when whole-brain FDR "
                 f"selects fewer than {MIN_FDR_FEATURES_FOR_PRIMARY} features."

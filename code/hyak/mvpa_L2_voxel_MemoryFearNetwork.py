@@ -175,6 +175,25 @@ def parse_runtime_args():
         help="For stage 11 only, run empirical permutation-importance masks for ALL, SAD, or HC.",
     )
     parser.add_argument(
+        "--stage11_mask_mode",
+        default=os.environ.get("STAGE11_MASK_MODE", "current"),
+        choices=["current", "original_notebook"],
+        help=(
+            "Stage 11 feature-mask policy. 'current' uses the current .py policy "
+            "including the all-positive fallback downstream; 'original_notebook' "
+            "uses the empirical p<.05 positive mask directly and disables fallback."
+        ),
+    )
+    parser.add_argument(
+        "--stage11_scoring",
+        default=os.environ.get("STAGE11_SCORING", "auto"),
+        choices=["auto", "decision_margin", "forced_choice"],
+        help=(
+            "Permutation-importance scorer for Stage 11. 'auto' maps current -> "
+            "decision_margin and original_notebook -> forced_choice."
+        ),
+    )
+    parser.add_argument(
         "--stage",
         default=os.environ.get("STAGE"),
         help="Analysis stage to run, for example 6, 12, or a comma/range list like 6,10-12. Omit to run all.",
@@ -403,6 +422,62 @@ def make_all_positive_importance_mask(scores):
     return mask
 
 
+def resolve_stage11_scoring_label(mask_mode, scoring):
+    if scoring == "auto":
+        return "forced_choice" if mask_mode == "original_notebook" else "decision_margin"
+    return scoring
+
+
+def stage11_scorer_name_from_label(scoring_label):
+    if scoring_label == "forced_choice":
+        return "forced_choice_scorer"
+    if scoring_label == "decision_margin":
+        return "decision_margin_scorer"
+    raise ValueError(f"Unknown Stage 11 scoring label: {scoring_label}")
+
+
+def get_stage11_scorer_func():
+    if STAGE11_SCORING == "forced_choice":
+        return forced_choice_scorer
+    if STAGE11_SCORING == "decision_margin":
+        return decision_margin_scorer
+    raise ValueError(f"Unknown Stage 11 scoring label: {STAGE11_SCORING}")
+
+
+def _stage11_loaded_mode_for_group(group_name):
+    diagnostics = globals().get("importance_diagnostics_permutated", {})
+    diag = diagnostics.get(group_name, {}) if isinstance(diagnostics, dict) else {}
+    if isinstance(diag, dict):
+        mode = diag.get("stage11_mask_mode")
+        if mode:
+            return str(mode)
+        scoring = str(diag.get("importance_scoring", ""))
+        if scoring == "forced_choice_scorer":
+            return "original_notebook"
+    return "current"
+
+
+def _stage11_loaded_scoring_for_group(group_name):
+    diagnostics = globals().get("importance_diagnostics_permutated", {})
+    diag = diagnostics.get(group_name, {}) if isinstance(diagnostics, dict) else {}
+    if isinstance(diag, dict):
+        scoring = diag.get("stage11_scoring") or diag.get("importance_scoring")
+        if scoring:
+            return str(scoring)
+    return STAGE11_SCORER_NAME
+
+
+def _validate_stage11_mode_for_downstream(group_name, analysis_label):
+    loaded_mode = _stage11_loaded_mode_for_group(group_name)
+    if STAGE11_MASK_MODE != loaded_mode:
+        raise ValueError(
+            f"{analysis_label}: requested STAGE11_MASK_MODE={STAGE11_MASK_MODE}, but loaded "
+            f"Stage 11 mask for {group_name} was generated with mode={loaded_mode}. "
+            "Use a separate output directory or rerun Stage 11 and all downstream stages "
+            "with the same mask mode."
+        )
+
+
 def get_analysis_feature_masks(analysis_label, min_primary_features=MIN_FEATURES_FOR_PRIMARY_MASK):
     if "importance_mask_permutated" not in globals() or not importance_mask_permutated:
         load_stage11_split_results()
@@ -424,6 +499,7 @@ def get_analysis_feature_masks(analysis_label, min_primary_features=MIN_FEATURES
     for grp in ("SAD", "HC"):
         if grp not in importance_mask_permutated or grp not in importance_scores_permutated:
             raise ValueError(f"{analysis_label}: missing {grp} permutation-importance outputs.")
+        _validate_stage11_mode_for_downstream(grp, analysis_label)
         primary_mask = np.asarray(importance_mask_permutated[grp], dtype=bool)
         scores = np.asarray(importance_scores_permutated[grp])
         primary_n = int(np.sum(primary_mask))
@@ -431,6 +507,12 @@ def get_analysis_feature_masks(analysis_label, min_primary_features=MIN_FEATURES
         source = "empirical_p_lt_0.05_positive_permutation_importance"
 
         if primary_n < min_primary_features:
+            if STAGE11_MASK_MODE == "original_notebook":
+                raise ValueError(
+                    f"{analysis_label} {grp}: original_notebook mask has {primary_n} features "
+                    f"(< {min_primary_features}). The original-notebook policy disables the "
+                    "all-positive fallback; inspect Stage 11 outputs or choose STAGE11_MASK_MODE=current."
+                )
             fallback_mask = make_all_positive_importance_mask(scores)
             fallback_n = int(np.sum(fallback_mask))
             print(
@@ -450,6 +532,8 @@ def get_analysis_feature_masks(analysis_label, min_primary_features=MIN_FEATURES
         selected_masks[grp] = selected_mask
         feature_space[grp] = {
             "source": source,
+            "stage11_mask_mode": STAGE11_MASK_MODE,
+            "stage11_scoring": _stage11_loaded_scoring_for_group(grp),
             "primary_empirical_features": primary_n,
             "selected_features": int(np.sum(selected_mask)),
             "fallback_rule": "all_positive_permutation_importance" if source == "all_positive_permutation_importance_sensitivity" else None,
@@ -471,6 +555,9 @@ STAGE11_CHUNK_IDX = _args.stage11_chunk_idx
 STAGE11_CHUNK_COUNT = _args.stage11_chunk_count
 STAGE11_MERGE = _args.stage11_merge
 STAGE11_GROUP = _args.stage11_group
+STAGE11_MASK_MODE = _args.stage11_mask_mode
+STAGE11_SCORING = resolve_stage11_scoring_label(STAGE11_MASK_MODE, _args.stage11_scoring)
+STAGE11_SCORER_NAME = stage11_scorer_name_from_label(STAGE11_SCORING)
 ANALYSIS_LABEL = _args.analysis_label or "MemoryFearNetwork"
 configure_blas_threads()
 
@@ -504,6 +591,7 @@ def load_stage11_split_results() -> bool:
     merged_masks = {}
     merged_scores = {}
     merged_p_values = {}
+    merged_diagnostics = {}
     loaded_any = False
 
     def _merge_stage11_payload(payload):
@@ -515,6 +603,9 @@ def load_stage11_split_results() -> bool:
             p_vals = payload.get("p_values_permutated", {})
             if isinstance(p_vals, dict):
                 merged_p_values.update(p_vals)
+            diagnostics = payload.get("importance_diagnostics_permutated", {})
+            if isinstance(diagnostics, dict):
+                merged_diagnostics.update(diagnostics)
 
     main_path = _script_ckpt_path(11)
     combined_paths = [
@@ -563,10 +654,15 @@ def load_stage11_split_results() -> bool:
         globals()["importance_mask_permutated"] = merged_masks
         globals()["importance_scores_permutated"] = merged_scores
         globals()["p_values_permutated"] = merged_p_values
+        globals()["importance_diagnostics_permutated"] = merged_diagnostics
         combined_payload = {
             "importance_mask_permutated": merged_masks,
             "importance_scores_permutated": merged_scores,
             "p_values_permutated": merged_p_values,
+            "importance_diagnostics_permutated": merged_diagnostics,
+            "stage11_mask_mode": STAGE11_MASK_MODE,
+            "stage11_scoring": STAGE11_SCORING,
+            "importance_scoring": STAGE11_SCORER_NAME,
         }
         joblib.dump(combined_payload, main_path)
         joblib.dump(combined_payload, _script_intermediate_path("stage11_importance_masks"))
@@ -3306,8 +3402,10 @@ if cell_active(11):
     p_values_permutated = {}
     importance_diagnostics_permutated = {}
     stage11_groups = ['SAD', 'HC'] if STAGE11_GROUP == "ALL" else [STAGE11_GROUP]
-    stage11_chunk_dir = os.path.join(CHECKPOINT_DIR, "stage11_chunks")
+    stage11_chunk_suffix = "" if (STAGE11_MASK_MODE == "current" and STAGE11_SCORING == "decision_margin") else f"_{STAGE11_MASK_MODE}_{STAGE11_SCORING}"
+    stage11_chunk_dir = os.path.join(CHECKPOINT_DIR, f"stage11_chunks{stage11_chunk_suffix}")
     os.makedirs(stage11_chunk_dir, exist_ok=True)
+    stage11_scorer = get_stage11_scorer_func()
 
     def stage11_bounds(total, chunk_idx, chunk_count):
         total = int(total)
@@ -3347,7 +3445,14 @@ if cell_active(11):
             "p_p05": float(np.nanpercentile(p_values, 5)),
             "p_median": float(np.nanmedian(p_values)),
             "null_permutations": int(null_n),
-            "importance_scoring": "decision_margin_scorer",
+            "importance_scoring": STAGE11_SCORER_NAME,
+            "stage11_scoring": STAGE11_SCORING,
+            "stage11_mask_mode": STAGE11_MASK_MODE,
+            "stage11_fallback_policy": (
+                "all_positive_if_empirical_mask_too_small"
+                if STAGE11_MASK_MODE == "current"
+                else "disabled_original_notebook"
+            ),
         }
         payload = {
             "importance_mask_permutated": {group_name: sig_mask},
@@ -3396,7 +3501,7 @@ if cell_active(11):
                 X_target,
                 y_target,
                 n_repeats=actual_repeats,
-                scoring=decision_margin_scorer,
+                scoring=stage11_scorer,
                 n_jobs=N_JOBS,
                 random_state=RANDOM_STATE + actual_start,
             )
@@ -3413,7 +3518,7 @@ if cell_active(11):
                 X_target,
                 y_shuffled,
                 n_repeats=1,
-                scoring=decision_margin_scorer,
+                scoring=stage11_scorer,
                 n_jobs=N_JOBS,
                 random_state=RANDOM_STATE + 100000 + perm_idx,
             )
@@ -3433,6 +3538,9 @@ if cell_active(11):
             "null_start": null_start,
             "null_end": null_end,
             "null_dist": null_dist,
+            "stage11_mask_mode": STAGE11_MASK_MODE,
+            "stage11_scoring": STAGE11_SCORING,
+            "importance_scoring": STAGE11_SCORER_NAME,
         }
         out_path = stage11_chunk_path(group_name, chunk_idx)
         joblib.dump(chunk_payload, out_path, compress=3)
@@ -3456,6 +3564,16 @@ if cell_active(11):
 
         for path in paths:
             payload = joblib.load(path)
+            if payload.get("stage11_mask_mode", STAGE11_MASK_MODE) != STAGE11_MASK_MODE:
+                raise ValueError(
+                    f"Stage 11 merge for {group_name}: chunk {path} was generated with "
+                    f"mode={payload.get('stage11_mask_mode')}, requested {STAGE11_MASK_MODE}."
+                )
+            if payload.get("stage11_scoring", STAGE11_SCORING) != STAGE11_SCORING:
+                raise ValueError(
+                    f"Stage 11 merge for {group_name}: chunk {path} was generated with "
+                    f"scoring={payload.get('stage11_scoring')}, requested {STAGE11_SCORING}."
+                )
             chunks_seen.add(int(payload["chunk_idx"]))
             chunk_actual = np.asarray(payload["actual_importance_sum"], dtype=np.float64)
             actual_sum = chunk_actual if actual_sum is None else actual_sum + chunk_actual
@@ -3467,6 +3585,16 @@ if cell_active(11):
 
         for path in paths:
             payload = joblib.load(path)
+            if payload.get("stage11_mask_mode", STAGE11_MASK_MODE) != STAGE11_MASK_MODE:
+                raise ValueError(
+                    f"Stage 11 merge for {group_name}: chunk {path} was generated with "
+                    f"mode={payload.get('stage11_mask_mode')}, requested {STAGE11_MASK_MODE}."
+                )
+            if payload.get("stage11_scoring", STAGE11_SCORING) != STAGE11_SCORING:
+                raise ValueError(
+                    f"Stage 11 merge for {group_name}: chunk {path} was generated with "
+                    f"scoring={payload.get('stage11_scoring')}, requested {STAGE11_SCORING}."
+                )
             null_dist = np.asarray(payload["null_dist"])
             if null_dist.size == 0:
                 continue
@@ -3488,7 +3616,8 @@ if cell_active(11):
     print(
         f"--- Stage 11: Empirical permutation-importance masks "
         f"(group={STAGE11_GROUP}, null={N_NULL_PERMS}, actual_repeats={STAGE11_ACTUAL_REPEATS}, "
-        f"chunks={STAGE11_CHUNK_COUNT}, merge={STAGE11_MERGE}) ---"
+        f"chunks={STAGE11_CHUNK_COUNT}, merge={STAGE11_MERGE}, "
+        f"mask_mode={STAGE11_MASK_MODE}, scoring={STAGE11_SCORING}) ---"
     )
 
     for group_name in stage11_groups:
@@ -3503,6 +3632,9 @@ if cell_active(11):
             "importance_scores_permutated": importance_scores_permutated,
             "p_values_permutated": p_values_permutated,
             "importance_diagnostics_permutated": importance_diagnostics_permutated,
+            "stage11_mask_mode": STAGE11_MASK_MODE,
+            "stage11_scoring": STAGE11_SCORING,
+            "importance_scoring": STAGE11_SCORER_NAME,
             "null_permutations": globals().get("null_permutations", {}),
             "actual_repeats": {
                 group_name: int(STAGE11_ACTUAL_REPEATS)

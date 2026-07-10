@@ -31,6 +31,20 @@ hyak/submit_mvpa_L2_posthyak.sh --dependency FEAR_FINAL_JOB_ID:MEMORY_FINAL_JOB_
 
 Use `SCR_DIR=/path/to/scr_analysis_outputs` if the SCR notebook outputs are not under the default project SCR folder.
 
+## Stage 11 Mask Modes
+
+The feature-space scripts support two Stage 11 mask/scoring modes:
+
+```bash
+# Default current .py behavior: decision-margin permutation importance plus downstream fallback.
+STAGE11_MASK_MODE=current STAGE11_SCORING=auto hyak/submit_mvpa_L2_fearnetwork_stage.sh all
+
+# Original-notebook mask behavior: forced-choice permutation importance and no all-positive fallback.
+STAGE11_MASK_MODE=original_notebook STAGE11_SCORING=auto hyak/submit_mvpa_L2_fearnetwork_stage.sh all
+```
+
+`STAGE11_SCORING=auto` maps `current` to `decision_margin` and `original_notebook` to `forced_choice`. You can override it with `STAGE11_SCORING=decision_margin` or `STAGE11_SCORING=forced_choice` for sensitivity checks. Use separate output directories for manuscript-grade parallel runs, for example `FearNetwork` and `FearNetwork_originalMask`, so final Stage 11 checkpoints and downstream outputs do not overwrite each other.
+
 Run this after the Hyak jobs are complete:
 
 ```bash

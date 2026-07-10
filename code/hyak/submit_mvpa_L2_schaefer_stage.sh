@@ -32,6 +32,8 @@ STAGE11_CHUNKS="${STAGE11_CHUNKS:-500}"
 STAGE11_ARRAY_MAX_RUNNING="${STAGE11_ARRAY_MAX_RUNNING:-20}"
 STAGE11_ARRAY_SPEC="${STAGE11_ARRAY_SPEC:-}"
 STAGE11_CHUNK_IDX="${STAGE11_CHUNK_IDX:-}"
+STAGE11_MASK_MODE="${STAGE11_MASK_MODE:-current}"
+STAGE11_SCORING="${STAGE11_SCORING:-auto}"
 STAGE11_GROUPS=(SAD HC)
 
 # User-facing stages mirror MemoryFearNetwork/FearNetwork.
@@ -125,9 +127,11 @@ mkdir -p "$OUT_BASE"
 module load apptainer 2>/dev/null || true
 
 base_wrap_prefix() {
-  printf 'export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 N_PERMUTATION=%q N_NULL_PERMS=%q PHASE2_NPZ=%q PHASE3_NPZ=%q; ' \
+  printf 'export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 N_PERMUTATION=%q N_NULL_PERMS=%q STAGE11_MASK_MODE=%q STAGE11_SCORING=%q PHASE2_NPZ=%q PHASE3_NPZ=%q; ' \
     "$N_PERMUTATION" \
     "$N_NULL_PERMS" \
+    "$STAGE11_MASK_MODE" \
+    "$STAGE11_SCORING" \
     "${NPZ_DIR}/phase2_X_ext_y_ext_voxels_schaefer_tian.npz" \
     "${NPZ_DIR}/phase3_X_reinst_y_reinst_voxels_schaefer_tian.npz"
 }
@@ -159,7 +163,7 @@ python_cmd() {
   local stage="$1"
   local group="${2:-ALL}"
   local extra_stage_args="${3:-}"
-  printf 'apptainer exec -B %q:%q -B %q:/app -B %q:/output_dir %q python3 /app/mvpa_L2_voxel_WholeBrain_Schaefer.py --project_root %q --output_dir %q --n_jobs %q --n_jobs_cv %q --n_permutation %q --n_null_perms %q --stage %q --stage11_group %q --stage11_actual_repeats %q --stage11_chunk_count %q %s %s' \
+  printf 'apptainer exec -B %q:%q -B %q:/app -B %q:/output_dir %q python3 /app/mvpa_L2_voxel_WholeBrain_Schaefer.py --project_root %q --output_dir %q --n_jobs %q --n_jobs_cv %q --n_permutation %q --n_null_perms %q --stage %q --stage11_group %q --stage11_actual_repeats %q --stage11_chunk_count %q --stage11_mask_mode %q --stage11_scoring %q %s %s' \
     "$PROJECT_ROOT" "$PROJECT_ROOT" \
     "$APP_PATH" \
     "$OUT_BASE" \
@@ -174,6 +178,8 @@ python_cmd() {
     "$group" \
     "$STAGE11_ACTUAL_REPEATS" \
     "$STAGE11_CHUNKS" \
+    "$STAGE11_MASK_MODE" \
+    "$STAGE11_SCORING" \
     "$extra_stage_args" \
     "$EXTRA_ARGS"
 }
