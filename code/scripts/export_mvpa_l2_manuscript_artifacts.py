@@ -378,7 +378,7 @@ def build_aim2_trajectory_panel(stats_dir: Path) -> pd.DataFrame:
         return pd.DataFrame(columns=columns)
     if not set(columns).issubset(data.columns):
         return pd.DataFrame(columns=columns)
-    if not data["trajectory_metric"].astype(str).eq("target_centroid_cosine").all():
+    if not data["trajectory_metric"].astype(str).eq("target_centroid_correlation_distance").all():
         return pd.DataFrame(columns=columns)
     if "drug" in data.columns:
         data = data[data["drug"].astype(str).eq("Placebo")].copy()
