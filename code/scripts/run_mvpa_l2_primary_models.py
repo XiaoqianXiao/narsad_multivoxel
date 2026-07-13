@@ -264,22 +264,66 @@ def run_aim3(df: pd.DataFrame, feature_space: str, covariates: List[str], clinic
     return pd.DataFrame(rows)
 
 
-def run_aim4(df: pd.DataFrame, feature_space: str, covariates: List[str]) -> pd.DataFrame:
+def run_aim4(df: pd.DataFrame, feature_space: str, covariates: List[str], outlier_z: float) -> pd.DataFrame:
     rows = []
     sub = df[(df["FeatureSpace"] == feature_space) & (df["Drug"] == "Placebo")].copy()
     groups = [g for g in ["SAD", "HC"] if g in set(sub["Group"].dropna())]
     for group in groups:
         group_df = sub[sub["Group"] == group].copy()
         for scr in ALL_SCR_INDICES:
+            scr_df, scr_z, n_scr_outliers, scr_method = apply_stage29_zscore(group_df, scr, outlier_z)
+            if scr_z is None:
+                row = {"status": "missing_or_constant_scr_index", "n": 0, "outcome": scr}
+                row.update(
+                    {
+                        "analysis": "Aim4_SCR_Convergence_Groupwise_Placebo",
+                        "session": "Placebo",
+                        "Group": group,
+                        "scr_index": scr,
+                        "scr_index_z": None,
+                        "scr_index_role": "primary" if scr in ALL_SCR_INDICES[:2] else "secondary",
+                        "scr_outlier_method": scr_method,
+                        "outlier_threshold": outlier_z,
+                        "n_scr_outliers_removed": n_scr_outliers,
+                        "feature_space": feature_space,
+                    }
+                )
+                rows.append(row)
+                continue
             for metric in CORE_NEURAL_METRICS:
-                if metric not in group_df.columns:
+                if metric not in scr_df.columns:
+                    continue
+                model_df, metric_z, n_metric_outliers, metric_method = apply_stage29_zscore(scr_df, metric, outlier_z)
+                if metric_z is None:
+                    row = {"status": "missing_or_constant_neural_metric", "n": 0, "outcome": scr_z}
+                    row.update(
+                        {
+                            "analysis": "Aim4_SCR_Convergence_Groupwise_Placebo",
+                            "session": "Placebo",
+                            "Group": group,
+                            "metric": metric,
+                            "metric_z": None,
+                            "scr_index": scr,
+                            "scr_index_z": scr_z,
+                            "scr_index_role": "primary" if scr in ALL_SCR_INDICES[:2] else "secondary",
+                            "scr_outlier_method": scr_method,
+                            "metric_outlier_method": metric_method,
+                            "outlier_threshold": outlier_z,
+                            "n_scr_outliers_removed": n_scr_outliers,
+                            "n_metric_outliers_removed": n_metric_outliers,
+                            "feature_space": feature_space,
+                        }
+                    )
+                    row.update(neural_question_fields(metric))
+                    row.update(metric_hierarchy_fields(metric))
+                    rows.append(row)
                     continue
                 row = fit_lm(
-                    group_df,
-                    outcome=scr,
-                    predictor_terms=[f"Q('{metric}')"],
+                    model_df,
+                    outcome=scr_z,
+                    predictor_terms=[f"Q('{metric_z}')"],
                     covariates=covariates,
-                    term_of_interest=f"Q('{metric}')",
+                    term_of_interest=f"Q('{metric_z}')",
                 )
                 row.update(
                     {
@@ -287,8 +331,15 @@ def run_aim4(df: pd.DataFrame, feature_space: str, covariates: List[str]) -> pd.
                         "session": "Placebo",
                         "Group": group,
                         "metric": metric,
+                        "metric_z": metric_z,
                         "scr_index": scr,
+                        "scr_index_z": scr_z,
                         "scr_index_role": "primary" if scr in ALL_SCR_INDICES[:2] else "secondary",
+                        "scr_outlier_method": scr_method,
+                        "metric_outlier_method": metric_method,
+                        "outlier_threshold": outlier_z,
+                        "n_scr_outliers_removed": n_scr_outliers,
+                        "n_metric_outliers_removed": n_metric_outliers,
                         "feature_space": feature_space,
                     }
                 )
@@ -400,7 +451,7 @@ def main() -> None:
     results = {
         "aim2_group_difference": run_aim2(df, args.primary_feature_space, covariates),
         "aim3_clinical_relevance": run_aim3(df, args.primary_feature_space, covariates, args.clinical_outlier_z),
-        "aim4_scr_convergence": run_aim4(df, args.primary_feature_space, covariates),
+        "aim4_scr_convergence": run_aim4(df, args.primary_feature_space, covariates, args.clinical_outlier_z),
         "aim5_oxytocin_modulation": run_aim5(df, args.primary_feature_space, covariates),
     }
 

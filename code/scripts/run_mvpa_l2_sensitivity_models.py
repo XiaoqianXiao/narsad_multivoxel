@@ -18,6 +18,7 @@ from mvpa_l2_common import (
     harmonize_group_drug,
     write_csv,
 )
+from run_mvpa_l2_primary_models import apply_stage29_zscore
 
 
 GROUP_TERM = "C(Group, Treatment(reference='HC'))[T.SAD]"
@@ -64,25 +65,78 @@ def run_group_model(
     return rows
 
 
-def run_scr_model(df: pd.DataFrame, label: str, feature_space: str, covariates: List[str]) -> List[Dict]:
+def run_scr_model(df: pd.DataFrame, label: str, feature_space: str, covariates: List[str], outlier_z: float) -> List[Dict]:
     rows = []
     sub = df[df["FeatureSpace"] == feature_space].copy()
     for scr in ALL_SCR_INDICES:
+        scr_df, scr_z, n_scr_outliers, scr_method = apply_stage29_zscore(sub, scr, outlier_z)
+        if scr_z is None:
+            for metric in CORE_NEURAL_METRICS:
+                rows.append(
+                    {
+                        "analysis": "Sensitivity_Aim4_SCR",
+                        "sensitivity": label,
+                        "metric": metric,
+                        "scr_index": scr,
+                        "scr_index_z": None,
+                        "scr_index_role": "primary" if scr in ALL_SCR_INDICES[:2] else "secondary",
+                        "scr_outlier_method": scr_method,
+                        "outlier_threshold": outlier_z,
+                        "n_scr_outliers_removed": n_scr_outliers,
+                        "n_metric_outliers_removed": 0,
+                        "feature_space": feature_space,
+                        "status": "missing_or_constant_scr_index",
+                        "n": 0,
+                        "outcome": scr,
+                    }
+                )
+            continue
         for metric in CORE_NEURAL_METRICS:
+            if metric not in scr_df.columns:
+                continue
+            model_df, metric_z, n_metric_outliers, metric_method = apply_stage29_zscore(scr_df, metric, outlier_z)
+            if metric_z is None:
+                row = {
+                    "analysis": "Sensitivity_Aim4_SCR",
+                    "sensitivity": label,
+                    "metric": metric,
+                    "metric_z": None,
+                    "scr_index": scr,
+                    "scr_index_z": scr_z,
+                    "scr_index_role": "primary" if scr in ALL_SCR_INDICES[:2] else "secondary",
+                    "scr_outlier_method": scr_method,
+                    "metric_outlier_method": metric_method,
+                    "outlier_threshold": outlier_z,
+                    "n_scr_outliers_removed": n_scr_outliers,
+                    "n_metric_outliers_removed": n_metric_outliers,
+                    "feature_space": feature_space,
+                    "status": "missing_or_constant_neural_metric",
+                    "n": 0,
+                    "outcome": scr_z,
+                }
+                rows.append(row)
+                continue
             row = fit_lm(
-                sub,
-                outcome=scr,
-                predictor_terms=[f"Q('{metric}')", "C(Group, Treatment(reference='HC'))", "C(Drug, Treatment(reference='Placebo'))"],
+                model_df,
+                outcome=scr_z,
+                predictor_terms=[f"Q('{metric_z}')", "C(Group, Treatment(reference='HC'))", "C(Drug, Treatment(reference='Placebo'))"],
                 covariates=covariates,
-                term_of_interest=f"Q('{metric}')",
+                term_of_interest=f"Q('{metric_z}')",
                 min_n=10,
             )
             row.update({
                 "analysis": "Sensitivity_Aim4_SCR",
                 "sensitivity": label,
                 "metric": metric,
+                "metric_z": metric_z,
                 "scr_index": scr,
+                "scr_index_z": scr_z,
                 "scr_index_role": "primary" if scr in ALL_SCR_INDICES[:2] else "secondary",
+                "scr_outlier_method": scr_method,
+                "metric_outlier_method": metric_method,
+                "outlier_threshold": outlier_z,
+                "n_scr_outliers_removed": n_scr_outliers,
+                "n_metric_outliers_removed": n_metric_outliers,
                 "feature_space": feature_space,
             })
             rows.append(row)
@@ -130,6 +184,7 @@ def main() -> None:
     parser.add_argument("--primary-feature-space", default="FearNetwork")
     parser.add_argument("--covariates", nargs="*", default=None)
     parser.add_argument("--min-cell-n", type=int, default=6)
+    parser.add_argument("--outlier-z", type=float, default=3.0)
     parser.add_argument("--out", type=Path, default=Path("outputs/mvpa_l2/stats/sensitivity_models_all.csv"))
     args = parser.parse_args()
 
@@ -141,7 +196,7 @@ def main() -> None:
     for feature_space in feature_spaces:
         label = f"FeatureSpace:{feature_space}"
         rows.extend(run_group_model(df, label, feature_space, covariates))
-        rows.extend(run_scr_model(df, label, feature_space, covariates))
+        rows.extend(run_scr_model(df, label, feature_space, covariates, args.outlier_z))
         rows.extend(run_drug_model(df, label, feature_space, covariates))
 
     primary_df = df[df["FeatureSpace"] == args.primary_feature_space].copy()
@@ -155,7 +210,7 @@ def main() -> None:
             print(f"[WARN] Empty cohort: {flag}")
             continue
         rows.extend(run_group_model(sub, label, args.primary_feature_space, covariates, drug_scope="pooled"))
-        rows.extend(run_scr_model(sub, label, args.primary_feature_space, covariates))
+        rows.extend(run_scr_model(sub, label, args.primary_feature_space, covariates, args.outlier_z))
         if cell_count_ok(sub, args.min_cell_n):
             rows.extend(run_drug_model(sub, label, args.primary_feature_space, covariates))
         else:

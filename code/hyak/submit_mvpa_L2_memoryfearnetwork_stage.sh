@@ -14,7 +14,20 @@ PROJECT_ROOT="${PROJECT_ROOT:-/gscratch/fang/NARSAD}"
 CONTAINER_SIF="${CONTAINER_SIF:-/gscratch/fang/images/jupyter.sif}"
 APP_PATH="${APP_PATH:-/gscratch/scrubbed/fanglab/xiaoqian/repo/narsad_multivoxel/code/hyak}"
 OUT_BASE="${OUT_BASE:-/gscratch/fang/NARSAD/MRI/derivatives/fMRI_analysis/LSS/results}"
-OUT_DIR="${OUT_DIR:-/output_dir/MemoryFearNetwork}"
+STAGE11_MASK_MODE="${STAGE11_MASK_MODE:-current}"
+case "$STAGE11_MASK_MODE" in
+  current)
+    DEFAULT_OUT_DIR="/output_dir/MemoryFearNetwork"
+    ;;
+  original_notebook)
+    DEFAULT_OUT_DIR="/output_dir/MemoryFearNetwork_originalMask"
+    ;;
+  *)
+    echo "ERROR: STAGE11_MASK_MODE must be 'current' or 'original_notebook'." >&2
+    exit 1
+    ;;
+esac
+OUT_DIR="${OUT_DIR:-${DEFAULT_OUT_DIR}}"
 ROI_DIR="${MEMORY_FEAR_ROI_DIR:-${PROJECT_ROOT}/ROI/MemoryFearNetwork}"
 
 LOG_DIR="${LOG_DIR:-${PROJECT_ROOT}/logs/mvpa_l2_memoryfearnetwork}"
@@ -33,7 +46,6 @@ N_NULL_PERMS="${N_NULL_PERMS:-5000}"
 STAGE11_ACTUAL_REPEATS="${STAGE11_ACTUAL_REPEATS:-${N_NULL_PERMS}}"
 STAGE11_CHUNKS="${STAGE11_CHUNKS:-100}"
 STAGE11_ARRAY_MAX_RUNNING="${STAGE11_ARRAY_MAX_RUNNING:-20}"
-STAGE11_MASK_MODE="${STAGE11_MASK_MODE:-current}"
 STAGE11_SCORING="${STAGE11_SCORING:-auto}"
 
 # Analysis-bearing notebook cells in execution order.

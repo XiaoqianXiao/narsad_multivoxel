@@ -148,8 +148,8 @@ def primary_rows(stats_dir: Path) -> pd.DataFrame:
         ].copy()
         sub["aim"] = "Aim 4"
         sub["scientific_question"] = "Neural-SCR convergence"
-        sub["effect_label"] = "neural metric slope"
-        sub["effect_scale"] = "SCR index units per neural metric unit"
+        sub["effect_label"] = "standardized neural metric slope"
+        sub["effect_scale"] = "standardized beta after Stage-29 z-score outlier removal"
         rows.append(sub)
 
     if not aim5.empty:

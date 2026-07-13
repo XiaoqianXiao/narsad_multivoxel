@@ -45,6 +45,28 @@ STAGE11_MASK_MODE=original_notebook STAGE11_SCORING=auto hyak/submit_mvpa_L2_fea
 
 `STAGE11_SCORING=auto` maps `current` to `decision_margin` and `original_notebook` to `forced_choice`. You can override it with `STAGE11_SCORING=decision_margin` or `STAGE11_SCORING=forced_choice` for sensitivity checks. Use separate output directories for manuscript-grade parallel runs, for example `FearNetwork` and `FearNetwork_originalMask`, so final Stage 11 checkpoints and downstream outputs do not overwrite each other.
 
+Post-Hyak scripts do not rerun masks or voxel models. They read whichever completed feature-space output folders are supplied through `FEAR_DIR`, `MEMORY_DIR`, and optionally `SCHAEFER_DIR`. Therefore each mask-mode run should also use a separate `OUT_ROOT` for harmonized/statistical outputs.
+
+Current-mask post-Hyak example:
+
+```bash
+FEAR_DIR=/output_dir/FearNetwork \
+MEMORY_DIR=/output_dir/MemoryFearNetwork \
+OUT_ROOT=/output_dir/mvpa_l2 \
+bash scripts/run_mvpa_l2_posthyak.sh
+```
+
+Original-notebook-mask post-Hyak example:
+
+```bash
+FEAR_DIR=/output_dir/FearNetwork_originalMask \
+MEMORY_DIR=/output_dir/MemoryFearNetwork_originalMask \
+OUT_ROOT=/output_dir/mvpa_l2_originalMask \
+bash scripts/run_mvpa_l2_posthyak.sh
+```
+
+After each post-Hyak run, check the generated files under `OUT_ROOT/stats/`, especially `aim2_trajectory_panel.csv`, `aim2_group_difference.csv`, and `manuscript_primary_results.csv`. For the original-notebook mask run, the upstream Stage 11 joblib diagnostics should report `stage11_mask_mode = original_notebook` and `importance_scoring = forced_choice_scorer`.
+
 Run this after the Hyak jobs are complete:
 
 ```bash
