@@ -25,13 +25,11 @@ if [[ -d "$OUT_BASE" || "$REPO_ROOT" == /gscratch/* ]]; then
   FEAR_DIR="${FEAR_DIR:-$OUT_BASE/FearNetwork}"
   MEMORY_DIR="${MEMORY_DIR:-$OUT_BASE/MemoryFearNetwork}"
   SCHAEFER_DIR="${SCHAEFER_DIR:-$OUT_BASE/WholeBrain_Schaefer}"
-  SCR_DIR="${SCR_DIR:-$OUT_BASE/scr_analysis_outputs}"
   OUT_ROOT="${OUT_ROOT:-$OUT_BASE/mvpa_l2}"
 else
   FEAR_DIR="${FEAR_DIR:-outputs/mvpa_l2/FearNetwork}"
   MEMORY_DIR="${MEMORY_DIR:-outputs/mvpa_l2/MemoryFearNetwork}"
   SCHAEFER_DIR="${SCHAEFER_DIR:-}"
-  SCR_DIR="${SCR_DIR:-scr_analysis_outputs}"
   OUT_ROOT="${OUT_ROOT:-outputs/mvpa_l2}"
 fi
 PYTHON_BIN="${PYTHON_BIN:-python3}"
@@ -39,6 +37,44 @@ SCR_FLAGS="${SCR_FLAGS:-}"
 SCR_FLAGS_OUT="$OUT_ROOT/harmonized/scr_sensitivity_groups.csv"
 CLINICAL_OUTLIER_Z="${CLINICAL_OUTLIER_Z:-3.0}"
 RUN_AIM1_SCR="${RUN_AIM1_SCR:-1}"
+
+pick_default_scr_dir() {
+  local candidates=(
+    "$OUT_BASE/scr_analysis_outputs"
+    "/output_dir/scr_analysis_outputs"
+    "/app/scr_analysis_outputs"
+    "/gscratch/scrubbed/fanglab/xiaoqian/NARSAD/scr_analysis_outputs"
+    "/gscratch/scrubbed/fanglab/xiaoqian/repo/narsad_multivoxel/results/scr_analysis_outputs"
+    "scr_analysis_outputs"
+  )
+  local path
+  for path in "${candidates[@]}"; do
+    if [[ -d "$path" ]]; then
+      printf '%s\n' "$path"
+      return 0
+    fi
+  done
+  printf '%s\n' "$OUT_BASE/scr_analysis_outputs"
+}
+
+SCR_DIR="${SCR_DIR:-$(pick_default_scr_dir)}"
+
+pick_existing_scr_flags() {
+  local candidates=(
+    "$SCR_FLAGS_OUT"
+    "/output_dir/mvpa_l2/harmonized/scr_sensitivity_groups.csv"
+    "$OUT_BASE/mvpa_l2/harmonized/scr_sensitivity_groups.csv"
+    "outputs/mvpa_l2/harmonized/scr_sensitivity_groups.csv"
+  )
+  local path
+  for path in "${candidates[@]}"; do
+    if [[ -s "$path" ]]; then
+      printf '%s\n' "$path"
+      return 0
+    fi
+  done
+  return 1
+}
 
 python_is_modern() {
   "$PYTHON_BIN" - <<'PY' >/dev/null 2>&1
@@ -126,8 +162,11 @@ elif [[ -n "$SCR_FLAGS" ]]; then
   echo "ERROR: SCR_FLAGS was set but the file does not exist: $SCR_FLAGS" >&2
   echo "Expected a prebuilt CSV such as /output_dir/mvpa_l2/harmonized/scr_sensitivity_groups.csv inside the container." >&2
   exit 1
-elif [[ -f "$SCR_FLAGS_OUT" ]]; then
-  validate_scr_flags "$SCR_FLAGS_OUT"
+elif existing_scr_flags="$(pick_existing_scr_flags)"; then
+  validate_scr_flags "$existing_scr_flags"
+  if [[ "$existing_scr_flags" != "$SCR_FLAGS_OUT" ]]; then
+    cp "$existing_scr_flags" "$SCR_FLAGS_OUT"
+  fi
   echo "Using existing SCR sensitivity flags -> $SCR_FLAGS_OUT"
 else
   "$PYTHON_BIN" scripts/build_scr_sensitivity_groups.py \
