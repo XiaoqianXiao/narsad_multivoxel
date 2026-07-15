@@ -15,13 +15,31 @@ PROJECT_ROOT="${PROJECT_ROOT:-/gscratch/fang/NARSAD}"
 CONTAINER_SIF="${CONTAINER_SIF:-/gscratch/fang/images/jupyter.sif}"
 REPO_ROOT="${REPO_ROOT:-/gscratch/scrubbed/fanglab/xiaoqian/repo/narsad_multivoxel/code}"
 OUT_BASE="${OUT_BASE:-/gscratch/fang/NARSAD/MRI/derivatives/fMRI_analysis/LSS/results}"
+STAGE11_MASK_MODE="${STAGE11_MASK_MODE:-${MVPA_L2_MASK_MODE:-current}}"
 
-FEAR_DIR="${FEAR_DIR:-/output_dir/FearNetwork}"
-MEMORY_DIR="${MEMORY_DIR:-/output_dir/MemoryFearNetwork}"
+case "$STAGE11_MASK_MODE" in
+  current)
+    FEAR_DEFAULT_NAME="FearNetwork"
+    MEMORY_DEFAULT_NAME="MemoryFearNetwork"
+    OUT_DEFAULT_NAME="mvpa_l2"
+    ;;
+  original_notebook)
+    FEAR_DEFAULT_NAME="FearNetwork_originalMask"
+    MEMORY_DEFAULT_NAME="MemoryFearNetwork_originalMask"
+    OUT_DEFAULT_NAME="mvpa_l2_originalMask"
+    ;;
+  *)
+    echo "ERROR: STAGE11_MASK_MODE must be 'current' or 'original_notebook'." >&2
+    exit 1
+    ;;
+esac
+
+FEAR_DIR="${FEAR_DIR:-/output_dir/$FEAR_DEFAULT_NAME}"
+MEMORY_DIR="${MEMORY_DIR:-/output_dir/$MEMORY_DEFAULT_NAME}"
 SCHAEFER_DIR="${SCHAEFER_DIR:-}"
-SCR_FLAGS="${SCR_FLAGS:-/output_dir/mvpa_l2/harmonized/scr_sensitivity_groups.csv}"
+SCR_FLAGS="${SCR_FLAGS:-/output_dir/$OUT_DEFAULT_NAME/harmonized/scr_sensitivity_groups.csv}"
 SCR_DIR="${SCR_DIR:-/app/scr_analysis_outputs}"
-OUT_ROOT="${OUT_ROOT:-/output_dir/mvpa_l2}"
+OUT_ROOT="${OUT_ROOT:-/output_dir/$OUT_DEFAULT_NAME}"
 
 LOG_DIR="${LOG_DIR:-${PROJECT_ROOT}/logs/mvpa_l2_posthyak}"
 PARTITION="${PARTITION:-ckpt-all}"
@@ -38,14 +56,14 @@ Usage:
 
 Environment overrides:
   PROJECT_ROOT, CONTAINER_SIF, REPO_ROOT, OUT_BASE
-  FEAR_DIR, MEMORY_DIR, SCHAEFER_DIR, SCR_FLAGS, SCR_DIR, OUT_ROOT
+  STAGE11_MASK_MODE, FEAR_DIR, MEMORY_DIR, SCHAEFER_DIR, SCR_FLAGS, SCR_DIR, OUT_ROOT
   LOG_DIR, PARTITION, ACCOUNT, TIME, MEM, CPUS
 
 Defaults:
   CONTAINER_SIF=/gscratch/fang/images/jupyter.sif
-  FEAR_DIR=/output_dir/FearNetwork
-  MEMORY_DIR=/output_dir/MemoryFearNetwork
-  SCR_FLAGS=/output_dir/mvpa_l2/harmonized/scr_sensitivity_groups.csv
+  FEAR_DIR=/output_dir/FearNetwork or /output_dir/FearNetwork_originalMask when STAGE11_MASK_MODE=original_notebook
+  MEMORY_DIR=/output_dir/MemoryFearNetwork or /output_dir/MemoryFearNetwork_originalMask when STAGE11_MASK_MODE=original_notebook
+  SCR_FLAGS=/output_dir/mvpa_l2/harmonized/scr_sensitivity_groups.csv or /output_dir/mvpa_l2_originalMask/harmonized/scr_sensitivity_groups.csv
   SCHAEFER_DIR is empty, so whole-brain/parcellation sensitivity is skipped.
   SCR_DIR is only used as a fallback when SCR_FLAGS is missing.
 EOF
@@ -86,6 +104,7 @@ inner_cmd=$(
   cat <<EOF
 set -euo pipefail
 cd /app
+export STAGE11_MASK_MODE='${STAGE11_MASK_MODE}'
 export FEAR_DIR='${FEAR_DIR}'
 export MEMORY_DIR='${MEMORY_DIR}'
 export SCHAEFER_DIR='${SCHAEFER_DIR}'

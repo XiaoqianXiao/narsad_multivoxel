@@ -59,11 +59,11 @@ bash scripts/run_mvpa_l2_posthyak.sh
 Original-notebook-mask post-Hyak example:
 
 ```bash
-FEAR_DIR=/output_dir/FearNetwork_originalMask \
-MEMORY_DIR=/output_dir/MemoryFearNetwork_originalMask \
-OUT_ROOT=/output_dir/mvpa_l2_originalMask \
+STAGE11_MASK_MODE=original_notebook \
 bash scripts/run_mvpa_l2_posthyak.sh
 ```
+
+You can still override `FEAR_DIR`, `MEMORY_DIR`, or `OUT_ROOT` explicitly, but `STAGE11_MASK_MODE=original_notebook` now defaults them to `/output_dir/FearNetwork_originalMask`, `/output_dir/MemoryFearNetwork_originalMask`, and `/output_dir/mvpa_l2_originalMask`.
 
 After each post-Hyak run, check the generated files under `OUT_ROOT/stats/`, especially `aim2_trajectory_panel.csv`, `aim2_group_difference.csv`, and `manuscript_primary_results.csv`. For the original-notebook mask run, the upstream Stage 11 joblib diagnostics should report `stage11_mask_mode = original_notebook` and `importance_scoring = forced_choice_scorer`.
 

@@ -20,17 +20,37 @@ CONTAINER_SIF="${CONTAINER_SIF:-/gscratch/fang/images/jupyter.sif}"
 OUT_BASE="${OUT_BASE:-/gscratch/fang/NARSAD/MRI/derivatives/fMRI_analysis/LSS/results}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="${REPO_ROOT:-$(cd "$SCRIPT_DIR/.." && pwd)}"
+STAGE11_MASK_MODE="${STAGE11_MASK_MODE:-${MVPA_L2_MASK_MODE:-current}}"
+
+case "$STAGE11_MASK_MODE" in
+  current)
+    FEAR_DEFAULT_NAME="FearNetwork"
+    MEMORY_DEFAULT_NAME="MemoryFearNetwork"
+    SCHAEFER_DEFAULT_NAME="WholeBrain_Schaefer"
+    OUT_DEFAULT_NAME="mvpa_l2"
+    ;;
+  original_notebook)
+    FEAR_DEFAULT_NAME="FearNetwork_originalMask"
+    MEMORY_DEFAULT_NAME="MemoryFearNetwork_originalMask"
+    SCHAEFER_DEFAULT_NAME="WholeBrain_Schaefer_originalMask"
+    OUT_DEFAULT_NAME="mvpa_l2_originalMask"
+    ;;
+  *)
+    echo "ERROR: STAGE11_MASK_MODE must be 'current' or 'original_notebook'." >&2
+    exit 1
+    ;;
+esac
 
 if [[ -d "$OUT_BASE" || "$REPO_ROOT" == /gscratch/* ]]; then
-  FEAR_DIR="${FEAR_DIR:-$OUT_BASE/FearNetwork}"
-  MEMORY_DIR="${MEMORY_DIR:-$OUT_BASE/MemoryFearNetwork}"
-  SCHAEFER_DIR="${SCHAEFER_DIR:-$OUT_BASE/WholeBrain_Schaefer}"
-  OUT_ROOT="${OUT_ROOT:-$OUT_BASE/mvpa_l2}"
+  FEAR_DIR="${FEAR_DIR:-$OUT_BASE/$FEAR_DEFAULT_NAME}"
+  MEMORY_DIR="${MEMORY_DIR:-$OUT_BASE/$MEMORY_DEFAULT_NAME}"
+  SCHAEFER_DIR="${SCHAEFER_DIR:-$OUT_BASE/$SCHAEFER_DEFAULT_NAME}"
+  OUT_ROOT="${OUT_ROOT:-$OUT_BASE/$OUT_DEFAULT_NAME}"
 else
-  FEAR_DIR="${FEAR_DIR:-outputs/mvpa_l2/FearNetwork}"
-  MEMORY_DIR="${MEMORY_DIR:-outputs/mvpa_l2/MemoryFearNetwork}"
+  FEAR_DIR="${FEAR_DIR:-outputs/$OUT_DEFAULT_NAME/$FEAR_DEFAULT_NAME}"
+  MEMORY_DIR="${MEMORY_DIR:-outputs/$OUT_DEFAULT_NAME/$MEMORY_DEFAULT_NAME}"
   SCHAEFER_DIR="${SCHAEFER_DIR:-}"
-  OUT_ROOT="${OUT_ROOT:-outputs/mvpa_l2}"
+  OUT_ROOT="${OUT_ROOT:-outputs/$OUT_DEFAULT_NAME}"
 fi
 PYTHON_BIN="${PYTHON_BIN:-python3}"
 SCR_FLAGS="${SCR_FLAGS:-}"
@@ -62,6 +82,9 @@ SCR_DIR="${SCR_DIR:-$(pick_default_scr_dir)}"
 pick_existing_scr_flags() {
   local candidates=(
     "$SCR_FLAGS_OUT"
+    "/output_dir/$OUT_DEFAULT_NAME/harmonized/scr_sensitivity_groups.csv"
+    "$OUT_BASE/$OUT_DEFAULT_NAME/harmonized/scr_sensitivity_groups.csv"
+    "outputs/$OUT_DEFAULT_NAME/harmonized/scr_sensitivity_groups.csv"
     "/output_dir/mvpa_l2/harmonized/scr_sensitivity_groups.csv"
     "$OUT_BASE/mvpa_l2/harmonized/scr_sensitivity_groups.csv"
     "outputs/mvpa_l2/harmonized/scr_sensitivity_groups.csv"
@@ -104,6 +127,7 @@ if ! python_is_modern && ! running_in_container && on_hyak_filesystem; then
       bind_args+=(-B "${SCR_DIR}:${SCR_DIR}")
     fi
     exec env \
+      STAGE11_MASK_MODE="$STAGE11_MASK_MODE" \
       FEAR_DIR="$FEAR_DIR" \
       MEMORY_DIR="$MEMORY_DIR" \
       SCHAEFER_DIR="$SCHAEFER_DIR" \
@@ -135,6 +159,10 @@ if sys.version_info < (3, 7):
     )
 print(f"Using Python: {sys.executable} ({sys.version.split()[0]})")
 PY
+
+echo "Stage 11 mask mode: $STAGE11_MASK_MODE"
+echo "Feature roots: Fear=$FEAR_DIR | Memory=$MEMORY_DIR | Schaefer=${SCHAEFER_DIR:-skipped}"
+echo "Post-Hyak output root: $OUT_ROOT"
 
 validate_scr_flags() {
   local path="$1"

@@ -22,6 +22,24 @@ CONTAINER_SIF="${CONTAINER_SIF:-/gscratch/fang/images/jupyter.sif}"
 REPO_ROOT="${REPO_ROOT:-/gscratch/scrubbed/fanglab/xiaoqian/repo/narsad_multivoxel/code}"
 APP_PATH="${APP_PATH:-${REPO_ROOT}/hyak}"
 OUT_BASE="${OUT_BASE:-/gscratch/fang/NARSAD/MRI/derivatives/fMRI_analysis/LSS/results}"
+STAGE11_MASK_MODE="${STAGE11_MASK_MODE:-${MVPA_L2_MASK_MODE:-current}}"
+
+case "$STAGE11_MASK_MODE" in
+  current)
+    FEAR_DEFAULT_NAME="FearNetwork"
+    MEMORY_DEFAULT_NAME="MemoryFearNetwork"
+    OUT_DEFAULT_NAME="mvpa_l2"
+    ;;
+  original_notebook)
+    FEAR_DEFAULT_NAME="FearNetwork_originalMask"
+    MEMORY_DEFAULT_NAME="MemoryFearNetwork_originalMask"
+    OUT_DEFAULT_NAME="mvpa_l2_originalMask"
+    ;;
+  *)
+    echo "ERROR: STAGE11_MASK_MODE must be 'current' or 'original_notebook'." >&2
+    exit 1
+    ;;
+esac
 
 SUBMIT_FEAR="${SUBMIT_FEAR:-1}"
 SUBMIT_MEMORY="${SUBMIT_MEMORY:-1}"
@@ -46,6 +64,7 @@ Environment overrides:
   PROJECT_ROOT, CONTAINER_SIF, REPO_ROOT, APP_PATH, OUT_BASE
   PARTITION, ACCOUNT, TIME, MEM, CPUS
   N_JOBS, N_JOBS_CV, N_PERMUTATION, N_NULL_PERMS
+  STAGE11_MASK_MODE=current|original_notebook
   STAGE11_ACTUAL_REPEATS, STAGE11_CHUNKS, STAGE11_ARRAY_MAX_RUNNING
   SUBMIT_FEAR=0 to skip FearNetwork submission
   SUBMIT_MEMORY=0 to skip MemoryFearNetwork submission
@@ -83,7 +102,7 @@ submit_chain() {
 
 dependency_jobs=()
 
-export PROJECT_ROOT CONTAINER_SIF REPO_ROOT APP_PATH OUT_BASE
+export PROJECT_ROOT CONTAINER_SIF REPO_ROOT APP_PATH OUT_BASE STAGE11_MASK_MODE
 
 if [[ "$SUBMIT_FEAR" == "1" ]]; then
   fear_final="$(submit_chain "FearNetwork" "$FEAR_SUBMIT" | tail -n 1)"
@@ -104,9 +123,9 @@ if [[ "$SUBMIT_POSTHYAK" == "1" ]]; then
   fi
 
   echo "Submitting post-Hyak job after dependencies: ${dependency_jobs[*]:-none}"
-  REPO_ROOT="$REPO_ROOT" OUT_BASE="$OUT_BASE" CONTAINER_SIF="$CONTAINER_SIF" \
-    FEAR_DIR="/output_dir/FearNetwork" \
-    MEMORY_DIR="/output_dir/MemoryFearNetwork" \
+  STAGE11_MASK_MODE="$STAGE11_MASK_MODE" REPO_ROOT="$REPO_ROOT" OUT_BASE="$OUT_BASE" CONTAINER_SIF="$CONTAINER_SIF" \
+    FEAR_DIR="/output_dir/$FEAR_DEFAULT_NAME" \
+    MEMORY_DIR="/output_dir/$MEMORY_DEFAULT_NAME" \
     SCHAEFER_DIR="" \
     "$POSTHYAK_SUBMIT" "${dependency_arg[@]}"
 fi
@@ -114,7 +133,8 @@ fi
 cat <<EOF
 
 Submitted MVPA L2 workflow without whole-brain/Schaefer sensitivity.
+Stage 11 mask mode: ${STAGE11_MASK_MODE}
 Container: ${CONTAINER_SIF}
-Feature outputs expected under: ${OUT_BASE}/FearNetwork and ${OUT_BASE}/MemoryFearNetwork
-Post-Hyak outputs expected under: ${OUT_BASE}/mvpa_l2
+Feature outputs expected under: ${OUT_BASE}/${FEAR_DEFAULT_NAME} and ${OUT_BASE}/${MEMORY_DEFAULT_NAME}
+Post-Hyak outputs expected under: ${OUT_BASE}/${OUT_DEFAULT_NAME}
 EOF
