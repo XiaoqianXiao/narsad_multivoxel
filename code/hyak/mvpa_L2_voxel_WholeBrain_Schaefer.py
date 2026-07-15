@@ -140,6 +140,15 @@ def parse_runtime_args():
     parser.add_argument("--output_dir", default=os.environ.get("OUTPUT_DIR"))
     parser.add_argument("--stage", type=int, default=None, help="Run a single user-facing stage matching the ROI scripts.")
     parser.add_argument(
+        "--stage_split",
+        default=os.environ.get("STAGE_SPLIT", "ALL"),
+        help=(
+            "Optional split selector for long stages. Supported values include "
+            "SAD/HC/MERGE for stages 12 and 15, and SAD_Placebo/SAD_Oxytocin/"
+            "HC_Placebo/HC_Oxytocin/MERGE for stage 19."
+        ),
+    )
+    parser.add_argument(
         "--resume",
         action="store_true",
         help="Load checkpoints for prior cells when running a single stage.",
@@ -246,6 +255,7 @@ _args, _ = parse_runtime_args()
 PROJECT_ROOT = _args.project_root
 OUTPUT_DIR = _args.output_dir
 STAGE = _args.stage
+STAGE_SPLIT = str(_args.stage_split).upper()
 RESUME = _args.resume
 IMPORTANCE_SOURCE = _args.importance_source.lower()
 N_JOBS = _args.n_jobs
@@ -3165,21 +3175,84 @@ if stage_active(12):
     # =============================================================================
     # 2. Centroid RDM Calculation
     # =============================================================================
-    # Compute RDMs
-    print(f"  Calculating Centroid RDMs (Conditions: {RDM_CONDITIONS}) with {CROSSNOBIS_REPEATS} split-half repeats...")
-    rdms_sad, subs_sad_rdm = calculate_crossnobis_rdm(X_sad_12, y_sad_12, sub_sad_12, RDM_CONDITIONS)
-    rdms_hc, subs_hc_rdm = calculate_crossnobis_rdm(X_hc_12, y_hc_12, sub_hc_12, RDM_CONDITIONS)
+    stage12_split = STAGE_SPLIT
+    if stage12_split in ("SAD", "HC"):
+        print(f"  Calculating Stage 12 split for {stage12_split}...")
+        if stage12_split == "SAD":
+            rdms_group, subs_group = calculate_crossnobis_rdm(X_sad_12, y_sad_12, sub_sad_12, RDM_CONDITIONS)
+            geom_group = build_true_condition_centroid_geometry(
+                X_sad_12, y_sad_12, sub_sad_12, "SAD", RDM_CONDITIONS, feature_space_12
+            )
+            X_shock, y_shock, sub_shock = get_shock_target_data("SAD_Placebo")
+            shock_group = (
+                calculate_residualized_shock_anchor_projection(
+                    X_sad_12, y_sad_12, sub_sad_12, X_shock[:, mask_sad_analysis], y_shock, sub_shock
+                )
+                if X_shock is not None else pd.DataFrame()
+            )
+            if not shock_group.empty:
+                shock_group["Group"] = "SAD"
+            group_mask = mask_sad_analysis
+        else:
+            rdms_group, subs_group = calculate_crossnobis_rdm(X_hc_12, y_hc_12, sub_hc_12, RDM_CONDITIONS)
+            geom_group = build_true_condition_centroid_geometry(
+                X_hc_12, y_hc_12, sub_hc_12, "HC", RDM_CONDITIONS, feature_space_12
+            )
+            X_shock, y_shock, sub_shock = get_shock_target_data("HC_Placebo")
+            shock_group = (
+                calculate_residualized_shock_anchor_projection(
+                    X_hc_12, y_hc_12, sub_hc_12, X_shock[:, mask_hc_analysis], y_shock, sub_shock
+                )
+                if X_shock is not None else pd.DataFrame()
+            )
+            if not shock_group.empty:
+                shock_group["Group"] = "HC"
+            group_mask = mask_hc_analysis
+        save_intermediate(f"stage12_split_{stage12_split}", {
+            "group": stage12_split,
+            "rdms": rdms_group,
+            "subs_rdm": subs_group,
+            "aim2_geometry_panel": geom_group,
+            "shock_anchor_df": shock_group,
+            "mask_analysis": group_mask,
+            "feature_space": feature_space_12,
+        })
+        print(f"Stage 12 split {stage12_split} complete.")
+        raise SystemExit(0)
+
+    if stage12_split == "MERGE":
+        print("  Loading Stage 12 split outputs...")
+        stage12_sad_split = load_intermediate("stage12_split_SAD")
+        stage12_hc_split = load_intermediate("stage12_split_HC")
+        rdms_sad = stage12_sad_split["rdms"]
+        subs_sad_rdm = stage12_sad_split["subs_rdm"]
+        rdms_hc = stage12_hc_split["rdms"]
+        subs_hc_rdm = stage12_hc_split["subs_rdm"]
+        aim2_geometry_panel = pd.concat([
+            stage12_sad_split.get("aim2_geometry_panel", pd.DataFrame()),
+            stage12_hc_split.get("aim2_geometry_panel", pd.DataFrame()),
+        ], ignore_index=True)
+        shock_anchor_df_sad = stage12_sad_split.get("shock_anchor_df", pd.DataFrame())
+        shock_anchor_df_hc = stage12_hc_split.get("shock_anchor_df", pd.DataFrame())
+        shock_anchor_df = pd.concat([shock_anchor_df_sad, shock_anchor_df_hc], ignore_index=True)
+        shock_anchor_stats = summarize_shock_anchor_projection(shock_anchor_df_sad, shock_anchor_df_hc, n_perm=N_PERMUTATION)
+    else:
+        # Compute RDMs
+        print(f"  Calculating Centroid RDMs (Conditions: {RDM_CONDITIONS}) with {CROSSNOBIS_REPEATS} split-half repeats...")
+        rdms_sad, subs_sad_rdm = calculate_crossnobis_rdm(X_sad_12, y_sad_12, sub_sad_12, RDM_CONDITIONS)
+        rdms_hc, subs_hc_rdm = calculate_crossnobis_rdm(X_hc_12, y_hc_12, sub_hc_12, RDM_CONDITIONS)
     
     print(f"  > Computed RDMs: SAD (n={len(subs_sad_rdm)}), HC (n={len(subs_hc_rdm)})")
 
-    aim2_geometry_panel = pd.concat([
-        build_true_condition_centroid_geometry(
-            X_sad_12, y_sad_12, sub_sad_12, "SAD", RDM_CONDITIONS, feature_space_12
-        ),
-        build_true_condition_centroid_geometry(
-            X_hc_12, y_hc_12, sub_hc_12, "HC", RDM_CONDITIONS, feature_space_12
-        ),
-    ], ignore_index=True)
+    if stage12_split != "MERGE":
+        aim2_geometry_panel = pd.concat([
+            build_true_condition_centroid_geometry(
+                X_sad_12, y_sad_12, sub_sad_12, "SAD", RDM_CONDITIONS, feature_space_12
+            ),
+            build_true_condition_centroid_geometry(
+                X_hc_12, y_hc_12, sub_hc_12, "HC", RDM_CONDITIONS, feature_space_12
+            ),
+        ], ignore_index=True)
     export_aim2_geometry_panel(aim2_geometry_panel)
 
     # Secondary Shock-anchor sensitivity: residualize each trial across features,
@@ -3188,29 +3261,30 @@ if stage_active(12):
     # amplitude can dominate crossnobis distances.
     n_feat_sad = max(int(np.sum(mask_sad_analysis)), 1)
     n_feat_hc = max(int(np.sum(mask_hc_analysis)), 1)
-    shock_anchor_df_sad = pd.DataFrame()
-    shock_anchor_df_hc = pd.DataFrame()
-    shock_anchor_df = pd.DataFrame()
-    shock_anchor_stats = {}
-    X_shock_sad, y_shock_sad, sub_shock_sad = get_shock_target_data("SAD_Placebo")
-    X_shock_hc, y_shock_hc, sub_shock_hc = get_shock_target_data("HC_Placebo")
-    if X_shock_sad is not None and X_shock_hc is not None:
-        print("  Calculating residualized Shock-anchor projection sensitivity...")
-        shock_anchor_df_sad = calculate_residualized_shock_anchor_projection(
-            X_sad_12, y_sad_12, sub_sad_12, X_shock_sad[:, mask_sad_analysis], y_shock_sad, sub_shock_sad
-        )
-        shock_anchor_df_hc = calculate_residualized_shock_anchor_projection(
-            X_hc_12, y_hc_12, sub_hc_12, X_shock_hc[:, mask_hc_analysis], y_shock_hc, sub_shock_hc
-        )
-        if not shock_anchor_df_sad.empty:
-            shock_anchor_df_sad["Group"] = "SAD"
-        if not shock_anchor_df_hc.empty:
-            shock_anchor_df_hc["Group"] = "HC"
-        shock_anchor_df = pd.concat([shock_anchor_df_sad, shock_anchor_df_hc], ignore_index=True)
-        shock_anchor_stats = summarize_shock_anchor_projection(shock_anchor_df_sad, shock_anchor_df_hc, n_perm=N_PERMUTATION)
-        print_shock_anchor_summary(shock_anchor_stats)
-    else:
-        print(f"  ! Shock-anchor sensitivity unavailable: no shock/US target trials found for labels {SHOCK_TARGET_LABELS}.")
+    if stage12_split != "MERGE":
+        shock_anchor_df_sad = pd.DataFrame()
+        shock_anchor_df_hc = pd.DataFrame()
+        shock_anchor_df = pd.DataFrame()
+        shock_anchor_stats = {}
+        X_shock_sad, y_shock_sad, sub_shock_sad = get_shock_target_data("SAD_Placebo")
+        X_shock_hc, y_shock_hc, sub_shock_hc = get_shock_target_data("HC_Placebo")
+        if X_shock_sad is not None and X_shock_hc is not None:
+            print("  Calculating residualized Shock-anchor projection sensitivity...")
+            shock_anchor_df_sad = calculate_residualized_shock_anchor_projection(
+                X_sad_12, y_sad_12, sub_sad_12, X_shock_sad[:, mask_sad_analysis], y_shock_sad, sub_shock_sad
+            )
+            shock_anchor_df_hc = calculate_residualized_shock_anchor_projection(
+                X_hc_12, y_hc_12, sub_hc_12, X_shock_hc[:, mask_hc_analysis], y_shock_hc, sub_shock_hc
+            )
+            if not shock_anchor_df_sad.empty:
+                shock_anchor_df_sad["Group"] = "SAD"
+            if not shock_anchor_df_hc.empty:
+                shock_anchor_df_hc["Group"] = "HC"
+            shock_anchor_df = pd.concat([shock_anchor_df_sad, shock_anchor_df_hc], ignore_index=True)
+            shock_anchor_stats = summarize_shock_anchor_projection(shock_anchor_df_sad, shock_anchor_df_hc, n_perm=N_PERMUTATION)
+            print_shock_anchor_summary(shock_anchor_stats)
+        else:
+            print(f"  ! Shock-anchor sensitivity unavailable: no shock/US target trials found for labels {SHOCK_TARGET_LABELS}.")
 
     # =============================================================================
     # 3. Metrics & Statistical Tests
@@ -3894,21 +3968,53 @@ if stage_active(15):
     # Load HC Data
     X_hc, y_hc, sub_hc = get_ext_data("HC_Placebo")
     
+    stage15_split = STAGE_SPLIT
+
     # SAD Analysis (Native)
-    print("  > Analyzing SAD Placebo...")
-    df_sad_stats = calculate_distribution_stats(
-        X_sad, y_sad, sub_sad, 
-        mask_sad_native, subject_best_params,
-        COND_CLASS_THREAT, COND_CLASS_SAFE, sub_to_meta, best_c_sad, best_c_hc
-    )
+    if stage15_split not in ("HC", "MERGE"):
+        print("  > Analyzing SAD Placebo...")
+        df_sad_stats = calculate_distribution_stats(
+            X_sad, y_sad, sub_sad,
+            mask_sad_native, subject_best_params,
+            COND_CLASS_THREAT, COND_CLASS_SAFE, sub_to_meta, best_c_sad, best_c_hc
+        )
     
     # HC Analysis (Native)
     print("  > Analyzing HC Placebo...")
-    df_hc_stats = calculate_distribution_stats(
-        X_hc, y_hc, sub_hc, 
-        mask_hc_native, subject_best_params,
-        COND_CLASS_THREAT, COND_CLASS_SAFE, sub_to_meta, best_c_sad, best_c_hc
-    )
+    if stage15_split == "SAD":
+        save_intermediate("stage15_split_SAD", {
+            "df_sad_stats": df_sad_stats,
+            "feature_space": feature_space_14,
+            "mask_sad_native": mask_sad_native,
+        })
+        print("Stage 15 split SAD complete.")
+        raise SystemExit(0)
+
+    if stage15_split == "HC":
+        df_hc_stats = calculate_distribution_stats(
+            X_hc, y_hc, sub_hc,
+            mask_hc_native, subject_best_params,
+            COND_CLASS_THREAT, COND_CLASS_SAFE, sub_to_meta, best_c_sad, best_c_hc
+        )
+        save_intermediate("stage15_split_HC", {
+            "df_hc_stats": df_hc_stats,
+            "feature_space": feature_space_14,
+            "mask_hc_native": mask_hc_native,
+        })
+        print("Stage 15 split HC complete.")
+        raise SystemExit(0)
+
+    if stage15_split == "MERGE":
+        stage15_sad_split = load_intermediate("stage15_split_SAD")
+        stage15_hc_split = load_intermediate("stage15_split_HC")
+        df_sad_stats = stage15_sad_split["df_sad_stats"]
+        df_hc_stats = stage15_hc_split["df_hc_stats"]
+    else:
+        df_hc_stats = calculate_distribution_stats(
+            X_hc, y_hc, sub_hc, 
+            mask_hc_native, subject_best_params,
+            COND_CLASS_THREAT, COND_CLASS_SAFE, sub_to_meta, best_c_sad, best_c_hc
+        )
     
     # =============================================================================
     # 3. Statistical Comparison
@@ -4450,22 +4556,52 @@ if stage_active(19):
     
     if 'subject_best_params' not in locals(): subject_best_params = {}
     
-    for key, sub_list in subgroups_23.items():
-        group, drug = key.split('_')
-        curr_mask = mask_sad_native if group == "SAD" else mask_hc_native
-        
-        for sub in sub_list:
-            mask_s = (sub_ext == sub)
-            X_s, y_s = X_ext[mask_s], y_ext[mask_s]
-            
-            res = calc_metrics_for_subject(X_s, y_s, sub, curr_mask, COND_CLASS_THREAT, COND_CLASS_SAFE)
-            
-            if res is not None:
-                row = {"Subject": sub, "Group": group, "Drug": drug}
-                row.update({met: res.get(met, np.nan) for met in metrics_list})
-                data_rows.append(row)
+    stage19_split_map = {
+        "SAD_PLACEBO": "SAD_Placebo",
+        "SAD_OXYTOCIN": "SAD_Oxytocin",
+        "HC_PLACEBO": "HC_Placebo",
+        "HC_OXYTOCIN": "HC_Oxytocin",
+    }
+    stage19_split = STAGE_SPLIT
+    if stage19_split in stage19_split_map:
+        selected_key = stage19_split_map[stage19_split]
+        subgroups_23 = {selected_key: subgroups_23[selected_key]}
+        print(f"  > Stage 19 split: {selected_key}")
+
+    if stage19_split != "MERGE":
+        for key, sub_list in subgroups_23.items():
+            group, drug = key.split('_')
+            curr_mask = mask_sad_native if group == "SAD" else mask_hc_native
+
+            for sub in sub_list:
+                mask_s = (sub_ext == sub)
+                X_s, y_s = X_ext[mask_s], y_ext[mask_s]
+
+                res = calc_metrics_for_subject(X_s, y_s, sub, curr_mask, COND_CLASS_THREAT, COND_CLASS_SAFE)
+
+                if res is not None:
+                    row = {"Subject": sub, "Group": group, "Drug": drug}
+                    row.update({met: res.get(met, np.nan) for met in metrics_list})
+                    data_rows.append(row)
     
-    df_metrics = pd.DataFrame(data_rows)
+    if stage19_split in stage19_split_map:
+        df_metrics_split = pd.DataFrame(data_rows)
+        save_intermediate(f"stage19_split_{stage19_split}", {
+            "df_metrics": df_metrics_split,
+            "metrics_list": metrics_list,
+            "stage19_group_key": stage19_split_map[stage19_split],
+        })
+        print(f"Stage 19 split {stage19_split_map[stage19_split]} complete for {len(df_metrics_split)} subjects.")
+        raise SystemExit(0)
+
+    if stage19_split == "MERGE":
+        split_frames = []
+        for split_name in ("SAD_PLACEBO", "SAD_OXYTOCIN", "HC_PLACEBO", "HC_OXYTOCIN"):
+            split_payload = load_intermediate(f"stage19_split_{split_name}")
+            split_frames.append(split_payload.get("df_metrics", pd.DataFrame()))
+        df_metrics = pd.concat(split_frames, ignore_index=True)
+    else:
+        df_metrics = pd.DataFrame(data_rows)
     print(f"  > Computed metrics for {len(df_metrics)} subjects.")
     
     # =============================================================================

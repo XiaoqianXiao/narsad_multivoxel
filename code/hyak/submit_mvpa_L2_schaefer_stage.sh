@@ -4,6 +4,9 @@ set -euo pipefail
 # Submit mvpa_L2_voxel_WholeBrain_Schaefer.py by logical stage.
 # Usage:
 #   ./submit_mvpa_L2_schaefer_stage.sh all
+#   ./submit_mvpa_L2_schaefer_stage.sh post11
+#   ./submit_mvpa_L2_schaefer_stage.sh 12+
+#   ./submit_mvpa_L2_schaefer_stage.sh post11-parallel
 #   ./submit_mvpa_L2_schaefer_stage.sh 11:SAD
 #   ./submit_mvpa_L2_schaefer_stage.sh 12 --resume
 #   ./submit_mvpa_L2_schaefer_stage.sh --help
@@ -47,6 +50,33 @@ Usage:
       Submit Schaefer stages as a dependency chain using the same user-facing
       stage numbers as MemoryFearNetwork/FearNetwork.
 
+  submit_mvpa_L2_schaefer_stage.sh post11
+  submit_mvpa_L2_schaefer_stage.sh 12+
+      Submit only the post-Stage-11 dependency chain:
+      12 -> 13 -> 15 -> 16 -> 18 -> 19 -> 20 -> 21 -> 23 -> 24 -> 26 -> 27 -> 28 -> 29 -> 30.
+      Use this after both Stage 11 SAD and HC merge jobs have completed.
+
+  submit_mvpa_L2_schaefer_stage.sh post11-parallel
+  submit_mvpa_L2_schaefer_stage.sh 12+parallel
+      Submit post-Stage-11 stages as a dependency graph instead of a single chain.
+      Stages 12, 15, and 19 are split and merged automatically. Independent
+      stages 13, 16, 18, 20, 21, and 23 are submitted immediately. Stage 24
+      waits for merged stages 12 and 15 plus stage 13; Stage 26 waits for 23
+      and 24; Stage 27, 28, and 29 wait for 26; Stage 30 waits for 29.
+
+  submit_mvpa_L2_schaefer_stage.sh 12:SAD
+  submit_mvpa_L2_schaefer_stage.sh 12:HC
+  submit_mvpa_L2_schaefer_stage.sh 12:merge
+  submit_mvpa_L2_schaefer_stage.sh 15:SAD
+  submit_mvpa_L2_schaefer_stage.sh 15:HC
+  submit_mvpa_L2_schaefer_stage.sh 15:merge
+  submit_mvpa_L2_schaefer_stage.sh 19:SAD_Placebo
+  submit_mvpa_L2_schaefer_stage.sh 19:SAD_Oxytocin
+  submit_mvpa_L2_schaefer_stage.sh 19:HC_Placebo
+  submit_mvpa_L2_schaefer_stage.sh 19:HC_Oxytocin
+  submit_mvpa_L2_schaefer_stage.sh 19:merge
+      Submit or merge split work for long post-Stage-11 stages.
+
   submit_mvpa_L2_schaefer_stage.sh <stage_id> [extra python args]
       Submit one user-facing stage. Extra args are passed through to
       mvpa_L2_voxel_WholeBrain_Schaefer.py.
@@ -62,6 +92,9 @@ Usage:
 
 Examples:
   submit_mvpa_L2_schaefer_stage.sh all
+  submit_mvpa_L2_schaefer_stage.sh post11
+  submit_mvpa_L2_schaefer_stage.sh 12+
+  submit_mvpa_L2_schaefer_stage.sh post11-parallel
   submit_mvpa_L2_schaefer_stage.sh 12 --resume
   STAGE11_CHUNKS=500 submit_mvpa_L2_schaefer_stage.sh 11:SAD
   STAGE11_CHUNKS=500 STAGE11_CHUNK_IDX=80 submit_mvpa_L2_schaefer_stage.sh 11:SAD
@@ -190,6 +223,7 @@ submit_stage() {
   local stage="$stage_spec"
   local requested_stage="$stage_spec"
   local group="ALL"
+  local stage_split="ALL"
   local job_suffix="$stage_spec"
   local dependency_args=()
 
@@ -197,10 +231,20 @@ submit_stage() {
     stage="11"
     requested_stage="11"
     group="${BASH_REMATCH[1]}"
+  elif [[ "$stage_spec" =~ ^(12|15)[:_-](SAD|HC|MERGE)$ ]]; then
+    stage="${BASH_REMATCH[1]}"
+    requested_stage="$stage"
+    stage_split="${BASH_REMATCH[2]}"
+  elif [[ "$stage_spec" =~ ^19[:_-](SAD_PLACEBO|SAD_OXYTOCIN|HC_PLACEBO|HC_OXYTOCIN|SAD-PLACEBO|SAD-OXYTOCIN|HC-PLACEBO|HC-OXYTOCIN|MERGE)$ ]]; then
+    stage="19"
+    requested_stage="19"
+    stage_split="${BASH_REMATCH[1]//-/_}"
   fi
   job_suffix="$(stage_output_suffix "$stage")"
   if [[ "$stage" == "11" && "$group" != "ALL" ]]; then
     job_suffix="${job_suffix}_${group}"
+  elif [[ "$stage_split" != "ALL" ]]; then
+    job_suffix="${job_suffix}_${stage_split}"
   fi
 
   if [[ -n "$dependency" ]]; then
@@ -210,6 +254,9 @@ submit_stage() {
   local stage_extra=""
   if [[ "$stage" != "6" ]]; then
     stage_extra="--resume"
+  fi
+  if [[ "$stage_split" != "ALL" ]]; then
+    stage_extra="${stage_extra} --stage_split ${stage_split}"
   fi
   local wrap
   wrap="$(base_wrap_prefix)$(python_cmd "$stage" "$group" "$stage_extra")"
@@ -344,6 +391,64 @@ if [[ "$REQUESTED" == "ALL" ]]; then
   done
 
   echo "Submitted chained Schaefer stages with split stage 11 SAD/HC jobs."
+elif [[ "$REQUESTED" == "POST11" || "$REQUESTED" == "12+" ]]; then
+  prev_job=""
+  for stage in "${POST_STAGE11_STAGES[@]}"; do
+    job_id="$(submit_stage "$stage" "$prev_job")"
+    echo "Submitted Schaefer stage ${stage}: job ${job_id}"
+    prev_job="$job_id"
+  done
+
+  echo "Submitted chained Schaefer post-Stage-11 stages."
+elif [[ "$REQUESTED" == "POST11-PARALLEL" || "$REQUESTED" == "12+PARALLEL" ]]; then
+  declare -A post11_jobs=()
+
+  for split in SAD HC; do
+    post11_jobs["12:${split}"]="$(submit_stage "12:${split}")"
+    echo "Submitted Schaefer stage 12:${split}: job ${post11_jobs["12:${split}"]}"
+  done
+  stage12_dep="${post11_jobs["12:SAD"]}:${post11_jobs["12:HC"]}"
+  post11_jobs[12]="$(submit_stage "12:MERGE" "$stage12_dep")"
+  echo "Submitted Schaefer stage 12 merge after SAD/HC splits: job ${post11_jobs[12]}"
+
+  for split in SAD HC; do
+    post11_jobs["15:${split}"]="$(submit_stage "15:${split}")"
+    echo "Submitted Schaefer stage 15:${split}: job ${post11_jobs["15:${split}"]}"
+  done
+  stage15_dep="${post11_jobs["15:SAD"]}:${post11_jobs["15:HC"]}"
+  post11_jobs[15]="$(submit_stage "15:MERGE" "$stage15_dep")"
+  echo "Submitted Schaefer stage 15 merge after SAD/HC splits: job ${post11_jobs[15]}"
+
+  for split in SAD_PLACEBO SAD_OXYTOCIN HC_PLACEBO HC_OXYTOCIN; do
+    post11_jobs["19:${split}"]="$(submit_stage "19:${split}")"
+    echo "Submitted Schaefer stage 19:${split}: job ${post11_jobs["19:${split}"]}"
+  done
+  stage19_dep="${post11_jobs["19:SAD_PLACEBO"]}:${post11_jobs["19:SAD_OXYTOCIN"]}:${post11_jobs["19:HC_PLACEBO"]}:${post11_jobs["19:HC_OXYTOCIN"]}"
+  post11_jobs[19]="$(submit_stage "19:MERGE" "$stage19_dep")"
+  echo "Submitted Schaefer stage 19 merge after all subgroup splits: job ${post11_jobs[19]}"
+
+  for stage in 13 16 18 20 21 23; do
+    job_id="$(submit_stage "$stage")"
+    post11_jobs[$stage]="$job_id"
+    echo "Submitted Schaefer stage ${stage}: job ${job_id}"
+  done
+
+  stage24_dep="${post11_jobs[12]}:${post11_jobs[13]}:${post11_jobs[15]}"
+  post11_jobs[24]="$(submit_stage 24 "$stage24_dep")"
+  echo "Submitted Schaefer stage 24 after stages 12, 13, and 15: job ${post11_jobs[24]}"
+
+  stage26_dep="${post11_jobs[23]}:${post11_jobs[24]}"
+  post11_jobs[26]="$(submit_stage 26 "$stage26_dep")"
+  echo "Submitted Schaefer stage 26 after stages 23 and 24: job ${post11_jobs[26]}"
+
+  for stage in 27 28 29; do
+    post11_jobs[$stage]="$(submit_stage "$stage" "${post11_jobs[26]}")"
+    echo "Submitted Schaefer stage ${stage} after stage 26: job ${post11_jobs[$stage]}"
+  done
+
+  post11_jobs[30]="$(submit_stage 30 "${post11_jobs[29]}")"
+  echo "Submitted Schaefer stage 30 after stage 29: job ${post11_jobs[30]}"
+  echo "Submitted parallel Schaefer post-Stage-11 dependency graph."
 elif [[ "$REQUESTED" =~ ^11[:_-](SAD|HC)$ ]]; then
   requested_stage="11"
   group_name="${BASH_REMATCH[1]}"
