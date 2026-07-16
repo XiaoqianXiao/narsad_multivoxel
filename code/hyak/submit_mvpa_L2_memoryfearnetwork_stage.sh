@@ -4,6 +4,7 @@ set -euo pipefail
 # Submit mvpa_L2_voxel_MemoryFearNetwork.py by analysis stage.
 # Usage:
 #   ./submit_mvpa_L2_memoryfearnetwork_stage.sh all
+#   ./submit_mvpa_L2_memoryfearnetwork_stage.sh post14
 #   ./submit_mvpa_L2_memoryfearnetwork_stage.sh 11:SAD
 #   ./submit_mvpa_L2_memoryfearnetwork_stage.sh 12
 #   ./submit_mvpa_L2_memoryfearnetwork_stage.sh 12 --n_permutation 1000
@@ -64,6 +65,11 @@ Usage:
       Submit one analysis stage. Extra args are passed through to
       mvpa_L2_voxel_MemoryFearNetwork.py.
 
+  submit_mvpa_L2_memoryfearnetwork_stage.sh post<N> [extra python args]
+      Submit every post-Stage-11 analysis stage greater than N as a chained
+      Slurm dependency graph. For example, post14 submits:
+        15 -> 16 -> 17 -> 18 -> 19 -> 20 -> 21 -> 23 -> 24 -> 26 -> 27 -> 28 -> 29 -> 30
+
   submit_mvpa_L2_memoryfearnetwork_stage.sh 11:SAD
   submit_mvpa_L2_memoryfearnetwork_stage.sh 11:HC
       Submit only one half of the slow Stage 11 permutation-importance job.
@@ -76,6 +82,8 @@ Usage:
 
 Examples:
   submit_mvpa_L2_memoryfearnetwork_stage.sh 6
+  submit_mvpa_L2_memoryfearnetwork_stage.sh post14
+  submit_mvpa_L2_memoryfearnetwork_stage.sh post24
   submit_mvpa_L2_memoryfearnetwork_stage.sh 11:SAD
   submit_mvpa_L2_memoryfearnetwork_stage.sh 11:HC
   submit_mvpa_L2_memoryfearnetwork_stage.sh 12 --n_permutation 1000
@@ -305,6 +313,35 @@ submit_stage11_merge() {
   echo "$job_id"
 }
 
+submit_post_stages_after() {
+  local after_stage="$1"
+  local prev_job=""
+  local submitted_any=0
+  local stage
+  local job_id
+
+  for stage in "${POST_STAGE11_STAGES[@]}"; do
+    if (( stage > after_stage )); then
+      job_id="$(submit_stage "$stage" "$prev_job")"
+      if [[ -n "$prev_job" ]]; then
+        echo "Submitted MemoryFearNetwork stage ${stage} after job ${prev_job}: job ${job_id}"
+      else
+        echo "Submitted MemoryFearNetwork stage ${stage}: job ${job_id}"
+      fi
+      prev_job="$job_id"
+      submitted_any=1
+    fi
+  done
+
+  if (( submitted_any == 0 )); then
+    echo "ERROR: post${after_stage} did not match any later post-Stage-11 stages." >&2
+    echo "Available post-Stage-11 stages: ${POST_STAGE11_STAGES[*]}" >&2
+    exit 1
+  fi
+
+  echo "Submitted chained MemoryFearNetwork stages after stage ${after_stage}."
+}
+
 if [[ "$REQUESTED" == "ALL" ]]; then
   prev_job=""
   for stage in "${PRE_STAGE11_STAGES[@]}"; do
@@ -332,6 +369,8 @@ if [[ "$REQUESTED" == "ALL" ]]; then
   done
 
   echo "Submitted chained MemoryFearNetwork stages with split stage 11 SAD/HC jobs."
+elif [[ "$REQUESTED" =~ ^POST([0-9]+)$ ]]; then
+  submit_post_stages_after "${BASH_REMATCH[1]}"
 else
   if [[ "$REQUESTED" =~ ^11[:_-](SAD|HC)$ ]]; then
     group_name="${BASH_REMATCH[1]}"
