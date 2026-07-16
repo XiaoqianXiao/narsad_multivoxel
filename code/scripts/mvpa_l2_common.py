@@ -7,6 +7,7 @@ the names, model families, and light statistical helpers in one place.
 """
 
 import math
+import os
 import re
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional
