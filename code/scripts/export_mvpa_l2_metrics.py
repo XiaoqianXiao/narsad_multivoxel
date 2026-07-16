@@ -74,6 +74,22 @@ def load_master(base_dir: Path) -> Optional[pd.DataFrame]:
     return None
 
 
+def load_stage24_core_metrics(base_dir: Path) -> Optional[pd.DataFrame]:
+    payload = load_payload(
+        base_dir,
+        [
+            "stage24_NeuralClinicalIndices.joblib",
+            "stage24_neural_clinical_indices.joblib",
+            "cell_24.joblib",
+            "checkpoints/cell_24.joblib",
+        ],
+    )
+    df = payload_value(payload, "df_core_representative")
+    if isinstance(df, pd.DataFrame) and not df.empty:
+        return derive_final_metrics(ensure_subject_column(df))
+    return None
+
+
 def topology_from_results12(payload) -> Optional[pd.DataFrame]:
     results = payload_value(payload, "results_12") or payload
     if not isinstance(results, dict):
@@ -525,6 +541,7 @@ def export_feature_space(feature_space: str, base_dir: Path) -> pd.DataFrame:
     # not failed neural estimates. Check nonmissing Neural_* columns before
     # interpreting those rows as analysis failures.
     pieces = [
+        load_stage24_core_metrics(base_dir),
         load_topology(base_dir),
         load_decision(base_dir),
         load_trajectories(base_dir),
@@ -541,8 +558,8 @@ def export_feature_space(feature_space: str, base_dir: Path) -> pd.DataFrame:
     merged = coalesce_duplicate_columns(merged)
     merged = attach_metadata(merged, base_dir)
     merged = harmonize_group_drug(merged)
-    merged = derive_final_metrics(merged)
     merged["FeatureSpace"] = feature_space
+    merged = derive_final_metrics(merged)
     return merged
 
 

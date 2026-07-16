@@ -324,7 +324,7 @@ def find_derived_neural_index_path() -> Optional[Path]:
 
 
 def merge_derived_primary_neural_metrics(df: pd.DataFrame, phase: str = "phase2_extinction") -> pd.DataFrame:
-    """Merge dynamic primary metrics from the trialwise representative-index export."""
+    """Merge primary metrics from the trialwise representative-index export."""
     path = find_derived_neural_index_path()
     if path is None or df.empty:
         return df
@@ -333,10 +333,14 @@ def merge_derived_primary_neural_metrics(df: pd.DataFrame, phase: str = "phase2_
         return df
     if phase and "phase" in derived.columns:
         derived = derived[derived["phase"].astype(str).eq(phase)].copy()
+    if "FeatureSpace" not in df.columns and "feature_space" in derived.columns and derived["feature_space"].nunique(dropna=True) > 1:
+        return df
     value_cols = [
         col
         for col in [
             "Neural_Safety_Differentiation",
+            "Neural_SafetyEvidence",
+            "Neural_ThreatEvidence",
             "Neural_ThreatTriangleOpenness",
             "Neural_DynamicDiscrimination_Volatility",
         ]
@@ -376,7 +380,9 @@ def merge_derived_primary_neural_metrics(df: pd.DataFrame, phase: str = "phase2_
         if derived_col not in merged.columns:
             continue
         values = pd.to_numeric(merged[derived_col], errors="coerce")
-        if col in out.columns and col != "Neural_Safety_Differentiation":
+        if col in CORE_NEURAL_METRICS or col == "Neural_ThreatTriangleOpenness":
+            merged[col] = values.combine_first(pd.to_numeric(merged[col], errors="coerce")) if col in merged.columns else values
+        elif col in out.columns:
             merged[col] = pd.to_numeric(merged[col], errors="coerce").fillna(values)
         else:
             merged[col] = values
@@ -444,7 +450,14 @@ def derive_final_metrics(df: pd.DataFrame) -> pd.DataFrame:
         out["Neural_Decoder_Entropy_CSR"] = binary_entropy(pd.to_numeric(out["Neural_ThreatLike_Threat"], errors="coerce"))
     out = merge_derived_primary_neural_metrics(out)
     if "Neural_ThreatTriangleOpenness" in out.columns:
-        out["Neural_Safety_Differentiation"] = pd.to_numeric(out["Neural_ThreatTriangleOpenness"], errors="coerce")
+        triangle = pd.to_numeric(out["Neural_ThreatTriangleOpenness"], errors="coerce")
+        if "Neural_Safety_Differentiation" in out.columns:
+            out["Neural_Safety_Differentiation"] = pd.to_numeric(
+                out["Neural_Safety_Differentiation"],
+                errors="coerce",
+            ).combine_first(triangle)
+        else:
+            out["Neural_Safety_Differentiation"] = triangle
     return out
 
 
