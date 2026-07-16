@@ -133,21 +133,22 @@ if ! python_is_modern && ! running_in_container && on_hyak_filesystem; then
     echo "Python $("$PYTHON_BIN" -c 'import sys; print(sys.version.split()[0])' 2>/dev/null || echo unknown) is too old; relaunching post-Hyak workflow inside ${CONTAINER_SIF}."
     bind_args=(-B "${REPO_ROOT}:/app")
     [[ -d "$PROJECT_ROOT" ]] && bind_args+=(-B "${PROJECT_ROOT}:${PROJECT_ROOT}")
-    [[ -d "$OUT_BASE" ]] && bind_args+=(-B "${OUT_BASE}:/output_dir")
+    CONTAINER_OUT_MOUNT="/tmp/output_dir"
+    [[ -d "$OUT_BASE" ]] && bind_args+=(-B "${OUT_BASE}:${CONTAINER_OUT_MOUNT}:rw")
     if [[ -n "$SCR_DIR" && "$SCR_DIR" = /* && -d "$SCR_DIR" && "$SCR_DIR" != "$PROJECT_ROOT"* && "$SCR_DIR" != "$OUT_BASE"* ]]; then
       bind_args+=(-B "${SCR_DIR}:${SCR_DIR}")
     fi
     containerize_out_path() {
       local path="$1"
       if [[ -n "$path" && -n "$OUT_BASE" && "$path" == "$OUT_BASE" ]]; then
-        printf '%s\n' "/output_dir"
+        printf '%s\n' "$CONTAINER_OUT_MOUNT"
       elif [[ -n "$path" && -n "$OUT_BASE" && "$path" == "$OUT_BASE/"* ]]; then
-        printf '%s\n' "/output_dir/${path#"$OUT_BASE/"}"
+        printf '%s\n' "$CONTAINER_OUT_MOUNT/${path#"$OUT_BASE/"}"
       else
         printf '%s\n' "$path"
       fi
     }
-    CONTAINER_OUT_BASE="/output_dir"
+    CONTAINER_OUT_BASE="$CONTAINER_OUT_MOUNT"
     CONTAINER_FEAR_DIR="$(containerize_out_path "$FEAR_DIR")"
     CONTAINER_MEMORY_DIR="$(containerize_out_path "$MEMORY_DIR")"
     CONTAINER_SCHAEFER_DIR="$(containerize_out_path "$SCHAEFER_DIR")"
