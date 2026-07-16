@@ -137,19 +137,36 @@ if ! python_is_modern && ! running_in_container && on_hyak_filesystem; then
     if [[ -n "$SCR_DIR" && "$SCR_DIR" = /* && -d "$SCR_DIR" && "$SCR_DIR" != "$PROJECT_ROOT"* && "$SCR_DIR" != "$OUT_BASE"* ]]; then
       bind_args+=(-B "${SCR_DIR}:${SCR_DIR}")
     fi
+    containerize_out_path() {
+      local path="$1"
+      if [[ -n "$path" && -n "$OUT_BASE" && "$path" == "$OUT_BASE" ]]; then
+        printf '%s\n' "/output_dir"
+      elif [[ -n "$path" && -n "$OUT_BASE" && "$path" == "$OUT_BASE/"* ]]; then
+        printf '%s\n' "/output_dir/${path#"$OUT_BASE/"}"
+      else
+        printf '%s\n' "$path"
+      fi
+    }
+    CONTAINER_OUT_BASE="/output_dir"
+    CONTAINER_FEAR_DIR="$(containerize_out_path "$FEAR_DIR")"
+    CONTAINER_MEMORY_DIR="$(containerize_out_path "$MEMORY_DIR")"
+    CONTAINER_SCHAEFER_DIR="$(containerize_out_path "$SCHAEFER_DIR")"
+    CONTAINER_OUT_ROOT="$(containerize_out_path "$OUT_ROOT")"
+    CONTAINER_SCR_DIR="$(containerize_out_path "$SCR_DIR")"
+    CONTAINER_SCR_FLAGS="$(containerize_out_path "$SCR_FLAGS")"
     exec env \
       STAGE11_MASK_MODE="$STAGE11_MASK_MODE" \
-      FEAR_DIR="$FEAR_DIR" \
-      MEMORY_DIR="$MEMORY_DIR" \
-      SCHAEFER_DIR="$SCHAEFER_DIR" \
-      SCR_DIR="$SCR_DIR" \
-      OUT_ROOT="$OUT_ROOT" \
-      SCR_FLAGS="$SCR_FLAGS" \
+      FEAR_DIR="$CONTAINER_FEAR_DIR" \
+      MEMORY_DIR="$CONTAINER_MEMORY_DIR" \
+      SCHAEFER_DIR="$CONTAINER_SCHAEFER_DIR" \
+      SCR_DIR="$CONTAINER_SCR_DIR" \
+      OUT_ROOT="$CONTAINER_OUT_ROOT" \
+      SCR_FLAGS="$CONTAINER_SCR_FLAGS" \
       CLINICAL_OUTLIER_Z="$CLINICAL_OUTLIER_Z" \
       RUN_AIM1_SCR="$RUN_AIM1_SCR" \
       PROJECT_ROOT="$PROJECT_ROOT" \
       CONTAINER_SIF="$CONTAINER_SIF" \
-      OUT_BASE="$OUT_BASE" \
+      OUT_BASE="$CONTAINER_OUT_BASE" \
       REPO_ROOT="$REPO_ROOT" \
       apptainer exec "${bind_args[@]}" "$CONTAINER_SIF" bash -lc '
       cd /app
