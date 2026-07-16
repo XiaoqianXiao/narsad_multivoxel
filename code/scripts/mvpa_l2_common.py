@@ -290,11 +290,29 @@ def coalesce_duplicate_columns(df: pd.DataFrame) -> pd.DataFrame:
 def derived_neural_index_candidates() -> List[Path]:
     """Candidate locations for trialwise-derived representative neural indices."""
     script_root = Path(__file__).resolve().parents[2]
-    return [
+    candidates = []
+    env_path = os.environ.get("DERIVED_NEURAL_INDEX_PATH")
+    if env_path:
+        candidates.append(Path(env_path))
+    out_root = os.environ.get("OUT_ROOT")
+    if out_root:
+        candidates.append(Path(out_root) / "representative_neural_index" / "derived_subject_neural_indices.csv")
+    out_base = os.environ.get("OUT_BASE")
+    if out_base:
+        candidates.extend(
+            [
+                Path(out_base) / "representative_neural_index" / "derived_subject_neural_indices.csv",
+                Path(out_base) / "mvpa_l2" / "representative_neural_index" / "derived_subject_neural_indices.csv",
+            ]
+        )
+    candidates.extend(
+        [
         Path.cwd() / "results" / "representative_neural_index" / "derived_subject_neural_indices.csv",
         Path.cwd().parent / "results" / "representative_neural_index" / "derived_subject_neural_indices.csv",
         script_root / "results" / "representative_neural_index" / "derived_subject_neural_indices.csv",
-    ]
+        ]
+    )
+    return candidates
 
 
 def find_derived_neural_index_path() -> Optional[Path]:

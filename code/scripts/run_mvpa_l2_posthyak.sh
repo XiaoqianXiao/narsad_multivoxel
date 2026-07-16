@@ -126,6 +126,18 @@ on_hyak_filesystem() {
 }
 
 if ! python_is_modern && ! running_in_container && on_hyak_filesystem; then
+  if [[ ! -d "$OUT_BASE" ]]; then
+    cat >&2 <<EOF
+ERROR: OUT_BASE does not exist on this host:
+  OUT_BASE=$OUT_BASE
+
+On Hyak, do not use the local macOS /Users/... path. Set OUT_BASE to the
+Hyak directory that contains $FEAR_DEFAULT_NAME and $MEMORY_DEFAULT_NAME.
+For example:
+  OUT_BASE=/gscratch/fang/NARSAD/MRI/derivatives/fMRI_analysis/LSS/results
+EOF
+    exit 1
+  fi
   if ! command -v apptainer >/dev/null 2>&1; then
     module load apptainer 2>/dev/null || true
   fi
@@ -163,6 +175,7 @@ if ! python_is_modern && ! running_in_container && on_hyak_filesystem; then
       SCR_DIR="$CONTAINER_SCR_DIR" \
       OUT_ROOT="$CONTAINER_OUT_ROOT" \
       SCR_FLAGS="$CONTAINER_SCR_FLAGS" \
+      DERIVED_NEURAL_INDEX_PATH="$CONTAINER_OUT_ROOT/representative_neural_index/derived_subject_neural_indices.csv" \
       CLINICAL_OUTLIER_Z="$CLINICAL_OUTLIER_Z" \
       RUN_AIM1_SCR="$RUN_AIM1_SCR" \
       PROJECT_ROOT="$PROJECT_ROOT" \
