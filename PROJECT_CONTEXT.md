@@ -101,16 +101,16 @@ All feature scaling, subject-wise centering, feature selection, mask generation 
 
 ## Primary Neural Metrics
 
-Use a stable primary metric family when comparing group differences, symptom associations, SCR convergence, and drug effects.
+Use a stable primary metric family when comparing group differences, symptom associations, SCR convergence, and drug effects. Keep the primary metrics organized around the three neural-profile questions below. For the current FearNetwork extinction-focused analysis, use one primary metric per question and keep legacy slope or dispersion metrics as supporting diagnostics.
 
-| Category | Metric | Definition |
-|---|---|---|
-| Geometry | `Neural_Dist_Safety_Background` | Representational distance between `CSS` and `CS-` vectors. |
-| Geometry | `Neural_Dist_Threat_Safety` | Representational distance between `CSR` and `CSS` vectors. |
-| Certainty | `Neural_SafetyEvidence` | Posterior probability or decoder evidence for safety on `CSS` trials: `P(safety | CSS)`. |
-| Certainty | `Neural_ThreatEvidence` | Posterior probability or decoder evidence for threat on `CSR` trials: `P(threat | CSR)`. |
-| Trajectory | `Neural_Safety_Trajectory_Slope` | Trial-wise movement of `CSS` toward the target safety reference (`CS-`) during early extinction, used to reduce floor-effect concerns. |
-| Trajectory | `Neural_Threat_Trajectory_Slope` | Trial-wise movement of `CSR` toward the threat reference during early reinstatement, used to reduce floor-effect concerns. |
+| Question | Display Name | Metric | Definition |
+|---|---|---|---|
+| Q1. Geometry/topology | Threat-Safety Distance Difference from CS- | `Neural_ThreatTriangleOpenness` | Difference in distance from background: `d(CSR, CS-) - d(CSS, CS-)`. Higher values indicate that the threat cue is more separated from background than the safety cue is. Lower values indicate a flatter threat-safety-background map. |
+| Q2. Decision/evidence | Threat Representation Strength | `Neural_ThreatEvidence` | Prototype or decoder evidence that `CSR` is represented as threat: `P(threat | CSR)`. Higher values indicate clearer threat representation. |
+| Q2. Decision/evidence | Safety Representation Strength | `Neural_SafetyEvidence` | Prototype or decoder evidence that `CSS` is represented as safety/background-like: `P(safety | CSS)`. Use as a companion metric to threat evidence. |
+| Q3. Learning dynamics | Threat-Safety Updating | `Neural_DynamicDiscrimination_Volatility` | Trial-to-trial updating or volatility of the dynamic threat-vs-safety distinction: variability in `[CSR threat evidence - CSS safety evidence]` across extinction trials. Higher values indicate more dynamic representational updating. |
+| Q3. Learning dynamics | Safety Learning Slope | `Neural_Safety_Trajectory_Slope` | Legacy/support metric: trial-wise movement of `CSS` toward the target safety reference (`CS-`) during early extinction, used to reduce floor-effect concerns. |
+| Q3. Learning dynamics | Threat Learning Slope | `Neural_Threat_Trajectory_Slope` | Legacy/support metric: trial-wise movement of `CSR` toward the threat reference during early reinstatement, used to reduce floor-effect concerns. |
 
 ## Secondary Or Support Neural Metrics
 

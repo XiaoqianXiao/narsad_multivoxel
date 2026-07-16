@@ -11,7 +11,6 @@ from mvpa_l2_common import (
     ALL_CLINICAL_SCORES,
     ALL_SCR_INDICES,
     CLINICAL_SCORE_HIERARCHY,
-    COMPANION_NEURAL_METRICS,
     CORE_NEURAL_METRICS,
     NEURAL_METRIC_HIERARCHY,
     add_fdr,
@@ -28,21 +27,14 @@ DRUG_INTERACTION_TERM = "C(Group, Treatment(reference='HC'))[T.SAD]:C(Drug, Trea
 
 AIM2_QUESTION_METRICS = {
     "Q1_geometry": [
-        "Neural_Dist_Safety_Background",
-        "Neural_Dist_Threat_Safety",
-        "Neural_Dist_Threat_Background",
+        "Neural_Safety_Differentiation",
     ],
     "Q2_decision_certainty": [
         "Neural_SafetyEvidence",
         "Neural_ThreatEvidence",
-        "Neural_Decoder_Entropy_CSS",
-        "Neural_Decoder_Entropy_CSR",
     ],
     "Q3_learning_dynamics": [
-        "Neural_Safety_Trajectory_Slope",
-        "Neural_Threat_Trajectory_Slope",
-        "Shock_Anchor_Trajectory_Slope",
-        "Residualized_Shock_Anchor_Trajectory_Slope",
+        "Neural_DynamicDiscrimination_Volatility",
     ],
 }
 
@@ -52,13 +44,7 @@ AIM2_QUESTION_LABELS = {
     "Q3_learning_dynamics": "How do safety and threat representations change over learning?",
 }
 
-AIM2_SECONDARY_METRICS = {
-    "Neural_Dist_Threat_Background",
-    "Neural_Decoder_Entropy_CSS",
-    "Neural_Decoder_Entropy_CSR",
-    "Shock_Anchor_Trajectory_Slope",
-    "Residualized_Shock_Anchor_Trajectory_Slope",
-}
+AIM2_SECONDARY_METRICS = set()
 
 AIM2_PRIMARY_METRICS = set(CORE_NEURAL_METRICS)
 AIM2_METRIC_TO_QUESTION = {
@@ -360,7 +346,7 @@ def run_aim5(df: pd.DataFrame, feature_space: str, covariates: List[str]) -> pd.
         counts = frame.groupby(["Group", "Drug"], dropna=False).size().to_dict()
         return {f"{group}_{drug}": int(counts.get((group, drug), 0)) for group, drug in expected_cells}
 
-    for metric in CORE_NEURAL_METRICS + COMPANION_NEURAL_METRICS:
+    for metric in CORE_NEURAL_METRICS:
         needed = [metric, "Group", "Drug"] + [cov for cov in covariates if cov in sub.columns]
         if metric not in sub.columns:
             row = {"status": "missing_outcome", "n": 0, "outcome": metric}

@@ -90,17 +90,19 @@ C_POINTS = 20
 MIN_FEATURES_FOR_PRIMARY_MASK = 20
 
 CORE_NEURAL_METRICS = [
-    "Neural_Dist_Safety_Background",
-    "Neural_Dist_Threat_Safety",
+    "Neural_Safety_Differentiation",
     "Neural_SafetyEvidence",
     "Neural_ThreatEvidence",
-    "Neural_Safety_Trajectory_Slope",
-    "Neural_Threat_Trajectory_Slope",
+    "Neural_DynamicDiscrimination_Volatility",
 ]
 COMPANION_NEURAL_METRICS = [
+    "Neural_Dist_Safety_Background",
+    "Neural_Dist_Threat_Safety",
     "Neural_Dist_Threat_Background",
     "Neural_Decoder_Entropy_CSS",
     "Neural_Decoder_Entropy_CSR",
+    "Neural_Safety_Trajectory_Slope",
+    "Neural_Threat_Trajectory_Slope",
     "Shock_Anchor_Trajectory_Slope",
     "Residualized_Shock_Anchor_Trajectory_Slope",
 ]
@@ -5905,6 +5907,11 @@ if cell_active(24):
         'Neural_Dist_Threat_Background': np.concatenate([vC_sad_pv, vC_hc_pv]),
         'Group': ['SAD']*len(s_id_sad) + ['HC']*len(s_id_hc)
     })
+    df_neural_topology['Neural_Safety_Differentiation'] = (
+        pd.to_numeric(df_neural_topology['Neural_Dist_Threat_Background'], errors='coerce')
+        - pd.to_numeric(df_neural_topology['Neural_Dist_Safety_Background'], errors='coerce')
+    )
+    df_neural_topology['Neural_ThreatTriangleOpenness'] = df_neural_topology['Neural_Safety_Differentiation']
 
     # =============================================================================
     # NEURAL INDEX GENERATION (Analysis 1.3: Trajectory Slope)
@@ -5946,6 +5953,46 @@ if cell_active(24):
             slopes.append(row)
         return pd.DataFrame(slopes)
 
+    def calculate_dynamic_discrimination_metrics(data_safe, data_threat):
+        columns = [
+            'sub_ID',
+            'Neural_DynamicDiscrimination_Volatility',
+        ]
+        if data_safe is None or data_threat is None or data_safe.empty or data_threat.empty:
+            return pd.DataFrame(columns=columns)
+        safe = data_safe.copy()
+        threat = data_threat.copy()
+        if 'Drug' in safe.columns:
+            safe = safe[safe['Drug'].astype(str).eq('Placebo')].copy()
+        if 'Drug' in threat.columns:
+            threat = threat[threat['Drug'].astype(str).eq('Placebo')].copy()
+        needed = {'sub', 'trial', 'score'}
+        if not needed.issubset(safe.columns) or not needed.issubset(threat.columns):
+            return pd.DataFrame(columns=columns)
+        merged = safe[['sub', 'trial', 'score']].rename(columns={'score': 'safety_score'}).merge(
+            threat[['sub', 'trial', 'score']].rename(columns={'score': 'threat_score'}),
+            on=['sub', 'trial'],
+            how='inner',
+        )
+        rows = []
+        for sub, sub_data in merged.groupby('sub'):
+            sub_data = sub_data.sort_values('trial').copy()
+            if len(sub_data) < 3:
+                continue
+            delta = pd.to_numeric(sub_data['threat_score'], errors='coerce') - pd.to_numeric(sub_data['safety_score'], errors='coerce')
+            valid = delta.notna() & pd.to_numeric(sub_data['trial'], errors='coerce').notna()
+            if valid.sum() < 3:
+                continue
+            trial = pd.to_numeric(sub_data.loc[valid, 'trial'], errors='coerce').to_numpy(dtype=float)
+            values = delta.loc[valid].to_numpy(dtype=float)
+            diffs = np.diff(values)
+            volatility = float(np.sqrt(np.nanmean(diffs ** 2))) if diffs.size else np.nan
+            rows.append({
+                'sub_ID': str(sub),
+                'Neural_DynamicDiscrimination_Volatility': volatility,
+            })
+        return pd.DataFrame(rows, columns=columns)
+
     trajectory_payload = results_13_2 if isinstance(results_13_2, dict) else {}
     df_neural_trajectories = calculate_subject_slopes(
         trajectory_payload.get('data_safe', df_safe),
@@ -5959,6 +6006,12 @@ if cell_active(24):
         metric_slopes = calculate_subject_slopes(trajectory_payload.get(data_key, pd.DataFrame()), metric_name)
         if not metric_slopes.empty:
             df_neural_trajectories = df_neural_trajectories.merge(metric_slopes, on='sub_ID', how='outer')
+    dynamic_discrimination = calculate_dynamic_discrimination_metrics(
+        trajectory_payload.get('data_safe', df_safe),
+        trajectory_payload.get('data_threat', pd.DataFrame()),
+    )
+    if not dynamic_discrimination.empty:
+        df_neural_trajectories = df_neural_trajectories.merge(dynamic_discrimination, on='sub_ID', how='outer')
     shock_anchor_df = pd.DataFrame()
     if isinstance(results_12, dict):
         shock_anchor_results = results_12.get('shock_anchor_results', {})
@@ -6106,16 +6159,7 @@ if cell_active(27):
 
     # 1. Config
     groups = df_master_analysis['Group'].unique()
-    neural_metrics = ['Neural_Dist_Threat_Safety',
-           'Neural_Dist_Safety_Background', 'Neural_Dist_Threat_Background',
-           'Neural_SafetyEvidence', 'Neural_ThreatEvidence',
-           'Neural_Safety_Trajectory_Slope', 'Neural_Threat_Trajectory_Slope',
-           'Shock_Anchor_Trajectory_Slope', 'Residualized_Shock_Anchor_Trajectory_Slope',
-           'Neural_Safety_Mean', 'Neural_SCR_Safety_Coupling', 'Neural_Uncertainty_Entropy',
-           'Neural_Sharpness_Kurtosis', 'Neural_Decision_Margin_CSS',
-           'Neural_Decision_Margin_CSR', 'Neural_Decoder_Entropy_CSS',
-           'Neural_Decoder_Entropy_CSR',
-           'Neural_ThreatLike_Safety', 'Neural_Boundary_Separation']
+    neural_metrics = CORE_NEURAL_METRICS.copy()
     clinical_indices = PRIMARY_CLINICAL_SCORES + SECONDARY_CLINICAL_SCORES + PRIMARY_SCR_INDICES + SECONDARY_SCR_INDICES
     neural_metrics = keep_existing_columns(df_master_analysis, neural_metrics, "stage 27 neural metrics")
     clinical_indices = keep_existing_columns(df_master_analysis, clinical_indices, "stage 27 clinical/SCR indices")
@@ -6204,16 +6248,7 @@ if cell_active(28):
     # 1. Config
     # Using the merged df_master_analysis
     groups = df_master_analysis['Group'].unique()
-    neural_metrics = ['Neural_Dist_Threat_Safety',
-           'Neural_Dist_Safety_Background', 'Neural_Dist_Threat_Background',
-           'Neural_SafetyEvidence', 'Neural_ThreatEvidence',
-           'Neural_Safety_Trajectory_Slope', 'Neural_Threat_Trajectory_Slope',
-           'Shock_Anchor_Trajectory_Slope', 'Residualized_Shock_Anchor_Trajectory_Slope',
-           'Neural_Safety_Mean', 'Neural_SCR_Safety_Coupling', 'Neural_Uncertainty_Entropy',
-           'Neural_Sharpness_Kurtosis', 'Neural_Decision_Margin_CSS',
-           'Neural_Decision_Margin_CSR', 'Neural_Decoder_Entropy_CSS',
-           'Neural_Decoder_Entropy_CSR',
-           'Neural_ThreatLike_Safety', 'Neural_Boundary_Separation']
+    neural_metrics = CORE_NEURAL_METRICS.copy()
     clinical_indices = PRIMARY_CLINICAL_SCORES + SECONDARY_CLINICAL_SCORES + PRIMARY_SCR_INDICES + SECONDARY_SCR_INDICES
     neural_metrics = keep_existing_columns(df_master_analysis, neural_metrics, "stage 28 neural metrics")
     clinical_indices = keep_existing_columns(df_master_analysis, clinical_indices, "stage 28 clinical/SCR indices")
@@ -6300,20 +6335,7 @@ if cell_active(29):
     from scipy.stats import zscore
 
     # 1. Configuration
-    neural_metrics = [
-        'Neural_Dist_Threat_Safety', 'Neural_Dist_Safety_Background',
-        'Neural_Dist_Threat_Background',
-        'Neural_SafetyEvidence', 'Neural_ThreatEvidence',
-        'Neural_Safety_Trajectory_Slope', 'Neural_Threat_Trajectory_Slope',
-        'Shock_Anchor_Trajectory_Slope', 'Residualized_Shock_Anchor_Trajectory_Slope',
-        'Neural_Safety_Mean',
-        'Neural_SCR_Safety_Coupling',
-        'Neural_Uncertainty_Entropy', 'Neural_Sharpness_Kurtosis',
-        'Neural_Decision_Margin_CSS', 'Neural_Decision_Margin_CSR',
-        'Neural_Decoder_Entropy_CSS', 'Neural_Decoder_Entropy_CSR',
-        'Neural_ThreatLike_Safety',
-        'Neural_Boundary_Separation'
-    ]
+    neural_metrics = CORE_NEURAL_METRICS.copy()
     clinical_indices = PRIMARY_CLINICAL_SCORES + SECONDARY_CLINICAL_SCORES + PRIMARY_SCR_INDICES + SECONDARY_SCR_INDICES
     covariates = ['demo_age']
     neural_metrics = keep_existing_columns(df_master_analysis, neural_metrics, "stage 29 neural metrics")

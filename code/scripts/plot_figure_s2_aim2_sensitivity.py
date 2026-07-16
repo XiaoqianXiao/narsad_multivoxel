@@ -11,6 +11,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+from mvpa_l2_common import CORE_NEURAL_METRICS, NEURAL_METRIC_FAMILIES
+
 
 REQUIRED_COLUMNS = [
     "metric_family",
@@ -27,17 +29,8 @@ REQUIRED_COLUMNS = [
 ]
 
 METRIC_ORDER = [
-    ("Geometry", "Neural_Dist_Safety_Background"),
-    ("Geometry", "Neural_Dist_Threat_Safety"),
-    ("Certainty", "Neural_SafetyEvidence"),
-    ("Certainty", "Neural_ThreatEvidence"),
-    ("Trajectory", "Neural_Safety_Trajectory_Slope"),
-    ("Trajectory", "Neural_Threat_Trajectory_Slope"),
-    ("Secondary", "Neural_Dist_Threat_Background"),
-    ("Secondary", "Neural_Decoder_Entropy_CSS"),
-    ("Secondary", "Neural_Decoder_Entropy_CSR"),
-    ("Secondary", "Shock_Anchor_Trajectory_Slope"),
-    ("Secondary", "Residualized_Shock_Anchor_Trajectory_Slope"),
+    (NEURAL_METRIC_FAMILIES.get(metric, "Primary"), metric)
+    for metric in CORE_NEURAL_METRICS
 ]
 
 MASK_ORDER = ["FearNetwork", "MemoryFearNetwork", "Schaefer", "Tian", "WholeBrain"]

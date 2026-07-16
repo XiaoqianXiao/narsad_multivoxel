@@ -17,7 +17,13 @@ set -euo pipefail
 
 PROJECT_ROOT="${PROJECT_ROOT:-/gscratch/fang/NARSAD}"
 CONTAINER_SIF="${CONTAINER_SIF:-/gscratch/fang/images/jupyter.sif}"
-OUT_BASE="${OUT_BASE:-/gscratch/fang/NARSAD/MRI/derivatives/fMRI_analysis/LSS/results}"
+if [[ -z "${OUT_BASE:-}" ]]; then
+  if [[ -d "/Users/xiaoqianxiao/projects/NARSAD/LSS/results" ]]; then
+    OUT_BASE="/Users/xiaoqianxiao/projects/NARSAD/LSS/results"
+  else
+    OUT_BASE="/gscratch/fang/NARSAD/MRI/derivatives/fMRI_analysis/LSS/results"
+  fi
+fi
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="${REPO_ROOT:-$(cd "$SCRIPT_DIR/.." && pwd)}"
 STAGE11_MASK_MODE="${STAGE11_MASK_MODE:-${MVPA_L2_MASK_MODE:-current}}"
@@ -44,7 +50,11 @@ esac
 if [[ -d "$OUT_BASE" || "$REPO_ROOT" == /gscratch/* ]]; then
   FEAR_DIR="${FEAR_DIR:-$OUT_BASE/$FEAR_DEFAULT_NAME}"
   MEMORY_DIR="${MEMORY_DIR:-$OUT_BASE/$MEMORY_DEFAULT_NAME}"
-  SCHAEFER_DIR="${SCHAEFER_DIR:-$OUT_BASE/$SCHAEFER_DEFAULT_NAME}"
+  if [[ -z "${SCHAEFER_DIR+x}" && -d "$OUT_BASE/$SCHAEFER_DEFAULT_NAME" ]]; then
+    SCHAEFER_DIR="$OUT_BASE/$SCHAEFER_DEFAULT_NAME"
+  else
+    SCHAEFER_DIR="${SCHAEFER_DIR:-}"
+  fi
   OUT_ROOT="${OUT_ROOT:-$OUT_BASE/$OUT_DEFAULT_NAME}"
 else
   FEAR_DIR="${FEAR_DIR:-outputs/$OUT_DEFAULT_NAME/$FEAR_DEFAULT_NAME}"
@@ -57,6 +67,7 @@ SCR_FLAGS="${SCR_FLAGS:-}"
 SCR_FLAGS_OUT="$OUT_ROOT/harmonized/scr_sensitivity_groups.csv"
 CLINICAL_OUTLIER_Z="${CLINICAL_OUTLIER_Z:-3.0}"
 RUN_AIM1_SCR="${RUN_AIM1_SCR:-1}"
+REUSE_EXISTING_STATS="${REUSE_EXISTING_STATS:-auto}"
 
 pick_default_scr_dir() {
   local candidates=(
@@ -91,7 +102,7 @@ pick_existing_scr_flags() {
   )
   local path
   for path in "${candidates[@]}"; do
-    if [[ -s "$path" ]]; then
+    if [[ -s "$path" && "$(wc -l < "$path" | tr -d '[:space:]')" -ge 2 ]]; then
       printf '%s\n' "$path"
       return 0
     fi
@@ -212,16 +223,40 @@ if [[ -n "$SCHAEFER_DIR" ]]; then
   FEATURE_ARGS+=(--feature-dir "Schaefer=$SCHAEFER_DIR")
 fi
 
-"$PYTHON_BIN" scripts/export_mvpa_l2_metrics.py \
-  "${FEATURE_ARGS[@]}" \
-  --scr-flags "$SCR_FLAGS_OUT" \
-  --out "$OUT_ROOT/harmonized/mvpa_l2_subject_metrics.csv" \
-  --stats-out-dir "$OUT_ROOT/stats"
+SUBJECT_METRICS="$OUT_ROOT/harmonized/mvpa_l2_subject_metrics.csv"
+feature_roots_available=1
+for required_dir in "$FEAR_DIR" "$MEMORY_DIR"; do
+  if [[ ! -d "$required_dir" ]]; then
+    feature_roots_available=0
+  fi
+done
 
-"$PYTHON_BIN" scripts/export_aim1_decoding_primary.py \
-  --feature-dir "$FEAR_DIR" \
-  --out "$OUT_ROOT/stats/aim1_decoding_primary.csv" \
-  --feature-space "FearNetwork"
+if [[ "$feature_roots_available" == "1" ]]; then
+  "$PYTHON_BIN" scripts/export_mvpa_l2_metrics.py \
+    "${FEATURE_ARGS[@]}" \
+    --scr-flags "$SCR_FLAGS_OUT" \
+    --out "$SUBJECT_METRICS" \
+    --stats-out-dir "$OUT_ROOT/stats"
+elif [[ "$REUSE_EXISTING_STATS" == "auto" && -s "$SUBJECT_METRICS" ]]; then
+  echo "Feature roots are missing, so reusing existing harmonized metrics -> $SUBJECT_METRICS"
+else
+  echo "ERROR: Feature roots are missing and no reusable harmonized metrics were found." >&2
+  echo "Missing/checked: FEAR_DIR=$FEAR_DIR | MEMORY_DIR=$MEMORY_DIR" >&2
+  echo "Set FEAR_DIR/MEMORY_DIR, or set OUT_ROOT to an existing post-Hyak output root." >&2
+  exit 1
+fi
+
+if [[ -d "$FEAR_DIR" ]]; then
+  "$PYTHON_BIN" scripts/export_aim1_decoding_primary.py \
+    --feature-dir "$FEAR_DIR" \
+    --out "$OUT_ROOT/stats/aim1_decoding_primary.csv" \
+    --feature-space "FearNetwork"
+elif [[ "$REUSE_EXISTING_STATS" == "auto" && -s "$OUT_ROOT/stats/aim1_decoding_primary.csv" ]]; then
+  echo "FearNetwork feature root is missing, so reusing existing Aim 1 primary export -> $OUT_ROOT/stats/aim1_decoding_primary.csv"
+else
+  echo "ERROR: FearNetwork feature root is missing and Aim 1 primary export cannot be rebuilt." >&2
+  exit 1
+fi
 
 FEATURE_AIM1_ARGS=(
   --feature-dir "FearNetwork=$FEAR_DIR"
@@ -232,28 +267,40 @@ if [[ -n "$SCHAEFER_DIR" ]]; then
   FEATURE_AIM1_ARGS+=(--feature-dir "Schaefer=$SCHAEFER_DIR")
 fi
 
-"$PYTHON_BIN" scripts/export_aim1_feature_sensitivity.py \
-  "${FEATURE_AIM1_ARGS[@]}" \
-  --out "$OUT_ROOT/stats/aim1_mask_feature_sensitivity.csv" \
-  --wide-out "$OUT_ROOT/stats/aim1_mask_feature_sensitivity_wide.csv" \
-  --raincloud-out "$OUT_ROOT/stats/aim1_mask_feature_sensitivity_raincloud.csv" \
-  --drop-tests-out "$OUT_ROOT/stats/aim1_mask_feature_sensitivity_functional_drop_tests.csv" \
-  --drop-nulls-out "$OUT_ROOT/stats/aim1_mask_feature_sensitivity_functional_drop_nulls.csv"
+if [[ "$feature_roots_available" == "1" ]]; then
+  "$PYTHON_BIN" scripts/export_aim1_feature_sensitivity.py \
+    "${FEATURE_AIM1_ARGS[@]}" \
+    --out "$OUT_ROOT/stats/aim1_mask_feature_sensitivity.csv" \
+    --wide-out "$OUT_ROOT/stats/aim1_mask_feature_sensitivity_wide.csv" \
+    --raincloud-out "$OUT_ROOT/stats/aim1_mask_feature_sensitivity_raincloud.csv" \
+    --drop-tests-out "$OUT_ROOT/stats/aim1_mask_feature_sensitivity_functional_drop_tests.csv" \
+    --drop-nulls-out "$OUT_ROOT/stats/aim1_mask_feature_sensitivity_functional_drop_nulls.csv"
+elif [[ "$REUSE_EXISTING_STATS" == "auto" && -s "$OUT_ROOT/stats/aim1_mask_feature_sensitivity.csv" ]]; then
+  echo "Feature roots are missing, so reusing existing Aim 1 feature-sensitivity exports in $OUT_ROOT/stats"
+else
+  echo "ERROR: Feature roots are missing and Aim 1 feature-sensitivity exports cannot be rebuilt." >&2
+  exit 1
+fi
 
-if [[ "$RUN_AIM1_SCR" == "1" ]]; then
+if [[ "$RUN_AIM1_SCR" == "1" && -d "$FEAR_DIR" ]]; then
   "$PYTHON_BIN" scripts/export_aim1_scr_sensitivity.py \
     --feature-dir "$FEAR_DIR" \
     --out "$OUT_ROOT/stats/aim1_scr_sensitivity.csv" \
-    --feature-space "FearNetwork"
+    --feature-space "FearNetwork" \
+    --raincloud-out "$OUT_ROOT/stats/aim1_scr_sensitivity_raincloud.csv" \
+    --drop-tests-out "$OUT_ROOT/stats/aim1_scr_sensitivity_functional_drop_tests.csv" \
+    --drop-nulls-out "$OUT_ROOT/stats/aim1_scr_sensitivity_functional_drop_nulls.csv"
+elif [[ "$RUN_AIM1_SCR" == "1" && "$REUSE_EXISTING_STATS" == "auto" && -s "$OUT_ROOT/stats/aim1_scr_sensitivity.csv" ]]; then
+  echo "FearNetwork feature root is missing, so reusing existing Aim 1 SCR sensitivity export -> $OUT_ROOT/stats/aim1_scr_sensitivity.csv"
 fi
 
 "$PYTHON_BIN" scripts/run_mvpa_l2_primary_models.py \
-  --input "$OUT_ROOT/harmonized/mvpa_l2_subject_metrics.csv" \
+  --input "$SUBJECT_METRICS" \
   --clinical-outlier-z "$CLINICAL_OUTLIER_Z" \
   --out-dir "$OUT_ROOT/stats"
 
 "$PYTHON_BIN" scripts/run_mvpa_l2_sensitivity_models.py \
-  --input "$OUT_ROOT/harmonized/mvpa_l2_subject_metrics.csv" \
+  --input "$SUBJECT_METRICS" \
   --out "$OUT_ROOT/stats/sensitivity_models_all.csv"
 
 "$PYTHON_BIN" scripts/plot_figure_s2_aim2_sensitivity.py \
@@ -262,7 +309,7 @@ fi
   --table-dir "$OUT_ROOT/stats"
 
 "$PYTHON_BIN" scripts/export_mvpa_l2_manuscript_artifacts.py \
-  --input "$OUT_ROOT/harmonized/mvpa_l2_subject_metrics.csv" \
+  --input "$SUBJECT_METRICS" \
   --stats-dir "$OUT_ROOT/stats" \
   --repo-root "."
 
