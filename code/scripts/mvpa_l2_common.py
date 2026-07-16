@@ -376,7 +376,7 @@ def merge_derived_primary_neural_metrics(df: pd.DataFrame, phase: str = "phase2_
         if derived_col not in merged.columns:
             continue
         values = pd.to_numeric(merged[derived_col], errors="coerce")
-        if col in out.columns:
+        if col in out.columns and col != "Neural_Safety_Differentiation":
             merged[col] = pd.to_numeric(merged[col], errors="coerce").fillna(values)
         else:
             merged[col] = values
@@ -443,7 +443,7 @@ def derive_final_metrics(df: pd.DataFrame) -> pd.DataFrame:
     elif "Neural_ThreatLike_Threat" in out.columns and "Neural_Decoder_Entropy_CSR" not in out.columns:
         out["Neural_Decoder_Entropy_CSR"] = binary_entropy(pd.to_numeric(out["Neural_ThreatLike_Threat"], errors="coerce"))
     out = merge_derived_primary_neural_metrics(out)
-    if "Neural_Safety_Differentiation" not in out.columns and "Neural_ThreatTriangleOpenness" in out.columns:
+    if "Neural_ThreatTriangleOpenness" in out.columns:
         out["Neural_Safety_Differentiation"] = pd.to_numeric(out["Neural_ThreatTriangleOpenness"], errors="coerce")
     return out
 

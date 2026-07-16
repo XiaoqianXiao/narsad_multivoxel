@@ -2170,6 +2170,145 @@ def prepare_group_drug_plot(frames, name):
 def get_significant_mask(scores): return scores > 0
 
 
+PROTOTYPE_EPS = 1e-8
+
+
+def zscore_subject_trials(x):
+    x = x.astype(np.float64, copy=False)
+    mu = np.nanmean(x, axis=0)
+    sd = np.nanstd(x, axis=0)
+    sd[~np.isfinite(sd) | (sd < PROTOTYPE_EPS)] = 1.0
+    out = (x - mu) / sd
+    return np.nan_to_num(out, copy=False)
+
+
+def corr_distance_vector(a, b):
+    a = np.asarray(a, dtype=np.float64)
+    b = np.asarray(b, dtype=np.float64)
+    a = a - a.mean()
+    b = b - b.mean()
+    denom = np.linalg.norm(a) * np.linalg.norm(b)
+    if denom < PROTOTYPE_EPS:
+        return np.nan
+    corr = float(np.dot(a, b) / denom)
+    return 1.0 - float(np.clip(corr, -1.0, 1.0))
+
+
+def softmax_threat_evidence(d_background, d_threat):
+    if not np.isfinite(d_background) or not np.isfinite(d_threat):
+        return np.nan
+    scores = np.array([-d_background, -d_threat], dtype=float)
+    scores -= scores.max()
+    probs = np.exp(scores) / np.exp(scores).sum()
+    return float(probs[1])
+
+
+def prototype_decision_metrics(X_sub, y_sub, cond_threat, cond_safe, cond_background="CS-"):
+    """Match explore_representative_neural_index.py prototype evidence metrics."""
+    needed = (cond_background, cond_safe, cond_threat)
+    if any(np.sum(y_sub == label) == 0 for label in needed):
+        return np.nan, np.nan, np.nan
+    xz = zscore_subject_trials(X_sub)
+    centroids = {label: xz[y_sub == label].mean(axis=0) for label in needed}
+    p_threat_css = softmax_threat_evidence(
+        corr_distance_vector(centroids[cond_safe], centroids[cond_background]),
+        corr_distance_vector(centroids[cond_safe], centroids[cond_threat]),
+    )
+    p_threat_csr = softmax_threat_evidence(
+        corr_distance_vector(centroids[cond_threat], centroids[cond_background]),
+        corr_distance_vector(centroids[cond_threat], centroids[cond_threat]),
+    )
+    boundary = p_threat_csr - p_threat_css if np.isfinite(p_threat_csr) and np.isfinite(p_threat_css) else np.nan
+    return p_threat_css, p_threat_csr, boundary
+
+
+def corr_similarity_vector(a, b):
+    dist = corr_distance_vector(a, b)
+    if not np.isfinite(dist):
+        return np.nan
+    return 1.0 - dist
+
+
+def rmssd(values):
+    arr = np.asarray(list(values), dtype=float)
+    arr = arr[np.isfinite(arr)]
+    if arr.size < 2:
+        return np.nan
+    return float(np.sqrt(np.mean(np.diff(arr) ** 2)))
+
+
+def representative_core_neural_metrics(X_sub, y_sub):
+    """Return the four primary neural metrics using representative-index definitions."""
+    needed = ("CS-", "CSS", "CSR")
+    if any(np.sum(_condition_mask(y_sub, label)) == 0 for label in needed):
+        return {}
+    xz = zscore_subject_trials(X_sub)
+    centroids = {label: xz[_condition_mask(y_sub, label)].mean(axis=0) for label in needed}
+
+    d_safety_background = corr_distance_vector(centroids["CSS"], centroids["CS-"])
+    d_threat_safety = corr_distance_vector(centroids["CSR"], centroids["CSS"])
+    d_threat_background = corr_distance_vector(centroids["CSR"], centroids["CS-"])
+    p_threat_css = softmax_threat_evidence(
+        corr_distance_vector(centroids["CSS"], centroids["CS-"]),
+        corr_distance_vector(centroids["CSS"], centroids["CSR"]),
+    )
+    p_threat_csr = softmax_threat_evidence(
+        corr_distance_vector(centroids["CSR"], centroids["CS-"]),
+        corr_distance_vector(centroids["CSR"], centroids["CSR"]),
+    )
+
+    safety_contrast = []
+    threat_contrast = []
+    for label, holder in (("CSS", safety_contrast), ("CSR", threat_contrast)):
+        for trial in xz[_condition_mask(y_sub, label)]:
+            sim_bg = corr_similarity_vector(trial, centroids["CS-"])
+            sim_threat = corr_similarity_vector(trial, centroids["CSR"])
+            holder.append(sim_bg - sim_threat if label == "CSS" else sim_threat - sim_bg)
+    n_dynamic = min(len(safety_contrast), len(threat_contrast))
+    if n_dynamic:
+        dynamic_discrimination = np.asarray(threat_contrast[:n_dynamic], dtype=float) - np.asarray(safety_contrast[:n_dynamic], dtype=float)
+    else:
+        dynamic_discrimination = np.asarray([], dtype=float)
+
+    return {
+        "Neural_Dist_Safety_Background": d_safety_background,
+        "Neural_Dist_Threat_Safety": d_threat_safety,
+        "Neural_Dist_Threat_Background": d_threat_background,
+        "Neural_Safety_Differentiation": d_threat_background - d_safety_background,
+        "Neural_ThreatTriangleOpenness": d_threat_background - d_safety_background,
+        "Neural_SafetyEvidence": 1.0 - p_threat_css,
+        "Neural_ThreatEvidence": p_threat_csr,
+        "Neural_ThreatLike_Safety": p_threat_css,
+        "Neural_Threat_Evidence_CSR": p_threat_csr,
+        "Neural_Boundary_Separation": p_threat_csr - p_threat_css,
+        "Neural_DynamicDiscrimination_Volatility": rmssd(dynamic_discrimination),
+    }
+
+
+def representative_core_metrics_from_data_subsets(data_subsets, group_masks):
+    rows = []
+    for key, payload in data_subsets.items():
+        if not isinstance(payload, dict) or "ext" not in payload or payload["ext"] is None:
+            continue
+        try:
+            group, drug = key.split("_", 1)
+        except ValueError:
+            continue
+        if group not in group_masks:
+            continue
+        ext = payload["ext"]
+        X, y, subs = ext["X"], ext["y"], ext["sub"]
+        curr_mask = group_masks[group]
+        for sub in np.unique(subs):
+            m = subs == sub
+            metrics = representative_core_neural_metrics(X[m][:, curr_mask], y[m])
+            if not metrics:
+                continue
+            metrics.update({"sub_ID": str(sub), "Group": group, "Drug": drug})
+            rows.append(metrics)
+    return pd.DataFrame(rows)
+
+
 def calculate_distribution_stats(X, y, subjects, feature_mask, best_params_dict):
     # Slice Features & Center
     X_masked = X[:, feature_mask]
@@ -2216,6 +2355,9 @@ def calculate_distribution_stats(X, y, subjects, feature_mask, best_params_dict)
             if np.sum(mask_css) == 0: continue
             probs_css = probs_all[mask_css, idx_threat]
             probs_csr = probs_all[y_binary == COND_CLASS_THREAT, idx_threat]
+            p_csr_css, p_csr_csr, boundary_separation = prototype_decision_metrics(
+                X_sub, y_sub, COND_CLASS_THREAT, COND_CLASS_SAFE
+            )
             
             # Metrics
             # 1. Entropy
@@ -2236,13 +2378,11 @@ def calculate_distribution_stats(X, y, subjects, feature_mask, best_params_dict)
             res['variance'].append(v_val)
             res['probabilities'].append(probs_css)
             res['probabilities_csr'].append(probs_csr)
-            res['p_csr_css'].append(float(np.mean(probs_css)))
-            res['p_csr_csr'].append(float(np.mean(probs_csr)) if len(probs_csr) else np.nan)
-            res['boundary_separation'].append(
-                (float(np.mean(probs_csr)) if len(probs_csr) else np.nan) - float(np.mean(probs_css))
-            )
-            res['decision_margin_css'].append(float(0.5 - np.mean(probs_css)))
-            res['decision_margin_csr'].append(float(np.mean(probs_csr) - 0.5) if len(probs_csr) else np.nan)
+            res['p_csr_css'].append(p_csr_css)
+            res['p_csr_csr'].append(p_csr_csr)
+            res['boundary_separation'].append(boundary_separation)
+            res['decision_margin_css'].append(float(0.5 - p_csr_css) if np.isfinite(p_csr_css) else np.nan)
+            res['decision_margin_csr'].append(float(p_csr_csr - 0.5) if np.isfinite(p_csr_csr) else np.nan)
             res['decision_margin_all'].append(float(np.mean(np.abs(probs_all[:, idx_threat] - 0.5))))
             res['entropy_css'].append(float(np.mean(trial_entropies)))
             res['entropy_csr'].append(float(np.mean(trial_entropies_csr)) if len(trial_entropies_csr) else np.nan)
@@ -2366,7 +2506,7 @@ def calc_metrics_for_subject(X, y, sub_id, feature_mask, C_param=1.0):
         # 3. CV Probabilities
         model = build_binary_pipeline()
         model.set_params(classification__C=C_param)
-        cv = get_cv(y_binary, np.full(len(y_binary), sub), n_splits=SUBJECT_CV_SPLITS, shuffle=True, random_state=RANDOM_STATE)
+        cv = get_cv(y_bin, np.full(len(y_bin), sub_id), n_splits=SUBJECT_CV_SPLITS, shuffle=True, random_state=RANDOM_STATE)
         calib_model = CalibratedClassifierCV(
             model,
             method="sigmoid",
@@ -2386,6 +2526,9 @@ def calc_metrics_for_subject(X, y, sub_id, feature_mask, C_param=1.0):
         # Prob(Threat | Safety Cue)
         probs_css = probs_all[mask_css, idx_threat]
         probs_csr = probs_all[mask_csr, idx_threat]
+        p_csr_css, p_csr_csr, boundary_separation = prototype_decision_metrics(
+            X_m, y, COND_CLASS_THREAT, COND_CLASS_SAFE
+        )
         
         # --- Metrics ---
         # A. Entropy (Uncertainty)
@@ -2402,12 +2545,9 @@ def calc_metrics_for_subject(X, y, sub_id, feature_mask, C_param=1.0):
         # C. Variance (Spread)
         val_var = np.var(probs_css)
 
-        # D. Boundary geometry/probability measures used in Analysis 1.4
-        p_csr_css = float(np.mean(probs_css))
-        p_csr_csr = float(np.mean(probs_csr)) if len(probs_csr) else np.nan
-        boundary_separation = p_csr_csr - p_csr_css if np.isfinite(p_csr_csr) else np.nan
-        decision_margin_css = float(0.5 - np.mean(probs_css))
-        decision_margin_csr = float(np.mean(probs_csr) - 0.5) if len(probs_csr) else np.nan
+        # D. Prototype evidence measures used by explore_representative_neural_index.py
+        decision_margin_css = float(0.5 - p_csr_css) if np.isfinite(p_csr_css) else np.nan
+        decision_margin_csr = float(p_csr_csr - 0.5) if np.isfinite(p_csr_csr) else np.nan
         decision_margin_all = float(np.mean(np.abs(probs_all[:, idx_threat] - 0.5)))
         
         return {
@@ -4861,8 +5001,13 @@ if cell_active(15):
         df_sad_stats = results_14_self['df_sad']
         df_hc_stats = results_14_self['df_hc']
         required_decision_cols = {'decision_margin_css', 'decision_margin_csr', 'entropy_css', 'entropy_csr', 'p_csr_css', 'p_csr_csr', 'boundary_separation'}
-        if not required_decision_cols.issubset(df_sad_stats.columns) or not required_decision_cols.issubset(df_hc_stats.columns):
-            print("  [RECALC] Cached decision stats lack margin/boundary metrics; recomputing.")
+        decision_definition = results_14_self.get('decision_metric_definition')
+        if (
+            decision_definition != 'prototype_softmax_v1'
+            or not required_decision_cols.issubset(df_sad_stats.columns)
+            or not required_decision_cols.issubset(df_hc_stats.columns)
+        ):
+            print("  [RECALC] Cached decision stats are stale or incomplete; recomputing.")
             del results_14_self, df_sad_stats, df_hc_stats
     if 'df_sad_stats' not in locals():
         print(f"  [CALC] Calculating Decision Stats using Optimized C...")
@@ -4880,9 +5025,11 @@ if cell_active(15):
         
             for sub in u_subs:
                 m = (subs == sub) & np.isin(y, ["CSR", "CSS"])
+                m_proto = (subs == sub) & np.isin(y, ["CS-", "CSS", "CSR"])
                 if np.sum(m) < 8: continue
             
                 xs, ys = X[m][:, mask], y[m]
+                xs_proto, ys_proto = X[m_proto][:, mask], y[m_proto]
                 # Leave-One-Trial-Out ensures we don't overfit to the test trial
                 logo = LeaveOneGroupOut()
                 probs = []
@@ -4902,6 +5049,9 @@ if cell_active(15):
                 probs_csr = probs[prob_labels == "CSR"]
                 if len(probs_css) == 0 or len(probs_csr) == 0:
                     continue
+                p_csr_css, p_csr_csr, boundary_separation = prototype_decision_metrics(
+                    xs_proto, ys_proto, "CSR", "CSS"
+                )
                 # 20-bin histogram for Shannon Entropy
                 hist, _ = np.histogram(probs_css, bins=20, range=(0, 1), density=True)
                 ent_val = entropy(hist + 1e-9)
@@ -4914,11 +5064,11 @@ if cell_active(15):
                     'variance': np.var(probs_css),
                     'probabilities': probs_css,
                     'probabilities_csr': probs_csr,
-                    'p_csr_css': float(np.mean(probs_css)),
-                    'p_csr_csr': float(np.mean(probs_csr)),
-                    'boundary_separation': float(np.mean(probs_csr) - np.mean(probs_css)),
-                    'decision_margin_css': float(0.5 - np.mean(probs_css)),
-                    'decision_margin_csr': float(np.mean(probs_csr) - 0.5),
+                    'p_csr_css': p_csr_css,
+                    'p_csr_csr': p_csr_csr,
+                    'boundary_separation': boundary_separation,
+                    'decision_margin_css': float(0.5 - p_csr_css) if np.isfinite(p_csr_css) else np.nan,
+                    'decision_margin_csr': float(p_csr_csr - 0.5) if np.isfinite(p_csr_csr) else np.nan,
                     'decision_margin_all': float(np.mean(np.abs(probs - 0.5))),
                     'entropy_css': float(np.mean([entropy([p, 1 - p], base=2) for p in np.clip(probs_css, 1e-9, 1 - 1e-9)])),
                     'entropy_csr': float(np.mean([entropy([p, 1 - p], base=2) for p in np.clip(probs_csr, 1e-9, 1 - 1e-9)])),
@@ -4929,7 +5079,12 @@ if cell_active(15):
         df_sad_stats = get_stats_calibrated(data_subsets["SAD_Placebo"]["ext"], decision_masks['SAD'], c_sad)
         df_hc_stats = get_stats_calibrated(data_subsets["HC_Placebo"]["ext"], decision_masks['HC'], c_hc)
 
-        results_14_self = {'df_sad': df_sad_stats, 'df_hc': df_hc_stats, 'feature_space': feature_space_14}
+        results_14_self = {
+            'df_sad': df_sad_stats,
+            'df_hc': df_hc_stats,
+            'feature_space': feature_space_14,
+            'decision_metric_definition': 'prototype_softmax_v1',
+        }
         joblib.dump(results_14_self, cache_cell13)
         save_checkpoint(15, {"results_14_self": results_14_self, "feature_space": feature_space_14})
         save_intermediate("stage15_decision_stats", {"results_14_self": results_14_self, "feature_space": feature_space_14})
@@ -5518,11 +5673,14 @@ if cell_active(19):
         
             for sub in sub_list:
                 mask_s = (sub_ext == sub) & np.isin(y_ext, ["CSR", "CSS"])
+                mask_proto = (sub_ext == sub) & np.isin(y_ext, ["CS-", "CSS", "CSR"])
                 if np.sum(mask_s) < 8: continue
             
                 # Slicing data for current subject and mask
                 X_sub = X_ext[mask_s][:, curr_mask]
                 y_sub = y_ext[mask_s]
+                X_proto = X_ext[mask_proto][:, curr_mask]
+                y_proto = y_ext[mask_proto]
             
                 # LOTO (Leave-One-Trial-Out) Probability Extraction
                 logo = LeaveOneGroupOut()
@@ -5548,11 +5706,11 @@ if cell_active(19):
                 var_val = np.var(probs)
                 probs_css = probs[y_sub == "CSS"]
                 probs_csr = probs[y_sub == "CSR"]
-                p_csr_css = float(np.mean(probs_css)) if len(probs_css) else np.nan
-                p_csr_csr = float(np.mean(probs_csr)) if len(probs_csr) else np.nan
-                boundary_separation = p_csr_csr - p_csr_css if np.isfinite(p_csr_csr) and np.isfinite(p_csr_css) else np.nan
-                decision_margin_css = float(0.5 - np.mean(probs_css)) if len(probs_css) else np.nan
-                decision_margin_csr = float(np.mean(probs_csr) - 0.5) if len(probs_csr) else np.nan
+                p_csr_css, p_csr_csr, boundary_separation = prototype_decision_metrics(
+                    X_proto, y_proto, "CSR", "CSS"
+                )
+                decision_margin_css = float(0.5 - p_csr_css) if np.isfinite(p_csr_css) else np.nan
+                decision_margin_csr = float(p_csr_csr - 0.5) if np.isfinite(p_csr_csr) else np.nan
                 decision_margin_all = float(np.mean(np.abs(probs - 0.5)))
                 entropy_css = float(np.mean([entropy([p, 1 - p], base=2) for p in np.clip(probs_css, 1e-9, 1 - 1e-9)])) if len(probs_css) else np.nan
                 entropy_csr = float(np.mean([entropy([p, 1 - p], base=2) for p in np.clip(probs_csr, 1e-9, 1 - 1e-9)])) if len(probs_csr) else np.nan
@@ -6084,9 +6242,61 @@ if cell_active(24):
     # Ensure ID is a string for merging
     df_neural_uncertainty['sub_ID'] = df_neural_uncertainty['sub_ID'].astype(str)
 
+    representative_masks, representative_feature_space = get_analysis_feature_masks("Analysis 1.4")
+    df_core_representative = representative_core_metrics_from_data_subsets(data_subsets, representative_masks)
+    if not df_core_representative.empty:
+        topology_cols = [
+            'sub_ID', 'Group', 'Drug',
+            'Neural_Dist_Threat_Safety',
+            'Neural_Dist_Safety_Background',
+            'Neural_Dist_Threat_Background',
+            'Neural_Safety_Differentiation',
+            'Neural_ThreatTriangleOpenness',
+        ]
+        df_neural_topology = df_core_representative[topology_cols].copy()
+        df_neural_topology['Neural_Dist_Safety_Backgr'] = df_neural_topology['Neural_Dist_Safety_Background']
+
+        dynamic_cols = ['sub_ID', 'Group', 'Drug', 'Neural_DynamicDiscrimination_Volatility']
+        trajectory_diagnostics = df_neural_trajectories.drop(
+            columns=['Group', 'Drug', 'Neural_DynamicDiscrimination_Volatility'],
+            errors='ignore',
+        )
+        df_neural_trajectories = df_core_representative[dynamic_cols].merge(
+            trajectory_diagnostics,
+            on='sub_ID',
+            how='left',
+        )
+
+        uncertainty_core_cols = [
+            'sub_ID', 'Group', 'Drug',
+            'Neural_ThreatLike_Safety',
+            'Neural_Threat_Evidence_CSR',
+            'Neural_Boundary_Separation',
+            'Neural_SafetyEvidence',
+            'Neural_ThreatEvidence',
+        ]
+        uncertainty_diagnostics = df_neural_uncertainty.drop(
+            columns=[
+                'Group', 'Drug',
+                'Neural_ThreatLike_Safety',
+                'Neural_Threat_Evidence_CSR',
+                'Neural_Boundary_Separation',
+                'Neural_SafetyEvidence',
+                'Neural_ThreatEvidence',
+            ],
+            errors='ignore',
+        )
+        df_neural_uncertainty = df_core_representative[uncertainty_core_cols].merge(
+            uncertainty_diagnostics,
+            on='sub_ID',
+            how='left',
+        )
+        print(f"Representative core metrics generated for {len(df_core_representative)} subjects.")
+
     print(f"Decision Profile generated for {len(df_neural_uncertainty)} subjects.")
     print(df_neural_uncertainty.head())
     stage24_payload = {
+        "df_core_representative": df_core_representative,
         "df_neural_topology": df_neural_topology,
         "df_neural_trajectories": df_neural_trajectories,
         "df_neural_uncertainty": df_neural_uncertainty,
