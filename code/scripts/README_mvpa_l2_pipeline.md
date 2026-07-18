@@ -130,14 +130,14 @@ python3 scripts/export_aim1_scr_sensitivity.py \
 
 - `outputs/mvpa_l2/harmonized/scr_sensitivity_groups.csv`: SCR responder/learner flags.
 - `outputs/mvpa_l2/harmonized/mvpa_l2_subject_metrics.csv`: harmonized subject-level neural, clinical, drug, and SCR variables.
-- `outputs/mvpa_l2/stats/aim2_group_difference.csv`: placebo SAD vs HC models.
+- `outputs/mvpa_l2/stats/aim2_group_difference.csv`: placebo SAD vs HC models for the three primary neural metrics plus prespecified secondary geometry, certainty, and trajectory metrics.
 - `outputs/mvpa_l2/stats/aim1_mask_feature_sensitivity.csv`: Aim 1 feature-space sensitivity rows for FearNetwork, MemoryFearNetwork, and optional Schaefer/whole-brain.
 - `outputs/mvpa_l2/stats/aim1_mask_feature_sensitivity_functional_drop_tests.csv`: paired self-minus-cross sign-flip tests for Aim 1 feature-space sensitivity.
 - `outputs/mvpa_l2/stats/aim1_mask_feature_sensitivity_functional_drop_nulls.csv`: paired self-minus-cross sign-flip null distributions for Aim 1 feature-space sensitivity; this is used by Figure S1 Panel B null histograms.
-- `outputs/mvpa_l2/stats/aim3_clinical_relevance.csv`: anxiety-symptom association models.
-- `outputs/mvpa_l2/stats/aim4_scr_convergence.csv`: neural-SCR convergence models.
-- `outputs/mvpa_l2/stats/aim5_oxytocin_modulation.csv`: `Group * Drug` modulation models.
-- `outputs/mvpa_l2/stats/sensitivity_models_all.csv`: available alternative-mask and SCR-cohort sensitivity models. Without `SCHAEFER_DIR`, this includes MemoryFearNetwork and SCR-cohort sensitivities only.
+- `outputs/mvpa_l2/stats/aim3_clinical_relevance.csv`: placebo groupwise anxiety-symptom association models for primary and secondary clinical scores crossed with prespecified neural metrics.
+- `outputs/mvpa_l2/stats/aim4_scr_convergence.csv`: placebo groupwise neural-SCR convergence models for primary and secondary SCR indices crossed with prespecified neural metrics.
+- `outputs/mvpa_l2/stats/aim5_oxytocin_modulation.csv`: `Group * Drug` modulation models for prespecified neural metrics.
+- `outputs/mvpa_l2/stats/sensitivity_models_all.csv`: full-sample Drug-adjusted Aim 2-4 sensitivity models, alternative feature-space sensitivity models, SCR-cohort sensitivity models, and available `Group * Drug` sensitivity models. Without `SCHAEFER_DIR`, this includes MemoryFearNetwork and SCR-cohort sensitivities only.
 - `outputs/mvpa_l2/stats/manuscript_primary_results.csv`: single manuscript-ready primary results table spanning Aim 2-5.
 - `outputs/mvpa_l2/stats/manuscript_primary_results.md`: compact Markdown version of the primary results table.
 - `outputs/mvpa_l2/stats/aim4_convergence_matrix.csv`: long-form primary neural metric by primary SCR index convergence table.

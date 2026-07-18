@@ -27,7 +27,7 @@ set -euo pipefail
 #   RUN_OPTIONAL_CORR=1   include Hyak stages 27 and 28
 #   RUN_SCHAEFER=1        include WholeBrain/Schaefer stages
 #   SCHAEFER_MODE=all     submit Schaefer's dependency chain with its native "all" mode (default)
-#   RUN_AIM1_SCR=1        export Aim 1 SCR sensitivity table
+#   RUN_AIM1_SCR=0        skip Aim 1 SCR sensitivity table export
 #   RUN_HAUFE_SCR=1       export Aim 2 Haufe/SCR sensitivity tables
 #
 # Usual Hyak path overrides:
@@ -45,7 +45,7 @@ FEAR_MEMORY_MODE="${FEAR_MEMORY_MODE:-all}"
 RUN_OPTIONAL_CORR="${RUN_OPTIONAL_CORR:-0}"
 RUN_SCHAEFER="${RUN_SCHAEFER:-0}"
 SCHAEFER_MODE="${SCHAEFER_MODE:-all}"
-RUN_AIM1_SCR="${RUN_AIM1_SCR:-0}"
+RUN_AIM1_SCR="${RUN_AIM1_SCR:-1}"
 RUN_HAUFE_SCR="${RUN_HAUFE_SCR:-0}"
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -142,7 +142,7 @@ else
 fi
 
 if [[ "$RUN_AIM1_SCR" == "1" ]]; then
-  echo "Step 3: optional Aim 1 SCR subgroup sensitivity table"
+  echo "Step 3: Aim 1 SCR subgroup sensitivity table"
   if [[ "$RUN_POSTHYAK_NOW" == "1" ]]; then
     run_cmd python3 scripts/export_aim1_scr_sensitivity.py \
       --feature-dir "$FEAR_DIR" \

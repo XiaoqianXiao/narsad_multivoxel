@@ -14,6 +14,7 @@ from mvpa_l2_common import (
     NEURAL_METRIC_HIERARCHY,
     PRIMARY_CLINICAL_SCORES,
     PRIMARY_SCR_INDICES,
+    PRESPECIFIED_NEURAL_METRICS,
     derive_final_metrics,
     write_csv,
 )
@@ -275,7 +276,7 @@ def model_status_counts(stats_dir: Path) -> pd.DataFrame:
 
 
 def missingness_table(df: pd.DataFrame) -> pd.DataFrame:
-    variables = [c for c in CORE_NEURAL_METRICS + PRIMARY_CLINICAL_SCORES + PRIMARY_SCR_INDICES if c in df.columns]
+    variables = [c for c in PRESPECIFIED_NEURAL_METRICS + PRIMARY_CLINICAL_SCORES + PRIMARY_SCR_INDICES if c in df.columns]
     rows = []
     for feature_space, sub in df.groupby("FeatureSpace", dropna=False):
         for variable in variables:

@@ -1,12 +1,12 @@
 # NARSAD Multivoxel Project Context
 
-_Last updated: 2026-06-15. Revised to align with the analysis plan dated 2026/04/16._
+_Last updated: 2026-07-16. Revised to align with decision made during the 1:1 meeting with Angela .
 
 ## Project Purpose
 
 This repository supports multivoxel fMRI analyses of vicarious threat and safety learning in the NARSAD dataset. The central scientific question is whether vicarious threat and safety cues are represented by group-specific neural signatures in participants with Social Anxiety Disorder (`SAD`) and Healthy Controls (`HC`), and whether those neural profiles relate to clinical symptoms, skin conductance response (`SCR`), and oxytocin modulation.
 
-Decoding is treated as the entry point, not the final scientific claim. Classifier performance establishes whether condition-relevant information is present in the feature space. Interpretation should rely on converging evidence from representational geometry, decision-certainty metrics, single-trial learning trajectories, clinical associations, SCR convergence, and drug-modulation effects.
+Decoding is treated as the entry point, not the final scientific claim. Classifier performance establishes whether condition-relevant information is present in the feature space. Interpretation should rely on converging evidence from representational geometry, decision-certainty metrics and single-trial learning dynamics, and their clinical associations, SCR convergence, and drug-modulation effects.
 
 ## Core Scientific Aims
 
@@ -16,7 +16,10 @@ Decoding is treated as the entry point, not the final scientific claim. Classifi
 4. **Physiological convergence:** test whether neural profiles of vicarious learning align with SCR indices of threat and safety learning.
 5. **Oxytocin modulation:** test whether oxytocin shifts threat-safety neural profiles, focusing on `Group x Drug` effects.
 
-Aims 1-4 focus on placebo-session participants. Aim 5 includes both placebo and oxytocin sessions.
+## Analysis Scope Across Aims
+- **Aim 1** is restricted to the placebo session to establish baseline neural representations before any oxytocin-induced modulation.
+- **Aims 2–4** use the **placebo cohort as the primary analysis sample**. As a sensitivity analysis, the same models are also evaluated in the full sample by including **Drug** as an additional  factor to assess the robustness of the observed effect sizes.
+- **Aim 5** analyzes the **combined placebo and oxytocin data** to directly quantify drug-related changes in neural representations and test `Group × Drug` interaction effects.
 
 ## Dataset, Design, And Conditions
 
@@ -35,7 +38,6 @@ Aims 1-4 focus on placebo-session participants. Aim 5 includes both placebo and 
 - `CSR`: vicarious threat cue.
 - `CSS`: vicarious safety cue.
 - `CS-`: safe/background reference cue.
-- `SHOCK`: unconditioned stimulus event. Use only for predefined secondary threat-anchor analyses because shock responses can be dominated by sensory, salience, motor, autonomic, or global-amplitude components.
 
 ### Task Phases
 
@@ -45,12 +47,12 @@ Aims 1-4 focus on placebo-session participants. Aim 5 includes both placebo and 
 
 ### Analysis Cohorts
 
-- **Aims 1-4:** placebo-session participants only.
-- **Aim 5:** placebo and oxytocin sessions.
+- **Aims 1-4:** placebo participants only.
+- **Aim 5:** placebo and oxytocin.
+- **Aims 2-4 sensitivity analysis for effect in whole sample:** placebo and oxytocin participants.
 - **SCR sensitivity cohorts:** used for sensitivity analyses. Because `Group x Drug` subgroups may be small, SCR-defined sensitivity analyses should pool placebo and oxytocin participants within each SCR-defined subgroup rather than restricting to placebo only or splitting by drug, unless an analysis is explicitly designed as an Aim 5 `Group x Drug` sensitivity check.
 
-SCR sensitivity cohort flags:
-
+SCR sensitivity cohort defination:
 - `SCR_Physiological_Responder`: at least two acquisition `CS+` trials with raw SCR amplitude `>= 0.05 uS`.
 - `SCR_Simple_Acquisition_Differential_Learner`: physiological responder with acquisition `sqrt_scr(CS+) > sqrt_scr(CS-)`.
 - `SCR_Habituation_Adjusted_Learner`: physiological responder with positive `CS+` coefficient from `sqrt_scr ~ CS_type + Trial_Z`.
@@ -102,24 +104,60 @@ All feature scaling, subject-wise centering, feature selection, mask generation 
 ## Primary Neural Metrics
 
 Use a stable primary metric family when comparing group differences, symptom associations, SCR convergence, and drug effects. Keep the primary metrics organized around the three neural-profile questions below. For the current FearNetwork extinction-focused analysis, use one primary metric per question and keep legacy slope or dispersion metrics as supporting diagnostics.
+## Primary Aim 2 Neural Metrics
 
-| Question | Display Name | Metric | Definition |
-|---|---|---|---|
-| Q1. Geometry/topology | Threat-Safety Distance Difference from CS- | `Neural_ThreatTriangleOpenness` | Difference in distance from background: `d(CSR, CS-) - d(CSS, CS-)`. Higher values indicate that the threat cue is more separated from background than the safety cue is. Lower values indicate a flatter threat-safety-background map. |
-| Q2. Decision/evidence | Threat Representation Strength | `Neural_ThreatEvidence` | Prototype or decoder evidence that `CSR` is represented as threat: `P(threat | CSR)`. Higher values indicate clearer threat representation. |
-| Q2. Decision/evidence | Safety Representation Strength | `Neural_SafetyEvidence` | Prototype or decoder evidence that `CSS` is represented as safety/background-like: `P(safety | CSS)`. Use as a companion metric to threat evidence. |
-| Q3. Learning dynamics | Threat-Safety Updating | `Neural_DynamicDiscrimination_Volatility` | Trial-to-trial updating or volatility of the dynamic threat-vs-safety distinction: variability in `[CSR threat evidence - CSS safety evidence]` across extinction trials. Higher values indicate more dynamic representational updating. |
-| Q3. Learning dynamics | Safety Learning Slope | `Neural_Safety_Trajectory_Slope` | Legacy/support metric: trial-wise movement of `CSS` toward the target safety reference (`CS-`) during early extinction, used to reduce floor-effect concerns. |
-| Q3. Learning dynamics | Threat Learning Slope | `Neural_Threat_Trajectory_Slope` | Legacy/support metric: trial-wise movement of `CSR` toward the threat reference during early reinstatement, used to reduce floor-effect concerns. |
+| Domain                        | Primary metric                            | Description                                                                                                                                                         | Operational definition                                                                                                                                                                                                                                                                                                         | Scale and direction                                                                                                                                                                                                                                                             | Primary interpretation                                                                                                                                                                                                                           | Key reporting and inferential considerations                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| ----------------------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Representational geometry** | `Neural_Threat_Safety_Distance`           | Relative differentiation of the reinstated threat representation (`CSR`) and safety representation (`CSS`) with respect to the background safety reference (`CS−`). | For each participant, compute the difference between the distance of `CSR` from `CS−` and the distance of `CSS` from `CS−`:`d(CSR, CS−) − d(CSS, CS−)`                                                                                                                                                                         | Continuous, unbounded difference score in the units of the selected representational-distance measure.**Positive:** `CSR` is farther from `CS−` than `CSS` is.**Zero:** `CSR` and `CSS` are equally distant from `CS−`.**Negative:** `CSS` is farther from `CS−` than `CSR` is. | Larger positive values indicate a representational configuration in which the threat cue is more distinct from the background safety reference than the safety cue is, consistent with stronger threat–safety differentiation relative to `CS−`. | Report the distance metric used, feature normalization, reference-pattern construction, and cross-validation procedure. Because this is a relative difference score, it should be interpreted alongside the component distances `d(CSR, CS−)` and `d(CSS, CS−)` to determine which component drives an observed effect.                                                                                                                                                                   |
+| **Decision certainty**        | `Prototype_Certainty`                     | Strength of neural evidence supporting the expected safety state for `CSS` and expected threat state for `CSR`, relative to maximal posterior ambiguity.            | Estimate the target-class posterior probabilities:`p_safety_css = P(safety \| CSS)``p_threat_csr = P(threat \| CSR)`Convert each posterior to certainty:`CSS_Certainty = 2 × \|p_safety_css − 0.50\|``CSR_Certainty = 2 × \|p_threat_csr − 0.50\|`Primary aggregate:`Prototype_Certainty = mean(CSS_Certainty, CSR_Certainty)` | Bounded continuous score from **0 to 1**.**0:** posterior probability equals `0.50`, indicating maximal ambiguity.**1:** posterior probability equals `0` or `1`, indicating maximal distance from ambiguity.                                                                   | Higher values indicate stronger, less ambiguous decoder evidence for the represented state. The aggregate score summarizes certainty across the safety and threat conditions.                                                                    | Absolute distance from `0.50` measures certainty but not whether the decoder favors the scientifically expected class. A confidently incorrect posterior can therefore yield high certainty. Report `p_safety_css` and `p_threat_csr`, or signed target-class margins, alongside the aggregate certainty score. Decoder probabilities should be generated from held-out data and assessed for calibration. Condition-specific certainty scores should be retained for secondary analyses. |
+| **Learning dynamics**         | `Neural_DynamicDiscrimination_Volatility` | Temporal instability in neural discrimination between threat and safety representations during extinction learning.                                                 | First calculate trial-wise neural discrimination:`Δ_t = ThreatEvidence(CSR_t) − SafetyEvidence(CSS_t)`Then calculate the root mean square of successive changes across the `T` ordered trials:`sqrt[(1 / (T − 1)) × Σ_(t=2)^T (Δ_t − Δ_(t−1))²]`                                                                               | Nonnegative continuous score in the same evidence units as `Δ_t`.**0:** no change in discrimination across successive trials.**Higher values:** larger trial-to-trial changes in discrimination.                                                                                | Higher values indicate greater temporal instability or volatility in neural threat–safety discrimination. Lower values indicate a more stable discrimination profile over the extinction period.                                                 | Volatility quantifies fluctuation magnitude, not the mean level, direction, or adaptive quality of learning. Report it alongside the mean discrimination level and trial-wise trajectory. Trial ordering, missing-trial handling, minimum trial requirements, and any smoothing or residualization must be prespecified. Because volatility can be sensitive to measurement noise, trial-level evidence should be obtained using cross-validated or otherwise independent estimates.      |
+
+### Prespecified primary formulas
+
+```text
+Neural_Threat_Safety_Distance =
+    d(CSR, CS−) − d(CSS, CS−)
+```
+
+```text
+CSS_Certainty =
+    2 × |P(safety | CSS) − 0.50|
+
+CSR_Certainty =
+    2 × |P(threat | CSR) − 0.50|
+
+Prototype_Certainty =
+    (CSS_Certainty + CSR_Certainty) / 2
+```
+
+```text
+Δ_t =
+    ThreatEvidence(CSR_t) − SafetyEvidence(CSS_t)
+
+Neural_DynamicDiscrimination_Volatility =
+    sqrt[
+        (1 / (T − 1)) ×
+        Σ_(t=2)^T (Δ_t − Δ_(t−1))²
+    ]
+```
+
+### Recommended publication-level reporting
+
+For each metric, report the group-specific mean and standard deviation or median and interquartile range, the estimated between-group difference, a 95% confidence interval, standardized effect size, exact two-sided `p` value, and the prespecified multiple-comparison correction. Primary analyses should also document the neural feature space, prototype or reference-pattern construction, cross-validation scheme, participant-level aggregation procedure, and handling of missing or low-quality trials.
+
+
 
 ## Secondary Or Support Neural Metrics
 
-| Category | Metric | Definition |
-|---|---|---|
-| Geometry | `Neural_Dist_Threat_Background` | Representational distance between `CSR` and `CS-` vectors. |
-| Certainty | `Neural_Decoder_Entropy_CSS` | Shannon entropy of the classifier posterior probability distribution for `CSS`. Higher entropy indicates lower certainty. |
-| Certainty | `Neural_Decoder_Entropy_CSR` | Shannon entropy of the classifier posterior probability distribution for `CSR`. Higher entropy indicates lower certainty. |
-| Trajectory | `Shock_Anchor_Metrics` | Shock-anchor and residualized shock-anchor trajectory metrics. These are secondary because shock responses may reflect sensory, salience, motor, autonomic, or global-amplitude processes. |
+| Category  | Metric                           | Definition                                                                                                                                       |
+| --------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Geometry  | `Neural_Dist_Safe_Background`    | Representational distance between `CSS and `CS-` vectors.                                                                                        |
+| Geometry  | `Neural_Dist_Threat_Background`  | Representational distance between `CSR` and `CS-` vectors.                                                                                       |
+| Geometry  | `Neural_Dist_Threat_Safe`        | Representational distance between `CSR` and `CSS` vectors.                                                                                       |
+| Certainty | `Neural_Certainty_CSS`           | Certainty of the decoder evidence for the expected safety state of `CSS`, relative to chance-level ambiguity: `2 × \|P(safety \| CSS) − 0.50\|`  |
+| Certainty | `Neural_Certainty_CSR`           | Certainty of the decoder evidence for the expected threat state of `CSR`, relative to chance-level ambiguity: `2 × \|P(threat \| CSR) − 0.50\|`. |
+| Dynamics  | `Neural_Safety_Trajectory_Slope` | Trial-wise vector translation of CSS toward the target safety reference (CS-) localized to the early extinction phase to mitigate floor effects. |
+| Dynamics  | `Neural_Threat_Trajectory_Slope` | Trial-wise vector translation of CSR toward the true threat reference (CSR) localized to the early reinstatement phase.                          |
 
 ## Clinical Measures
 
@@ -141,12 +179,12 @@ Secondary symptom or covariate measures may be used as supporting evidence, incl
 
 ## Physiological Measures
 
-General SCR metrics:
-
-- `SCR_SafetyMinusBackground`: mean `SCR_Anticipatory(CSS)` - mean `SCR_Anticipatory(CS-)`.
-- `SCR_ThreatMinusSafety`: mean `SCR_Anticipatory(CSR)` - mean `SCR_Anticipatory(CSS)`.
+Primary SCR metrics:
 - `SCR_Safety_Trajectory_Slope`: slope of `SCR_Anticipatory` across `CSS` trials.
 - `SCR_Threat_Trajectory_Slope`: slope of `SCR_Anticipatory` across `CSR` trials.
+Secondary SCR metrics:
+- `SCR_SafetyMinusBackground`: mean `SCR_Anticipatory(CSS)` - mean `SCR_Anticipatory(CS-)`.
+- `SCR_ThreatMinusSafety`: mean `SCR_Anticipatory(CSR)` - mean `SCR_Anticipatory(CSS)`.
 
 For Aim 4, treat `SCR_Safety_Trajectory_Slope` and `SCR_Threat_Trajectory_Slope` as the primary SCR convergence indices. Treat `SCR_SafetyMinusBackground` and `SCR_ThreatMinusSafety` as secondary SCR indices unless the analysis plan is updated before final inference.
 
@@ -189,19 +227,25 @@ For Aim 4, treat `SCR_Safety_Trajectory_Slope` and `SCR_Threat_Trajectory_Slope`
 
 **Primary tests:**
 
-- Compare `SAD` and `HC` on `Neural_Dist_Safety_Background` and `Neural_Dist_Threat_Safety`.
-- Compare `SAD` and `HC` on `Neural_SafetyEvidence` and `Neural_ThreatEvidence`.
-- Compare `SAD` and `HC` on `Neural_Safety_Trajectory_Slope` and `Neural_Threat_Trajectory_Slope`.
+- Compare `SAD` and `HC` on `Neural_Threat_Safety_Distance`.
+- Compare `SAD` and `HC` on `Prototype_Certainty`.
+- Compare `SAD` and `HC` on `Neural_DynamicDiscrimination_Volatility`.
 
 **Secondary tests:**
 
-- `Neural_Dist_Threat_Background`.
-- `Neural_Decoder_Entropy_CSS`.
-- `Neural_Decoder_Entropy_CSR`.
-- Shock-anchor and residualized shock-anchor trajectory metrics.
+- Geometry
+	- `Neural_Dist_Safe_Background`
+	- `Neural_Dist_Threat_Background`
+	- `Neural_Dist_Threat_Safe`.
+- Certainty
+	- `Neural_Certainty_CSS`.
+	- `Neural_Certainty_CSR`.
+- Dynamics
+	- `Neural_Safety_Trajectory_Slope`
+	- `Neural_Threat_Trajectory_Slope`
+
 
 **Statistical comparison:**
-
 - Use independent-sample group comparisons for subject-level metrics.
 - Validate inference using permutation testing where appropriate.
 - Correct confirmatory test families using FDR.
@@ -292,20 +336,18 @@ Confirmatory analyses support the main paper claims and should be prioritized fo
 
 Secondary analyses provide mechanistic or interpretive extension:
 
-- `CSS` vs `CS-` and `CSR` vs `CS-` reference contrasts.
 - Secondary neural metrics.
-- `ecr_total`, `dass_stress`, `dass_depression`, `lsas_fear`, and `lsas_avoid` associations.
+- Secondary clinical scores.
 - Secondary SCR indices.
-- Shock-anchor or residualized shock-anchor analyses.
+
 
 ### Sensitivity Analyses
 
 Sensitivity analyses evaluate robustness:
 
-- Alternative feature spaces and parcellations, including `MemoryFearNetwork`, whole-brain, `Schaefer`, and `Tian`.
-- Alternative mask thresholds.
+- Alternative feature spaces and parcellations, including `MemoryFearNetwork`and whole-brain (`Schaefer`, and `Tian`).
 - SCR-defined responder or learner cohorts.
-- Stable versus exploratory covariate specifications.
+- For aim 2 to 4, using whole dataset with including drug as an factor instead of in primary analysis only use placebo dataset.
 
 ## Evaluation And Inference
 
@@ -314,13 +356,10 @@ Sensitivity analyses evaluate robustness:
 - Correct confirmatory test families using FDR Benjamini-Hochberg at `alpha = 0.05`.
 - Report exact subject counts, trial counts, and feature counts for every primary and sensitivity analysis.
 - Report both significant and null results.
-- Keep placebo diagnostic analyses separate from drug-modulation analyses.
-- Interpret clinical associations separately from diagnostic group effects.
 
 ## Repository Layout
 
 The active project files are currently organized under `code/`.
-
 - `code/`: analysis notebooks, first-level/LSS scripts, MVPA scripts, visualization notebooks, and Hyak job scripts.
 - `code/scripts/`: post-Hyak harmonization, statistics, export, and summary scripts for manuscript-facing MVPA L2 results.
 - `code/hyak/`: SLURM submission scripts, Hyak-specific MVPA jobs, merge jobs, and inference scripts.
@@ -349,7 +388,6 @@ The intended analysis sequence is:
 ## Key Output Families
 
 Expected output families include:
-
 - Decoding results and permutation null distributions.
 - Cross-decoding and functional-specificity outputs.
 - Weight-similarity and spatial-specificity outputs.
@@ -364,7 +402,6 @@ Expected output families include:
 - Sensitivity outputs for alternative feature spaces, mask thresholds, and SCR responder/learner cohorts.
 
 Post-Hyak outputs described by `code/scripts/README_mvpa_l2_pipeline.md` include:
-
 - `outputs/mvpa_l2/harmonized/scr_sensitivity_groups.csv`.
 - `outputs/mvpa_l2/harmonized/mvpa_l2_subject_metrics.csv`.
 - `outputs/mvpa_l2/stats/aim2_group_difference.csv`.
@@ -373,17 +410,6 @@ Post-Hyak outputs described by `code/scripts/README_mvpa_l2_pipeline.md` include
 - `outputs/mvpa_l2/stats/aim5_oxytocin_modulation.csv`.
 - `outputs/mvpa_l2/stats/sensitivity_models_all.csv`.
 - `outputs/mvpa_l2/stats/mvpa_l2_results_summary.md`.
-
-Archived or legacy checkpoint names that may appear in older notebooks include:
-
-- `cell_06.joblib`.
-- `stage11_importance_masks.joblib`.
-- `analysis_12_topology.joblib`.
-- `cell_12_trajectories.joblib`.
-- `cell_13_decision_stats_opt.joblib`.
-- `cell_16_opening_test.joblib`.
-- `cell_17_realignment.joblib`.
-- `cell_18_reverse_cross_decoding.joblib`.
 
 ## Statistical Guardrails
 
@@ -396,7 +422,7 @@ Archived or legacy checkpoint names that may appear in older notebooks include:
 - Interpret clinical associations separately from diagnostic group effects.
 - Treat SCR convergence as physiological validation or dissociation, not as proof that the neural metric has one fixed psychological meaning.
 - Do not promote exploratory findings to primary conclusions after seeing results.
-- Keep shock/US analyses secondary unless a future preregistered plan makes them primary.
+
 
 ## Leakage Prevention Rules
 
@@ -444,7 +470,6 @@ On Hyak, the current post-Hyak pipeline expects outputs from the expensive featu
 - SAD effects should be described as altered organization, sensitivity, certainty, or dynamics unless the metric profile directly supports an impairment interpretation.
 - Oxytocin effects should be interpreted as directional shifts in neural profiles, not automatic clinical normalization or clinical improvement.
 - Haufe maps and importance masks help interpret feature-space contributions, but feature importance is not the same as univariate activation.
-- Shock/US analyses are secondary because they may reflect non-learning processes such as salience, autonomic arousal, sensory response, or motor preparation.
 - Strong claims should be supported by converging evidence across more than one analysis domain.
 
 ## Known Assumptions And Open Decisions

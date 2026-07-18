@@ -18,10 +18,15 @@ import pandas as pd
 import statsmodels.formula.api as smf
 from scipy import stats
 from sklearn.metrics import roc_auc_score
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import LeaveOneGroupOut
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
 from statsmodels.stats.multitest import multipletests
 
 
 CS_LABELS = ("CS-", "CSS", "CSR")
+SHOCK_LABEL = "SHOCK"
 EPS = 1e-8
 
 
@@ -41,16 +46,21 @@ PROFILE_ORDER = {
     "Q3_learning_dynamics": 3,
     "Q4_precision_dispersion": 4,
     "Q5_activation_magnitude_secondary": 5,
+    "Q6_shock_anchor_secondary": 6,
 }
 
 
 def metric_profile(metric: str) -> str:
     """Map derived metrics back to the original analysis logic."""
+    if "Shock" in metric:
+        return "Q6_shock_anchor_secondary"
     if "RawMean" in metric or "RawNorm" in metric:
         return "Q5_activation_magnitude_secondary"
+    if metric in {"Prototype_Certainty", "Neural_Certainty_CSS", "Neural_Certainty_CSR"}:
+        return "Q2_decision_evidence"
     if any(token in metric for token in ["Trajectory", "EarlyLate", "InitialFinal", "Learning", "DynamicDiscrimination", "Volatility", "LatePhase"]):
         return "Q3_learning_dynamics"
-    if "Dispersion" in metric or "Precision" in metric:
+    if "Dispersion" in metric or "Precision" in metric or "Certainty" in metric or "Entropy" in metric or "Margin" in metric:
         return "Q4_precision_dispersion"
     if "Evidence" in metric or "Boundary" in metric:
         return "Q2_decision_evidence"
@@ -58,6 +68,16 @@ def metric_profile(metric: str) -> str:
 
 
 def metric_family(metric: str) -> str:
+    if "ResidualizedShockAxis" in metric:
+        return "residualized_shock_axis"
+    if "ShockEvidence" in metric and "Discrimination" in metric:
+        return "shock_evidence_discrimination"
+    if "ShockEvidence" in metric:
+        return "shock_prototype_evidence"
+    if "Shock_Anchor" in metric:
+        return "shock_anchor_geometry"
+    if "Shock_Dist" in metric:
+        return "shock_pairwise_geometry"
     if "EarlyLate" in metric:
         return "early_late_change"
     if "InitialFinal" in metric:
@@ -68,6 +88,8 @@ def metric_family(metric: str) -> str:
         return "trajectory_auc"
     if "Volatility" in metric:
         return "trajectory_volatility"
+    if "Certainty" in metric or "Entropy" in metric or "Margin" in metric:
+        return "representational_certainty"
     if "DynamicDiscrimination" in metric:
         return "dynamic_cue_discrimination"
     if "CV_" in metric:
@@ -102,6 +124,7 @@ def metric_family(metric: str) -> str:
 def metric_interpretation(metric: str) -> str:
     descriptions = {
         "Neural_Safety_Differentiation": "Threat-background minus safety-background distance; positive values indicate threat is more differentiated from CS- than safety is.",
+        "Neural_Threat_Safety_Distance": "Threat-background minus safety-background distance; positive values indicate threat is more differentiated from CS- than safety is.",
         "Neural_ThreatTriangleOpenness": "Whether threat is farther from background than safety is; positive values indicate an open threat-safety-background geometry.",
         "Neural_VicariousDiscrimination": "Composite separation of threat from safety/background after accounting for safety-background distance.",
         "Neural_ThreatToBackgroundDistanceRatio": "Ratio of threat-background distance to safety-background distance.",
@@ -113,7 +136,17 @@ def metric_interpretation(metric: str) -> str:
         "Neural_Dist_Threat_Safety": "Pattern distance between reinforced/threat cue and safety cue.",
         "Neural_ThreatEvidence": "Prototype evidence that threat trials look threat-like rather than background-like.",
         "Neural_SafetyEvidence": "Prototype evidence that safety trials look background-like rather than threat-like.",
+        "Neural_Certainty_CSS": "Certainty of expected safety-state evidence for CSS relative to maximal ambiguity.",
+        "Neural_Certainty_CSR": "Certainty of expected threat-state evidence for CSR relative to maximal ambiguity.",
+        "Prototype_Certainty": "Mean certainty of expected safety evidence for CSS and expected threat evidence for CSR.",
         "Neural_BoundarySeparation": "Difference between threat evidence for CSR and threat evidence for CSS.",
+        "Neural_PrototypeEvidenceMargin": "Mean signed distance from ambiguous prototype evidence for safety and threat cues.",
+        "Neural_PrototypeEvidenceCertainty": "Mean absolute distance from ambiguous prototype evidence for safety and threat cues.",
+        "Neural_PrototypeEvidenceEntropy": "Mean binary entropy of safety and threat prototype evidence; lower values indicate more certain evidence.",
+        "Neural_TrialwiseEvidenceMargin": "Mean signed trialwise distance from the safety/threat decision boundary.",
+        "Neural_TrialwiseEvidenceCertainty": "Mean absolute trialwise distance from the safety/threat decision boundary.",
+        "Neural_TrialwiseEvidenceCertaintySNR": "Trialwise evidence margin divided by trialwise evidence variability.",
+        "Neural_BoundaryCertainty": "Absolute separation between prototype threat evidence for CSR and CSS.",
         "Neural_Safety_Trajectory_Slope": "Trialwise change in safety evidence across extinction/reinstatement trials.",
         "Neural_Threat_Trajectory_Slope": "Trialwise change in threat evidence across extinction/reinstatement trials.",
         "Neural_Safety_EarlyLate_Change": "Late-minus-early change in safety evidence; positive values indicate safety becomes more background-like over trials.",
@@ -129,6 +162,19 @@ def metric_interpretation(metric: str) -> str:
         "Neural_Threat_Volatility": "Trial-to-trial instability in threat evidence.",
         "Neural_SafetyVsBackgroundDispersion": "Whether safety patterns are more variable around their prototype than background patterns.",
         "Neural_ThreatVsBackgroundDispersion": "Whether threat patterns are more variable around their prototype than background patterns.",
+        "Neural_ShockEvidence_Discrimination": "Difference in shock-prototype evidence for threat versus safety cues; positive values mean CSR is more shock-like than CSS.",
+        "Neural_ShockEvidence_CSR": "Prototype evidence that CSR patterns look shock-like rather than background-like.",
+        "Neural_ShockEvidence_CSS": "Prototype evidence that CSS patterns look shock-like rather than background-like.",
+        "Neural_ShockEvidence_DiscriminationAUC": "Mean trialwise CSR-minus-CSS shock evidence across reinstatement.",
+        "Neural_ShockEvidence_Discrimination_Slope": "Trialwise change in CSR-minus-CSS shock evidence across reinstatement.",
+        "Neural_ShockEvidence_Discrimination_Volatility": "Trial-to-trial instability in CSR-minus-CSS shock evidence.",
+        "Neural_Shock_Anchor_ThreatMinusSafety_Proximity": "Shock-anchor proximity contrast; positive values mean CSR is closer to SHOCK than CSS is.",
+        "Neural_Shock_Anchor_ThreatMinusBackground_Proximity": "Threat-cue proximity to SHOCK relative to CS-; positive values mean CSR is closer to SHOCK than to CS-.",
+        "Neural_Shock_Anchor_SafetySpecificity": "Safety-cue specificity away from SHOCK; positive values mean CSS is closer to CS- than to SHOCK.",
+        "Neural_ResidualizedShockAxis_CSRMinusCSS_Cosine": "Global-amplitude-residualized cosine contrast along each subject's SHOCK-minus-CS- axis.",
+        "Neural_ResidualizedShockAxis_CSRMinusCSS_Projection": "Global-amplitude-residualized projection contrast along each subject's SHOCK-minus-CS- axis.",
+        "Neural_ResidualizedShockAxis_DiscriminationAUC": "Mean trialwise residualized shock-axis contrast for CSR versus CSS.",
+        "Neural_ResidualizedShockAxis_Discrimination_Slope": "Trialwise change in residualized shock-axis contrast for CSR versus CSS.",
     }
     return descriptions.get(metric, "Derived FearNetwork profile metric.")
 
@@ -214,6 +260,90 @@ def softmax_threat_evidence(d_background: float, d_threat: float) -> float:
     scores -= scores.max()
     probs = np.exp(scores) / np.exp(scores).sum()
     return float(probs[1])
+
+
+def heldout_decoder_evidence(x: np.ndarray, y: np.ndarray) -> Dict[str, object]:
+    """Compute held-out P(CSR) values for CSS/CSR trials in their observed order."""
+    mask = np.isin(y, ["CSS", "CSR"])
+    x_bin = np.asarray(x[mask], dtype=float)
+    y_bin = np.asarray(y[mask])
+    if len(y_bin) < 10 or len(np.unique(y_bin)) < 2:
+        return {}
+    if min(np.sum(y_bin == "CSS"), np.sum(y_bin == "CSR")) < 2:
+        return {}
+
+    model = Pipeline(
+        [
+            ("scaler", StandardScaler()),
+            (
+                "classification",
+                LogisticRegression(
+                    penalty="l2",
+                    solver="lbfgs",
+                    class_weight="balanced",
+                    max_iter=5000,
+                    random_state=42,
+                ),
+            ),
+        ]
+    )
+    probs_threat = np.full(len(y_bin), np.nan, dtype=float)
+    try:
+        for train_idx, test_idx in LeaveOneGroupOut().split(x_bin, y_bin, groups=np.arange(len(y_bin))):
+            if len(np.unique(y_bin[train_idx])) < 2:
+                continue
+            model.fit(x_bin[train_idx], y_bin[train_idx])
+            if "CSR" not in model.classes_:
+                continue
+            threat_idx = np.where(model.classes_ == "CSR")[0][0]
+            probs_threat[test_idx] = model.predict_proba(x_bin[test_idx])[:, threat_idx]
+    except Exception:
+        return {}
+
+    probs_css = probs_threat[y_bin == "CSS"]
+    probs_csr = probs_threat[y_bin == "CSR"]
+    probs_css = probs_css[np.isfinite(probs_css)]
+    probs_csr = probs_csr[np.isfinite(probs_csr)]
+    if len(probs_css) == 0 or len(probs_csr) == 0:
+        return {}
+
+    p_threat_css = float(np.mean(probs_css))
+    p_safety_css = 1.0 - p_threat_css
+    p_threat_csr = float(np.mean(probs_csr))
+    safety_evidence = 1.0 - probs_threat[y_bin == "CSS"]
+    threat_evidence = probs_threat[y_bin == "CSR"]
+    n_dynamic = min(len(safety_evidence), len(threat_evidence))
+    dynamic_discrimination = (
+        np.asarray(threat_evidence[:n_dynamic], dtype=float) - np.asarray(safety_evidence[:n_dynamic], dtype=float)
+        if n_dynamic
+        else np.asarray([], dtype=float)
+    )
+    return {
+        "p_threat_css": p_threat_css,
+        "p_safety_css": p_safety_css,
+        "p_threat_csr": p_threat_csr,
+        "probs_css": probs_css,
+        "probs_csr": probs_csr,
+        "dynamic_discrimination": dynamic_discrimination,
+    }
+
+
+def binary_entropy(p: float) -> float:
+    if not np.isfinite(p):
+        return np.nan
+    p = float(np.clip(p, EPS, 1.0 - EPS))
+    return float(-(p * np.log2(p) + (1.0 - p) * np.log2(1.0 - p)))
+
+
+def standardize_margin(values: Iterable[float]) -> float:
+    arr = np.asarray(list(values), dtype=float)
+    arr = arr[np.isfinite(arr)]
+    if arr.size < 3:
+        return np.nan
+    sd = float(arr.std(ddof=1))
+    if sd < EPS:
+        return np.nan
+    return float(arr.mean() / sd)
 
 
 def slope(values: Iterable[float]) -> float:
@@ -302,6 +432,23 @@ def normalized_axis_projection(point: np.ndarray, origin: np.ndarray, target: np
     return float(np.dot(point - origin, axis) / denom)
 
 
+def unit_vector(vec: np.ndarray) -> np.ndarray:
+    norm = float(np.linalg.norm(vec))
+    if not np.isfinite(norm) or norm < EPS:
+        return np.full_like(vec, np.nan, dtype=float)
+    return vec / norm
+
+
+def axis_projection_metrics(vec: np.ndarray, origin: np.ndarray, axis_unit: np.ndarray) -> Tuple[float, float]:
+    if not np.all(np.isfinite(axis_unit)):
+        return np.nan, np.nan
+    delta = vec - origin
+    delta_norm = float(np.linalg.norm(delta))
+    projection = float(np.dot(delta, axis_unit))
+    cosine = np.nan if delta_norm < EPS else float(projection / delta_norm)
+    return projection, cosine
+
+
 def subject_indices(x: np.ndarray, y: np.ndarray) -> Dict[str, float]:
     xz = zscore_subject_trials(x)
     centroids = {label: xz[y == label].mean(axis=0) for label in CS_LABELS}
@@ -314,14 +461,20 @@ def subject_indices(x: np.ndarray, y: np.ndarray) -> Dict[str, float]:
     cv_d_threat_safety = cv_corr_distance(first, second, "CSR", "CSS")
     cv_d_threat_background = cv_corr_distance(first, second, "CSR", "CS-")
 
-    p_threat_css = softmax_threat_evidence(
+    p_proto_threat_css = softmax_threat_evidence(
         corr_distance(centroids["CSS"], centroids["CS-"]),
         corr_distance(centroids["CSS"], centroids["CSR"]),
     )
-    p_threat_csr = softmax_threat_evidence(
+    p_proto_threat_csr = softmax_threat_evidence(
         corr_distance(centroids["CSR"], centroids["CS-"]),
         corr_distance(centroids["CSR"], centroids["CSR"]),
     )
+    decoder_evidence = heldout_decoder_evidence(xz, y)
+    p_threat_css = decoder_evidence.get("p_threat_css", np.nan)
+    p_safety_css = decoder_evidence.get("p_safety_css", np.nan)
+    p_threat_csr = decoder_evidence.get("p_threat_csr", np.nan)
+    prototype_margins = [p_safety_css - 0.5, p_threat_csr - 0.5]
+    prototype_certainty = [abs(value) * 2.0 for value in prototype_margins if np.isfinite(value)]
 
     safety_contrast = []
     threat_contrast = []
@@ -330,7 +483,12 @@ def subject_indices(x: np.ndarray, y: np.ndarray) -> Dict[str, float]:
             sim_bg = corr_similarity(trial, centroids["CS-"])
             sim_threat = corr_similarity(trial, centroids["CSR"])
             holder.append(sim_bg - sim_threat if label == "CSS" else sim_threat - sim_bg)
-    dynamic_discrimination = np.asarray(threat_contrast, dtype=float) - np.asarray(safety_contrast, dtype=float)
+    prototype_dynamic_discrimination = np.asarray(threat_contrast, dtype=float) - np.asarray(safety_contrast, dtype=float)
+    dynamic_discrimination = decoder_evidence.get("dynamic_discrimination", np.asarray([], dtype=float))
+    trialwise_margins = np.r_[
+        np.asarray(safety_contrast, dtype=float),
+        np.asarray(threat_contrast, dtype=float),
+    ]
 
     css_dispersion = mean_distance_to_centroid(xz[y == "CSS"], centroids["CSS"])
     csr_dispersion = mean_distance_to_centroid(xz[y == "CSR"], centroids["CSR"])
@@ -342,8 +500,7 @@ def subject_indices(x: np.ndarray, y: np.ndarray) -> Dict[str, float]:
 
     raw_condition_means = {label: float(np.nanmean(x[y == label])) for label in CS_LABELS}
     raw_condition_norms = {label: float(np.linalg.norm(np.nanmean(x[y == label], axis=0))) for label in CS_LABELS}
-
-    return {
+    metrics = {
         "Neural_Dist_Safety_Background": d_safety_background,
         "Neural_Dist_Threat_Safety": d_threat_safety,
         "Neural_Dist_Threat_Background": d_threat_background,
@@ -359,26 +516,46 @@ def subject_indices(x: np.ndarray, y: np.ndarray) -> Dict[str, float]:
         "Neural_ThreatToBackgroundDistanceRatio": d_threat_background / (d_safety_background + EPS),
         "Neural_ThreatTriangleOpenness": d_threat_background - d_safety_background,
         "Neural_Safety_Differentiation": d_threat_background - d_safety_background,
+        "Neural_Threat_Safety_Distance": d_threat_background - d_safety_background,
         "Neural_SafetyEvidence": 1.0 - p_threat_css,
         "Neural_ThreatEvidence": p_threat_csr,
         "Neural_BoundarySeparation": p_threat_csr - p_threat_css,
+        "Neural_PrototypeThreatLike_Safety": p_proto_threat_css,
+        "Neural_PrototypeThreatLike_Threat": p_proto_threat_csr,
+        "Neural_PrototypeBoundarySeparation": p_proto_threat_csr - p_proto_threat_css,
+        "Neural_BoundaryCertainty": abs(p_threat_csr - p_threat_css),
+        "Neural_PrototypeEvidenceMargin": mean_valid(prototype_margins),
+        "Neural_PrototypeEvidenceCertainty": mean_valid(prototype_certainty),
+        "Neural_PrototypeEvidenceEntropy": mean_valid([binary_entropy(p_safety_css), binary_entropy(p_threat_csr)]),
+        "Neural_Certainty_CSS": abs(p_safety_css - 0.5) * 2.0,
+        "Neural_Certainty_CSR": abs(p_threat_csr - 0.5) * 2.0,
+        "Prototype_Certainty": mean_valid([abs(p_safety_css - 0.5) * 2.0, abs(p_threat_csr - 0.5) * 2.0]),
+        "Neural_SafetyEvidenceCertainty": abs(p_safety_css - 0.5) * 2.0,
+        "Neural_ThreatEvidenceCertainty": abs(p_threat_csr - 0.5) * 2.0,
+        "Neural_TrialwiseEvidenceMargin": mean_valid(trialwise_margins),
+        "Neural_TrialwiseEvidenceCertainty": mean_valid(np.abs(trialwise_margins)),
+        "Neural_TrialwiseEvidenceCertaintySNR": standardize_margin(trialwise_margins),
         "Neural_Safety_Trajectory_Slope": slope(safety_contrast),
         "Neural_Threat_Trajectory_Slope": slope(threat_contrast),
         "Neural_Safety_EarlyLate_Change": early_late_change(safety_contrast),
         "Neural_Threat_EarlyLate_Change": early_late_change(threat_contrast),
         "Neural_DynamicDiscrimination_EarlyLate_Change": early_late_change(dynamic_discrimination),
+        "Neural_PrototypeDynamicDiscrimination_EarlyLate_Change": early_late_change(prototype_dynamic_discrimination),
         "Neural_Safety_InitialFinal_Change": initial_final_change(safety_contrast),
         "Neural_Threat_InitialFinal_Change": initial_final_change(threat_contrast),
         "Neural_DynamicDiscrimination_InitialFinal_Change": initial_final_change(dynamic_discrimination),
+        "Neural_PrototypeDynamicDiscrimination_InitialFinal_Change": initial_final_change(prototype_dynamic_discrimination),
         "Neural_Safety_LatePhaseEvidence": late_phase_mean(safety_contrast),
         "Neural_Threat_LatePhaseEvidence": late_phase_mean(threat_contrast),
         "Neural_DynamicDiscrimination_LatePhase": late_phase_mean(dynamic_discrimination),
         "Neural_Safety_LearningAUC": mean_valid(safety_contrast),
         "Neural_Threat_LearningAUC": mean_valid(threat_contrast),
         "Neural_DynamicDiscriminationAUC": mean_valid(dynamic_discrimination),
+        "Neural_PrototypeDynamicDiscriminationAUC": mean_valid(prototype_dynamic_discrimination),
         "Neural_Safety_Volatility": rmssd(safety_contrast),
         "Neural_Threat_Volatility": rmssd(threat_contrast),
         "Neural_DynamicDiscrimination_Volatility": rmssd(dynamic_discrimination),
+        "Neural_PrototypeDynamicDiscrimination_Volatility": rmssd(prototype_dynamic_discrimination),
         "Neural_Safety_ThreatAxisProjection": css_threat_axis_projection,
         "Neural_ThreatAxisSeparation": threat_axis_separation,
         "Neural_SafetyDispersion": css_dispersion,
@@ -397,6 +574,91 @@ def subject_indices(x: np.ndarray, y: np.ndarray) -> Dict[str, float]:
         "Neural_RawNorm_ThreatMinusSafety": raw_condition_norms["CSR"] - raw_condition_norms["CSS"],
         "Neural_RawNorm_ThreatMinusBackground": raw_condition_norms["CSR"] - raw_condition_norms["CS-"],
     }
+    if np.sum(y == SHOCK_LABEL) >= 2:
+        shock_centroid = xz[y == SHOCK_LABEL].mean(axis=0)
+        d_shock_background = corr_distance(shock_centroid, centroids["CS-"])
+        d_shock_safety = corr_distance(shock_centroid, centroids["CSS"])
+        d_shock_threat = corr_distance(shock_centroid, centroids["CSR"])
+
+        p_shock_css = softmax_threat_evidence(
+            corr_distance(centroids["CSS"], centroids["CS-"]),
+            corr_distance(centroids["CSS"], shock_centroid),
+        )
+        p_shock_csr = softmax_threat_evidence(
+            corr_distance(centroids["CSR"], centroids["CS-"]),
+            corr_distance(centroids["CSR"], shock_centroid),
+        )
+        p_shock_shock = softmax_threat_evidence(
+            corr_distance(shock_centroid, centroids["CS-"]),
+            corr_distance(shock_centroid, shock_centroid),
+        )
+
+        css_shock_evidence = []
+        csr_shock_evidence = []
+        for label, holder in (("CSS", css_shock_evidence), ("CSR", csr_shock_evidence)):
+            for trial in xz[y == label]:
+                holder.append(
+                    softmax_threat_evidence(
+                        corr_distance(trial, centroids["CS-"]),
+                        corr_distance(trial, shock_centroid),
+                    )
+                )
+        shock_discrimination = np.asarray(csr_shock_evidence, dtype=float) - np.asarray(css_shock_evidence, dtype=float)
+
+        x_resid = xz - np.nanmean(xz, axis=1, keepdims=True)
+        resid_centroids = {label: x_resid[y == label].mean(axis=0) for label in CS_LABELS}
+        resid_shock = x_resid[y == SHOCK_LABEL].mean(axis=0)
+        shock_axis = unit_vector(resid_shock - resid_centroids["CS-"])
+        proj_css, cos_css = axis_projection_metrics(resid_centroids["CSS"], resid_centroids["CS-"], shock_axis)
+        proj_csr, cos_csr = axis_projection_metrics(resid_centroids["CSR"], resid_centroids["CS-"], shock_axis)
+        resid_css = []
+        resid_csr = []
+        for label, holder in (("CSS", resid_css), ("CSR", resid_csr)):
+            for trial in x_resid[y == label]:
+                projection, _ = axis_projection_metrics(trial, resid_centroids["CS-"], shock_axis)
+                holder.append(projection)
+        resid_discrimination = np.asarray(resid_csr, dtype=float) - np.asarray(resid_css, dtype=float)
+
+        metrics.update(
+            {
+                "Neural_Shock_Dist_Background": d_shock_background,
+                "Neural_Shock_Dist_Safety": d_shock_safety,
+                "Neural_Shock_Dist_Threat": d_shock_threat,
+                "Neural_ShockEvidence_CSS": p_shock_css,
+                "Neural_ShockEvidence_CSR": p_shock_csr,
+                "Neural_ShockEvidence_SHOCK": p_shock_shock,
+                "Neural_ShockEvidence_Discrimination": p_shock_csr - p_shock_css,
+                "Neural_ShockEvidence_CSS_AUC": mean_valid(css_shock_evidence),
+                "Neural_ShockEvidence_CSR_AUC": mean_valid(csr_shock_evidence),
+                "Neural_ShockEvidence_DiscriminationAUC": mean_valid(shock_discrimination),
+                "Neural_ShockEvidence_CSS_Slope": slope(css_shock_evidence),
+                "Neural_ShockEvidence_CSR_Slope": slope(csr_shock_evidence),
+                "Neural_ShockEvidence_Discrimination_Slope": slope(shock_discrimination),
+                "Neural_ShockEvidence_CSS_EarlyLate_Change": early_late_change(css_shock_evidence),
+                "Neural_ShockEvidence_CSR_EarlyLate_Change": early_late_change(csr_shock_evidence),
+                "Neural_ShockEvidence_Discrimination_EarlyLate_Change": early_late_change(shock_discrimination),
+                "Neural_ShockEvidence_Discrimination_LatePhase": late_phase_mean(shock_discrimination),
+                "Neural_ShockEvidence_Discrimination_Volatility": rmssd(shock_discrimination),
+                "Neural_Shock_Anchor_ThreatMinusSafety_Proximity": d_shock_safety - d_shock_threat,
+                "Neural_Shock_Anchor_ThreatMinusBackground_Proximity": d_threat_background - d_shock_threat,
+                "Neural_Shock_Anchor_SafetyMinusBackground_Proximity": d_safety_background - d_shock_safety,
+                "Neural_Shock_Anchor_SafetySpecificity": d_shock_safety - d_safety_background,
+                "Neural_Shock_Anchor_Axis_Norm": float(np.linalg.norm(shock_centroid - centroids["CS-"])),
+                "Neural_ResidualizedShockAxis_CSS_Projection": proj_css,
+                "Neural_ResidualizedShockAxis_CSR_Projection": proj_csr,
+                "Neural_ResidualizedShockAxis_CSRMinusCSS_Projection": proj_csr - proj_css,
+                "Neural_ResidualizedShockAxis_CSS_Cosine": cos_css,
+                "Neural_ResidualizedShockAxis_CSR_Cosine": cos_csr,
+                "Neural_ResidualizedShockAxis_CSRMinusCSS_Cosine": cos_csr - cos_css if np.isfinite(cos_css) and np.isfinite(cos_csr) else np.nan,
+                "Neural_ResidualizedShockAxis_Axis_Norm": float(np.linalg.norm(resid_shock - resid_centroids["CS-"])),
+                "Neural_ResidualizedShockAxis_DiscriminationAUC": mean_valid(resid_discrimination),
+                "Neural_ResidualizedShockAxis_Discrimination_Slope": slope(resid_discrimination),
+                "Neural_ResidualizedShockAxis_Discrimination_EarlyLate_Change": early_late_change(resid_discrimination),
+                "Neural_ResidualizedShockAxis_Discrimination_LatePhase": late_phase_mean(resid_discrimination),
+                "Neural_ResidualizedShockAxis_Discrimination_Volatility": rmssd(resid_discrimination),
+            }
+        )
+    return metrics
 
 
 def load_npz_table(path: Path, feature_space: str) -> pd.DataFrame:
@@ -479,6 +741,26 @@ def cohens_d(a: pd.Series, b: pd.Series) -> float:
     return float((a.mean() - b.mean()) / pooled)
 
 
+def hedges_g(a: pd.Series, b: pd.Series) -> float:
+    a = pd.to_numeric(a, errors="coerce").dropna()
+    b = pd.to_numeric(b, errors="coerce").dropna()
+    d = cohens_d(a, b)
+    df = len(a) + len(b) - 2
+    if not np.isfinite(d) or df <= 1:
+        return np.nan
+    correction = 1.0 - (3.0 / (4.0 * df - 1.0))
+    return float(d * correction)
+
+
+def rank_biserial_sad_vs_hc(values: pd.Series, group: pd.Series) -> float:
+    data = pd.DataFrame({"value": pd.to_numeric(values, errors="coerce"), "group": group}).dropna()
+    if data["group"].nunique() != 2:
+        return np.nan
+    y = (data["group"] == "SAD").astype(int)
+    auc = roc_auc_score(y, data["value"])
+    return float((2.0 * auc) - 1.0)
+
+
 def scalar_auc(values: pd.Series, group: pd.Series) -> float:
     data = pd.DataFrame({"value": pd.to_numeric(values, errors="coerce"), "group": group}).dropna()
     if data["group"].nunique() != 2:
@@ -515,6 +797,8 @@ def summarize_group_tests(
                 "mean_HC": float(hc.mean()),
                 "diff_SAD_minus_HC": float(sad.mean() - hc.mean()),
                 "cohens_d_SAD_minus_HC": cohens_d(sad, hc),
+                "hedges_g_SAD_minus_HC": hedges_g(sad, hc),
+                "rank_biserial_SAD_vs_HC": rank_biserial_sad_vs_hc(placebo[metric], placebo["Group"]),
                 "t": float(t_res.statistic),
                 "p": float(t_res.pvalue),
                 "scalar_auc_abs_direction": scalar_auc(placebo[metric], placebo["Group"]),
@@ -611,6 +895,7 @@ def write_profile_report(
         "- Q3 learning dynamics: trialwise change in safety/threat representational evidence.",
         "- Q4 precision/dispersion: within-cue stability of the neural representation.",
         "- Q5 activation/magnitude: raw mean or norm contrasts, treated as secondary because they are less representationally specific.",
+        "- Q6 shock-anchor: secondary reinstatement metrics that quantify cue alignment with SHOCK/US while controlling for global-amplitude components where possible.",
         "",
         "## Whole FearNetwork: Best Metric Per Profile",
         "",
@@ -622,6 +907,8 @@ def write_profile_report(
         "metric",
         "direction_summary",
         "cohens_d_SAD_minus_HC",
+        "hedges_g_SAD_minus_HC",
+        "rank_biserial_SAD_vs_HC",
         "p",
         "q_within_phase_feature",
         "scalar_auc_abs_direction",
@@ -640,6 +927,8 @@ def write_profile_report(
         "metric",
         "direction_summary",
         "cohens_d_SAD_minus_HC",
+        "hedges_g_SAD_minus_HC",
+        "rank_biserial_SAD_vs_HC",
         "p",
         "q_within_phase_feature",
         "all_subjects_adjusted_group_p",
@@ -657,6 +946,8 @@ def write_profile_report(
             "- The most manuscript-ready whole-network profile is geometry/topology, especially threat-vs-background openness during extinction.",
             "- Decision/evidence metrics tell the same story in a classifier-like language: SAD tends to show weaker threat evidence and boundary separation in phase-2 extinction.",
             "- Learning-dynamics slopes are weaker in the whole-network profile, so they are better framed as descriptive unless replicated or tied to behavior.",
+            "- The most informative shock-focused whole-network metric is residualized CSR projection on the subject-specific SHOCK-minus-CS- axis during reinstatement; SAD shows lower shock-axis alignment than HC, but this secondary family does not survive the broad whole-network FDR screen.",
+            "- ROI shock-anchor exploration highlights right vmPFC residualized CSR-minus-CSS shock-axis projection/cosine as the strongest localized follow-up signal. Treat it as supportive and hypothesis-generating unless promoted in a preregistered follow-up.",
             "- ROI exploration suggests left ACC threat-axis geometry in phase-3 reinstatement is unusually strong; treat this as a targeted follow-up because the ROI search is larger than the whole-network test family.",
             "- Raw activation/magnitude metrics can be included as secondary checks, but they should not replace representational geometry as the central neural index.",
             "",
@@ -699,6 +990,9 @@ def main() -> None:
             best_q=("q_within_phase_feature", "min"),
             median_abs_d=("cohens_d_SAD_minus_HC", lambda x: float(np.nanmedian(np.abs(x)))),
             max_abs_d=("cohens_d_SAD_minus_HC", lambda x: float(np.nanmax(np.abs(x)))),
+            median_abs_g=("hedges_g_SAD_minus_HC", lambda x: float(np.nanmedian(np.abs(x)))),
+            max_abs_g=("hedges_g_SAD_minus_HC", lambda x: float(np.nanmax(np.abs(x)))),
+            max_abs_rank_biserial=("rank_biserial_SAD_vs_HC", lambda x: float(np.nanmax(np.abs(x)))),
             median_auc=("scalar_auc_abs_direction", "median"),
             best_rank_score=("rank_score", "max"),
         )
@@ -769,6 +1063,8 @@ def main() -> None:
                 "n_HC",
                 "diff_SAD_minus_HC",
                 "cohens_d_SAD_minus_HC",
+                "hedges_g_SAD_minus_HC",
+                "rank_biserial_SAD_vs_HC",
                 "p",
                 "q_within_phase_feature",
                 "scalar_auc_abs_direction",
@@ -791,6 +1087,8 @@ def main() -> None:
                     "n_HC",
                     "diff_SAD_minus_HC",
                     "cohens_d_SAD_minus_HC",
+                    "hedges_g_SAD_minus_HC",
+                    "rank_biserial_SAD_vs_HC",
                     "p",
                     "q_within_phase_feature",
                     "scalar_auc_abs_direction",

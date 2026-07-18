@@ -129,7 +129,7 @@ def topology_from_results12(payload) -> Optional[pd.DataFrame]:
                     "Neural_Dist_Threat_Safety": arr[i, 2, 1],
                     "Neural_Dist_Threat_Background": arr[i, 2, 0],
                     "Neural_ThreatTriangleOpenness": arr[i, 2, 0] - arr[i, 1, 0],
-                    "Neural_Safety_Differentiation": arr[i, 2, 0] - arr[i, 1, 0],
+                    "Neural_Threat_Safety_Distance": arr[i, 2, 0] - arr[i, 1, 0],
                     "Neural_Topology_Safety_Integration": arr[i, 2, 1] - arr[i, 1, 0],
                     "Neural_Threat_Bias": arr[i, 2, 0] - arr[i, 1, 0],
                 }

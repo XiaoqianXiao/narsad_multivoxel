@@ -8,8 +8,11 @@ from typing import Dict, List
 import pandas as pd
 
 from mvpa_l2_common import (
+    ALL_CLINICAL_SCORES,
     ALL_SCR_INDICES,
-    CORE_NEURAL_METRICS,
+    CLINICAL_SCORE_HIERARCHY,
+    PRIMARY_SCR_INDICES,
+    PRESPECIFIED_NEURAL_METRICS,
     SCR_SENSITIVITY_FLAGS,
     add_fdr,
     available_covariates,
@@ -18,7 +21,7 @@ from mvpa_l2_common import (
     harmonize_group_drug,
     write_csv,
 )
-from run_mvpa_l2_primary_models import apply_stage29_zscore
+from run_mvpa_l2_primary_models import apply_stage29_zscore, zscore_numeric_covariates
 
 
 GROUP_TERM = "C(Group, Treatment(reference='HC'))[T.SAD]"
@@ -43,7 +46,7 @@ def run_group_model(
     elif sub["Drug"].dropna().nunique() > 1:
         predictor_terms.append(DRUG_TERM)
 
-    for metric in CORE_NEURAL_METRICS:
+    for metric in PRESPECIFIED_NEURAL_METRICS:
         row = fit_lm(
             sub,
             outcome=metric,
@@ -65,13 +68,126 @@ def run_group_model(
     return rows
 
 
+def clinical_hierarchy_fields(clinical_score: str) -> Dict[str, object]:
+    fields = CLINICAL_SCORE_HIERARCHY.get(clinical_score, {})
+    return {
+        "clinical_score_order": fields.get("order", 999),
+        "clinical_score_role": fields.get("role", "exploratory"),
+        "clinical_score_family": fields.get("family", "exploratory"),
+        "clinical_score_label": fields.get("label", clinical_score),
+    }
+
+
+def run_clinical_model(
+    df: pd.DataFrame,
+    label: str,
+    feature_space: str,
+    covariates: List[str],
+    outlier_z: float,
+    drug_scope: str = "pooled",
+) -> List[Dict]:
+    rows = []
+    sub = df[df["FeatureSpace"] == feature_space].copy()
+    session = "pooled_drug"
+    if drug_scope == "placebo":
+        sub = sub[sub["Drug"] == "Placebo"].copy()
+        session = "Placebo"
+
+    groups = [g for g in ["SAD", "HC"] if g in set(sub["Group"].dropna())]
+    for group in groups:
+        group_df = sub[sub["Group"] == group].copy()
+        model_covariates = list(covariates)
+        if drug_scope == "pooled" and group_df["Drug"].dropna().nunique() > 1:
+            model_covariates = ["Drug"] + model_covariates
+        group_df, model_covariates, covariate_outliers = zscore_numeric_covariates(group_df, model_covariates, outlier_z)
+        for clinical in ALL_CLINICAL_SCORES:
+            clinical_df, clinical_z, n_clinical_outliers, clinical_method = apply_stage29_zscore(group_df, clinical, outlier_z)
+            if clinical_z is None:
+                row = {
+                    "analysis": "Sensitivity_Aim3_Clinical",
+                    "sensitivity": label,
+                    "feature_space": feature_space,
+                    "session": session,
+                    "Group": group,
+                    "clinical_score": clinical,
+                    "clinical_score_z": None,
+                    "clinical_outlier_method": clinical_method,
+                    "outlier_threshold": outlier_z,
+                    "n_clinical_outliers_removed": n_clinical_outliers,
+                    "status": "missing_or_constant_clinical_score",
+                    "n": 0,
+                    "outcome": clinical,
+                }
+                row.update(clinical_hierarchy_fields(clinical))
+                rows.append(row)
+                continue
+            for metric in PRESPECIFIED_NEURAL_METRICS:
+                if metric not in clinical_df.columns:
+                    continue
+                model_df, metric_z, n_metric_outliers, metric_method = apply_stage29_zscore(clinical_df, metric, outlier_z)
+                if metric_z is None:
+                    row = {
+                        "analysis": "Sensitivity_Aim3_Clinical",
+                        "sensitivity": label,
+                        "feature_space": feature_space,
+                        "session": session,
+                        "Group": group,
+                        "metric": metric,
+                        "metric_z": None,
+                        "clinical_score": clinical,
+                        "clinical_score_z": clinical_z,
+                        "clinical_outlier_method": clinical_method,
+                        "metric_outlier_method": metric_method,
+                        "outlier_threshold": outlier_z,
+                        "n_clinical_outliers_removed": n_clinical_outliers,
+                        "n_metric_outliers_removed": n_metric_outliers,
+                        "status": "missing_or_constant_neural_metric",
+                        "n": 0,
+                        "outcome": clinical_z,
+                    }
+                    row.update(clinical_hierarchy_fields(clinical))
+                    rows.append(row)
+                    continue
+                row = fit_lm(
+                    model_df,
+                    outcome=clinical_z,
+                    predictor_terms=[f"Q('{metric_z}')"],
+                    covariates=model_covariates,
+                    term_of_interest=f"Q('{metric_z}')",
+                    min_n=10,
+                )
+                row.update(
+                    {
+                        "analysis": "Sensitivity_Aim3_Clinical",
+                        "sensitivity": label,
+                        "feature_space": feature_space,
+                        "session": session,
+                        "Group": group,
+                        "metric": metric,
+                        "metric_z": metric_z,
+                        "clinical_score": clinical,
+                        "clinical_score_z": clinical_z,
+                        "clinical_outlier_method": clinical_method,
+                        "metric_outlier_method": metric_method,
+                        "outlier_threshold": outlier_z,
+                        "n_clinical_outliers_removed": n_clinical_outliers,
+                        "n_metric_outliers_removed": n_metric_outliers,
+                        "covariates_used": ",".join(model_covariates),
+                        "covariate_outliers_removed": ";".join(f"{k}:{v}" for k, v in covariate_outliers.items()),
+                    }
+                )
+                row.update(clinical_hierarchy_fields(clinical))
+                rows.append(row)
+    return rows
+
+
 def run_scr_model(df: pd.DataFrame, label: str, feature_space: str, covariates: List[str], outlier_z: float) -> List[Dict]:
     rows = []
     sub = df[df["FeatureSpace"] == feature_space].copy()
     for scr in ALL_SCR_INDICES:
         scr_df, scr_z, n_scr_outliers, scr_method = apply_stage29_zscore(sub, scr, outlier_z)
         if scr_z is None:
-            for metric in CORE_NEURAL_METRICS:
+            for metric in PRESPECIFIED_NEURAL_METRICS:
                 rows.append(
                     {
                         "analysis": "Sensitivity_Aim4_SCR",
@@ -79,7 +195,7 @@ def run_scr_model(df: pd.DataFrame, label: str, feature_space: str, covariates: 
                         "metric": metric,
                         "scr_index": scr,
                         "scr_index_z": None,
-                        "scr_index_role": "primary" if scr in ALL_SCR_INDICES[:2] else "secondary",
+                        "scr_index_role": "primary" if scr in PRIMARY_SCR_INDICES else "secondary",
                         "scr_outlier_method": scr_method,
                         "outlier_threshold": outlier_z,
                         "n_scr_outliers_removed": n_scr_outliers,
@@ -91,7 +207,7 @@ def run_scr_model(df: pd.DataFrame, label: str, feature_space: str, covariates: 
                     }
                 )
             continue
-        for metric in CORE_NEURAL_METRICS:
+        for metric in PRESPECIFIED_NEURAL_METRICS:
             if metric not in scr_df.columns:
                 continue
             model_df, metric_z, n_metric_outliers, metric_method = apply_stage29_zscore(scr_df, metric, outlier_z)
@@ -103,7 +219,7 @@ def run_scr_model(df: pd.DataFrame, label: str, feature_space: str, covariates: 
                     "metric_z": None,
                     "scr_index": scr,
                     "scr_index_z": scr_z,
-                    "scr_index_role": "primary" if scr in ALL_SCR_INDICES[:2] else "secondary",
+                    "scr_index_role": "primary" if scr in PRIMARY_SCR_INDICES else "secondary",
                     "scr_outlier_method": scr_method,
                     "metric_outlier_method": metric_method,
                     "outlier_threshold": outlier_z,
@@ -131,7 +247,7 @@ def run_scr_model(df: pd.DataFrame, label: str, feature_space: str, covariates: 
                 "metric_z": metric_z,
                 "scr_index": scr,
                 "scr_index_z": scr_z,
-                "scr_index_role": "primary" if scr in ALL_SCR_INDICES[:2] else "secondary",
+                "scr_index_role": "primary" if scr in PRIMARY_SCR_INDICES else "secondary",
                 "scr_outlier_method": scr_method,
                 "metric_outlier_method": metric_method,
                 "outlier_threshold": outlier_z,
@@ -146,7 +262,7 @@ def run_scr_model(df: pd.DataFrame, label: str, feature_space: str, covariates: 
 def run_drug_model(df: pd.DataFrame, label: str, feature_space: str, covariates: List[str]) -> List[Dict]:
     rows = []
     sub = df[df["FeatureSpace"] == feature_space].copy()
-    for metric in CORE_NEURAL_METRICS:
+    for metric in PRESPECIFIED_NEURAL_METRICS:
         row = fit_lm(
             sub,
             outcome=metric,
@@ -192,10 +308,16 @@ def main() -> None:
     covariates = available_covariates(df, args.covariates)
     rows = []
 
+    full_sample_label = "FullSample:DrugAdjusted"
+    rows.extend(run_group_model(df, full_sample_label, args.primary_feature_space, covariates, drug_scope="pooled"))
+    rows.extend(run_clinical_model(df, full_sample_label, args.primary_feature_space, covariates, args.outlier_z, drug_scope="pooled"))
+    rows.extend(run_scr_model(df, full_sample_label, args.primary_feature_space, covariates, args.outlier_z))
+
     feature_spaces = sorted([fs for fs in df["FeatureSpace"].dropna().unique() if fs != args.primary_feature_space])
     for feature_space in feature_spaces:
         label = f"FeatureSpace:{feature_space}"
         rows.extend(run_group_model(df, label, feature_space, covariates))
+        rows.extend(run_clinical_model(df, label, feature_space, covariates, args.outlier_z, drug_scope="placebo"))
         rows.extend(run_scr_model(df, label, feature_space, covariates, args.outlier_z))
         rows.extend(run_drug_model(df, label, feature_space, covariates))
 
@@ -210,6 +332,7 @@ def main() -> None:
             print(f"[WARN] Empty cohort: {flag}")
             continue
         rows.extend(run_group_model(sub, label, args.primary_feature_space, covariates, drug_scope="pooled"))
+        rows.extend(run_clinical_model(sub, label, args.primary_feature_space, covariates, args.outlier_z, drug_scope="pooled"))
         rows.extend(run_scr_model(sub, label, args.primary_feature_space, covariates, args.outlier_z))
         if cell_count_ok(sub, args.min_cell_n):
             rows.extend(run_drug_model(sub, label, args.primary_feature_space, covariates))

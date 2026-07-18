@@ -11,8 +11,11 @@ from mvpa_l2_common import (
     ALL_CLINICAL_SCORES,
     ALL_SCR_INDICES,
     CLINICAL_SCORE_HIERARCHY,
+    COMPANION_NEURAL_METRICS,
     CORE_NEURAL_METRICS,
     NEURAL_METRIC_HIERARCHY,
+    PRIMARY_SCR_INDICES,
+    PRESPECIFIED_NEURAL_METRICS,
     add_fdr,
     available_covariates,
     derive_final_metrics,
@@ -27,14 +30,20 @@ DRUG_INTERACTION_TERM = "C(Group, Treatment(reference='HC'))[T.SAD]:C(Drug, Trea
 
 AIM2_QUESTION_METRICS = {
     "Q1_geometry": [
-        "Neural_Safety_Differentiation",
+        "Neural_Threat_Safety_Distance",
+        "Neural_Dist_Safety_Background",
+        "Neural_Dist_Threat_Background",
+        "Neural_Dist_Threat_Safety",
     ],
     "Q2_decision_certainty": [
-        "Neural_SafetyEvidence",
-        "Neural_ThreatEvidence",
+        "Prototype_Certainty",
+        "Neural_Certainty_CSS",
+        "Neural_Certainty_CSR",
     ],
     "Q3_learning_dynamics": [
         "Neural_DynamicDiscrimination_Volatility",
+        "Neural_Safety_Trajectory_Slope",
+        "Neural_Threat_Trajectory_Slope",
     ],
 }
 
@@ -44,7 +53,7 @@ AIM2_QUESTION_LABELS = {
     "Q3_learning_dynamics": "How do safety and threat representations change over learning?",
 }
 
-AIM2_SECONDARY_METRICS = set()
+AIM2_SECONDARY_METRICS = set(COMPANION_NEURAL_METRICS)
 
 AIM2_PRIMARY_METRICS = set(CORE_NEURAL_METRICS)
 AIM2_METRIC_TO_QUESTION = {
@@ -189,7 +198,7 @@ def run_aim3(df: pd.DataFrame, feature_space: str, covariates: List[str], clinic
                 row.update(clinical_hierarchy_fields(clinical))
                 rows.append(row)
                 continue
-            for metric in CORE_NEURAL_METRICS:
+            for metric in PRESPECIFIED_NEURAL_METRICS:
                 if metric not in clinical_df.columns:
                     continue
                 model_df, metric_z, n_metric_outliers, metric_method = apply_stage29_zscore(clinical_df, metric, clinical_outlier_z)
@@ -267,7 +276,7 @@ def run_aim4(df: pd.DataFrame, feature_space: str, covariates: List[str], outlie
                         "Group": group,
                         "scr_index": scr,
                         "scr_index_z": None,
-                        "scr_index_role": "primary" if scr in ALL_SCR_INDICES[:2] else "secondary",
+                        "scr_index_role": "primary" if scr in PRIMARY_SCR_INDICES else "secondary",
                         "scr_outlier_method": scr_method,
                         "outlier_threshold": outlier_z,
                         "n_scr_outliers_removed": n_scr_outliers,
@@ -276,7 +285,7 @@ def run_aim4(df: pd.DataFrame, feature_space: str, covariates: List[str], outlie
                 )
                 rows.append(row)
                 continue
-            for metric in CORE_NEURAL_METRICS:
+            for metric in PRESPECIFIED_NEURAL_METRICS:
                 if metric not in scr_df.columns:
                     continue
                 model_df, metric_z, n_metric_outliers, metric_method = apply_stage29_zscore(scr_df, metric, outlier_z)
@@ -291,7 +300,7 @@ def run_aim4(df: pd.DataFrame, feature_space: str, covariates: List[str], outlie
                             "metric_z": None,
                             "scr_index": scr,
                             "scr_index_z": scr_z,
-                            "scr_index_role": "primary" if scr in ALL_SCR_INDICES[:2] else "secondary",
+                            "scr_index_role": "primary" if scr in PRIMARY_SCR_INDICES else "secondary",
                             "scr_outlier_method": scr_method,
                             "metric_outlier_method": metric_method,
                             "outlier_threshold": outlier_z,
@@ -320,7 +329,7 @@ def run_aim4(df: pd.DataFrame, feature_space: str, covariates: List[str], outlie
                         "metric_z": metric_z,
                         "scr_index": scr,
                         "scr_index_z": scr_z,
-                        "scr_index_role": "primary" if scr in ALL_SCR_INDICES[:2] else "secondary",
+                        "scr_index_role": "primary" if scr in PRIMARY_SCR_INDICES else "secondary",
                         "scr_outlier_method": scr_method,
                         "metric_outlier_method": metric_method,
                         "outlier_threshold": outlier_z,
@@ -346,7 +355,7 @@ def run_aim5(df: pd.DataFrame, feature_space: str, covariates: List[str]) -> pd.
         counts = frame.groupby(["Group", "Drug"], dropna=False).size().to_dict()
         return {f"{group}_{drug}": int(counts.get((group, drug), 0)) for group, drug in expected_cells}
 
-    for metric in CORE_NEURAL_METRICS:
+    for metric in PRESPECIFIED_NEURAL_METRICS:
         needed = [metric, "Group", "Drug"] + [cov for cov in covariates if cov in sub.columns]
         if metric not in sub.columns:
             row = {"status": "missing_outcome", "n": 0, "outcome": metric}

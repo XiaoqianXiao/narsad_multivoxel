@@ -20,9 +20,8 @@ from statsmodels.stats.multitest import multipletests
 
 
 CORE_NEURAL_METRICS = [
-    "Neural_Safety_Differentiation",
-    "Neural_SafetyEvidence",
-    "Neural_ThreatEvidence",
+    "Neural_Threat_Safety_Distance",
+    "Prototype_Certainty",
     "Neural_DynamicDiscrimination_Volatility",
 ]
 
@@ -30,6 +29,8 @@ COMPANION_NEURAL_METRICS = [
     "Neural_Dist_Safety_Background",
     "Neural_Dist_Threat_Safety",
     "Neural_Dist_Threat_Background",
+    "Neural_Certainty_CSS",
+    "Neural_Certainty_CSR",
     "Neural_Decoder_Entropy_CSS",
     "Neural_Decoder_Entropy_CSR",
     "Neural_Safety_Trajectory_Slope",
@@ -38,17 +39,28 @@ COMPANION_NEURAL_METRICS = [
     "Residualized_Shock_Anchor_Trajectory_Slope",
 ]
 
+PRESPECIFIED_NEURAL_METRICS = CORE_NEURAL_METRICS + COMPANION_NEURAL_METRICS
+
 NEURAL_METRIC_FAMILIES = {
-    "Neural_Safety_Differentiation": "Geometry",
-    "Neural_SafetyEvidence": "Certainty",
-    "Neural_ThreatEvidence": "Certainty",
+    "Neural_Threat_Safety_Distance": "Geometry",
+    "Prototype_Certainty": "Certainty",
     "Neural_DynamicDiscrimination_Volatility": "Trajectory",
+    "Neural_Dist_Safety_Background": "Geometry",
+    "Neural_Dist_Threat_Background": "Geometry",
+    "Neural_Dist_Threat_Safety": "Geometry",
+    "Neural_Certainty_CSS": "Certainty",
+    "Neural_Certainty_CSR": "Certainty",
+    "Neural_Decoder_Entropy_CSS": "Certainty",
+    "Neural_Decoder_Entropy_CSR": "Certainty",
+    "Neural_Safety_Trajectory_Slope": "Trajectory",
+    "Neural_Threat_Trajectory_Slope": "Trajectory",
+    "Shock_Anchor_Trajectory_Slope": "Trajectory",
+    "Residualized_Shock_Anchor_Trajectory_Slope": "Trajectory",
 }
 
 NEURAL_METRIC_LABELS = {
-    "Neural_Safety_Differentiation": "Threat-safety CS- distance diff",
-    "Neural_SafetyEvidence": "Safety evidence",
-    "Neural_ThreatEvidence": "Threat evidence",
+    "Neural_Threat_Safety_Distance": "Threat-safety CS- distance diff",
+    "Prototype_Certainty": "Prototype certainty",
     "Neural_DynamicDiscrimination_Volatility": "Dynamic discrimination volatility",
 }
 
@@ -338,7 +350,10 @@ def merge_derived_primary_neural_metrics(df: pd.DataFrame, phase: str = "phase2_
     value_cols = [
         col
         for col in [
-            "Neural_Safety_Differentiation",
+            "Neural_Threat_Safety_Distance",
+            "Prototype_Certainty",
+            "Neural_Certainty_CSS",
+            "Neural_Certainty_CSR",
             "Neural_SafetyEvidence",
             "Neural_ThreatEvidence",
             "Neural_ThreatTriangleOpenness",
@@ -397,10 +412,12 @@ def derive_final_metrics(df: pd.DataFrame) -> pd.DataFrame:
     rename_map = {
         "Dist_Safety": "Neural_Dist_Safety_Background",
         "Dist_Safety_PV": "Neural_Dist_Safety_Background",
+        "Neural_Dist_Safe_Background": "Neural_Dist_Safety_Background",
         "Dist_Threat": "Neural_Dist_Threat_Safety",
         "Dist_Threat_PV": "Neural_Dist_Threat_Safety",
         "Dist_Threat_Background": "Neural_Dist_Threat_Background",
         "Dist_Threat_Background_PV": "Neural_Dist_Threat_Background",
+        "Neural_Safety_Differentiation": "Neural_Threat_Safety_Distance",
         "P_CSR_CSS": "Neural_ThreatLike_Safety",
         "P_CSR_CSR": "Neural_ThreatLike_Threat",
         "Boundary_Separation": "Neural_Boundary_Separation",
@@ -415,6 +432,9 @@ def derive_final_metrics(df: pd.DataFrame) -> pd.DataFrame:
         "p_csr_css": "Neural_ThreatLike_Safety",
         "p_csr_csr": "Neural_ThreatLike_Threat",
         "Neural_Threat_Evidence_CSR": "Neural_ThreatLike_Threat",
+        "Prototype_P_CSR_CSS": "Neural_PrototypeThreatLike_Safety",
+        "Prototype_P_CSR_CSR": "Neural_PrototypeThreatLike_Threat",
+        "Prototype_Boundary_Separation": "Neural_PrototypeBoundary_Separation",
     }
     for old, new in rename_map.items():
         if old in out.columns and new not in out.columns:
@@ -428,11 +448,31 @@ def derive_final_metrics(df: pd.DataFrame) -> pd.DataFrame:
         out["Neural_SafetyEvidence"] = 1 - pd.to_numeric(out["Neural_ThreatLike_Safety"], errors="coerce")
     if "Neural_ThreatLike_Threat" in out.columns:
         out["Neural_ThreatEvidence"] = pd.to_numeric(out["Neural_ThreatLike_Threat"], errors="coerce")
-    if "Neural_Safety_Differentiation" not in out.columns:
+    if "Neural_SafetyEvidence" in out.columns:
+        out["Neural_Certainty_CSS"] = 2 * (
+            pd.to_numeric(out["Neural_SafetyEvidence"], errors="coerce") - 0.5
+        ).abs()
+    elif "Neural_SafetyEvidenceCertainty" in out.columns:
+        out["Neural_Certainty_CSS"] = pd.to_numeric(out["Neural_SafetyEvidenceCertainty"], errors="coerce")
+    if "Neural_ThreatEvidence" in out.columns:
+        out["Neural_Certainty_CSR"] = 2 * (
+            pd.to_numeric(out["Neural_ThreatEvidence"], errors="coerce") - 0.5
+        ).abs()
+    elif "Neural_ThreatEvidenceCertainty" in out.columns:
+        out["Neural_Certainty_CSR"] = pd.to_numeric(out["Neural_ThreatEvidenceCertainty"], errors="coerce")
+    if {"Neural_Certainty_CSS", "Neural_Certainty_CSR"}.issubset(out.columns):
+        prototype_certainty = out[["Neural_Certainty_CSS", "Neural_Certainty_CSR"]].mean(axis=1)
+        if "Prototype_Certainty" in out.columns:
+            out["Prototype_Certainty"] = pd.to_numeric(out["Prototype_Certainty"], errors="coerce").combine_first(
+                prototype_certainty
+            )
+        else:
+            out["Prototype_Certainty"] = prototype_certainty
+    if "Neural_Threat_Safety_Distance" not in out.columns:
         if "Neural_ThreatTriangleOpenness" in out.columns:
-            out["Neural_Safety_Differentiation"] = pd.to_numeric(out["Neural_ThreatTriangleOpenness"], errors="coerce")
+            out["Neural_Threat_Safety_Distance"] = pd.to_numeric(out["Neural_ThreatTriangleOpenness"], errors="coerce")
         elif {"Neural_Dist_Threat_Background", "Neural_Dist_Safety_Background"}.issubset(out.columns):
-            out["Neural_Safety_Differentiation"] = (
+            out["Neural_Threat_Safety_Distance"] = (
                 pd.to_numeric(out["Neural_Dist_Threat_Background"], errors="coerce")
                 - pd.to_numeric(out["Neural_Dist_Safety_Background"], errors="coerce")
             )
@@ -449,15 +489,31 @@ def derive_final_metrics(df: pd.DataFrame) -> pd.DataFrame:
     elif "Neural_ThreatLike_Threat" in out.columns and "Neural_Decoder_Entropy_CSR" not in out.columns:
         out["Neural_Decoder_Entropy_CSR"] = binary_entropy(pd.to_numeric(out["Neural_ThreatLike_Threat"], errors="coerce"))
     out = merge_derived_primary_neural_metrics(out)
+    if "Neural_SafetyEvidence" in out.columns:
+        out["Neural_Certainty_CSS"] = 2 * (
+            pd.to_numeric(out["Neural_SafetyEvidence"], errors="coerce") - 0.5
+        ).abs()
+    if "Neural_ThreatEvidence" in out.columns:
+        out["Neural_Certainty_CSR"] = 2 * (
+            pd.to_numeric(out["Neural_ThreatEvidence"], errors="coerce") - 0.5
+        ).abs()
+    if {"Neural_Certainty_CSS", "Neural_Certainty_CSR"}.issubset(out.columns):
+        prototype_certainty = out[["Neural_Certainty_CSS", "Neural_Certainty_CSR"]].mean(axis=1)
+        if "Prototype_Certainty" in out.columns:
+            out["Prototype_Certainty"] = pd.to_numeric(out["Prototype_Certainty"], errors="coerce").combine_first(
+                prototype_certainty
+            )
+        else:
+            out["Prototype_Certainty"] = prototype_certainty
     if "Neural_ThreatTriangleOpenness" in out.columns:
         triangle = pd.to_numeric(out["Neural_ThreatTriangleOpenness"], errors="coerce")
-        if "Neural_Safety_Differentiation" in out.columns:
-            out["Neural_Safety_Differentiation"] = pd.to_numeric(
-                out["Neural_Safety_Differentiation"],
+        if "Neural_Threat_Safety_Distance" in out.columns:
+            out["Neural_Threat_Safety_Distance"] = pd.to_numeric(
+                out["Neural_Threat_Safety_Distance"],
                 errors="coerce",
             ).combine_first(triangle)
         else:
-            out["Neural_Safety_Differentiation"] = triangle
+            out["Neural_Threat_Safety_Distance"] = triangle
     return out
 
 
