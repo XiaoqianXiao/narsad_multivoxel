@@ -4898,12 +4898,12 @@ if cell_active(15):
                 probs_csr = probs[prob_labels == "CSR"]
                 if len(probs_css) == 0 or len(probs_csr) == 0:
                     continue
-                    p_proto_csr_css, p_proto_csr_csr, proto_boundary_separation = prototype_decision_metrics(
-                        xs_proto, ys_proto, "CSR", "CSS"
-                    )
-                    p_csr_css = float(np.mean(probs_css))
-                    p_csr_csr = float(np.mean(probs_csr))
-                    boundary_separation = p_csr_csr - p_csr_css
+                p_proto_csr_css, p_proto_csr_csr, proto_boundary_separation = prototype_decision_metrics(
+                    xs_proto, ys_proto, "CSR", "CSS"
+                )
+                p_csr_css = float(np.mean(probs_css))
+                p_csr_csr = float(np.mean(probs_csr))
+                boundary_separation = p_csr_csr - p_csr_css
                 # 20-bin histogram for Shannon Entropy
                 hist, _ = np.histogram(probs_css, bins=20, range=(0, 1), density=True)
                 ent_val = entropy(hist + 1e-9)
@@ -4916,12 +4916,12 @@ if cell_active(15):
                     'variance': np.var(probs_css),
                     'probabilities': probs_css,
                     'probabilities_csr': probs_csr,
-                        'p_csr_css': p_csr_css,
-                        'p_csr_csr': p_csr_csr,
-                        'boundary_separation': boundary_separation,
-                        'prototype_p_csr_css': p_proto_csr_css,
-                        'prototype_p_csr_csr': p_proto_csr_csr,
-                        'prototype_boundary_separation': proto_boundary_separation,
+                    'p_csr_css': p_csr_css,
+                    'p_csr_csr': p_csr_csr,
+                    'boundary_separation': boundary_separation,
+                    'prototype_p_csr_css': p_proto_csr_css,
+                    'prototype_p_csr_csr': p_proto_csr_csr,
+                    'prototype_boundary_separation': proto_boundary_separation,
                     'decision_margin_css': float(0.5 - p_csr_css) if np.isfinite(p_csr_css) else np.nan,
                     'decision_margin_csr': float(p_csr_csr - 0.5) if np.isfinite(p_csr_csr) else np.nan,
                     'decision_margin_all': float(np.mean(np.abs(probs - 0.5))),

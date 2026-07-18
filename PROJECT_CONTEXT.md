@@ -149,15 +149,16 @@ For each metric, report the group-specific mean and standard deviation or median
 
 ## Secondary Or Support Neural Metrics
 
-| Category  | Metric                           | Definition                                                                                                                                       |
-| --------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Geometry  | `Neural_Dist_Safe_Background`    | Representational distance between `CSS and `CS-` vectors.                                                                                        |
-| Geometry  | `Neural_Dist_Threat_Background`  | Representational distance between `CSR` and `CS-` vectors.                                                                                       |
-| Geometry  | `Neural_Dist_Threat_Safe`        | Representational distance between `CSR` and `CSS` vectors.                                                                                       |
-| Certainty | `Neural_Certainty_CSS`           | Certainty of the decoder evidence for the expected safety state of `CSS`, relative to chance-level ambiguity: `2 × \|P(safety \| CSS) − 0.50\|`  |
-| Certainty | `Neural_Certainty_CSR`           | Certainty of the decoder evidence for the expected threat state of `CSR`, relative to chance-level ambiguity: `2 × \|P(threat \| CSR) − 0.50\|`. |
-| Dynamics  | `Neural_Safety_Trajectory_Slope` | Trial-wise vector translation of CSS toward the target safety reference (CS-) localized to the early extinction phase to mitigate floor effects. |
-| Dynamics  | `Neural_Threat_Trajectory_Slope` | Trial-wise vector translation of CSR toward the true threat reference (CSR) localized to the early reinstatement phase.                          |
+| Category                      | Metric                           | Definition                                                                                                                                       |
+| ----------------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Representational geometry** | `Neural_Dist_Safety_Background`  | Representational distance between `CSS` and `CS-` vectors.                                                                                       |
+| **Representational geometry** | `Neural_Dist_Threat_Background`  | Representational distance between `CSR` and `CS-` vectors.                                                                                       |
+| **Representational geometry** | `Neural_Dist_Threat_Safe`        | Representational distance between `CSR` and `CSS` vectors.                                                                                       |
+| **Decision certainty**        | `Neural_Certainty_CSS`           | Certainty of the decoder evidence for the expected safety state of `CSS`, relative to chance-level ambiguity: `2 × \|P(safety \| CSS) − 0.50\|`  |
+| **Decision certainty**        | `Neural_Certainty_CSR`           | Certainty of the decoder evidence for the expected threat state of `CSR`, relative to chance-level ambiguity: `2 × \|P(threat \| CSR) − 0.50\|`. |
+| **Learning dynamics**         | `Neural_Safety_Trajectory_Slope` | Trial-wise vector translation of CSS toward the target safety reference (CS-) localized to the early extinction phase to mitigate floor effects. |
+| **Learning dynamics**         | `Neural_Threat_Trajectory_Slope` | Trial-wise vector translation of CSR toward the true threat reference (CSR) localized to the early reinstatement phase.                          |
+
 
 ## Clinical Measures
 
@@ -234,7 +235,7 @@ For Aim 4, treat `SCR_Safety_Trajectory_Slope` and `SCR_Threat_Trajectory_Slope`
 **Secondary tests:**
 
 - Geometry
-	- `Neural_Dist_Safe_Background`
+	- `Neural_Dist_Safety_Background`
 	- `Neural_Dist_Threat_Background`
 	- `Neural_Dist_Threat_Safe`.
 - Certainty
