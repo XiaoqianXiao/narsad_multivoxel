@@ -55,7 +55,7 @@ FEAR_DIR="${FEAR_DIR:-/gscratch/fang/NARSAD/MRI/derivatives/fMRI_analysis/LSS/re
 MEMORY_DIR="${MEMORY_DIR:-/gscratch/fang/NARSAD/MRI/derivatives/fMRI_analysis/LSS/results/MemoryFearNetwork}"
 SCHAEFER_DIR="${SCHAEFER_DIR:-/gscratch/fang/NARSAD/MRI/derivatives/fMRI_analysis/LSS/results/wholebrain_parcellation_schaefer}"
 OUT_ROOT="${OUT_ROOT:-/gscratch/fang/NARSAD/MRI/derivatives/fMRI_analysis/LSS/results/mvpa_l2}"
-SCR_DIR="${SCR_DIR:-/gscratch/scrubbed/fanglab/xiaoqian/NARSAD/scr_analysis_outputs}"
+SCR_DIR="${SCR_DIR:-/gscratch/scrubbed/fanglab/xiaoqian/repo/narsad_multivoxel/results/scr_analysis_outputs}"
 
 run_cmd() {
   printf '+ '

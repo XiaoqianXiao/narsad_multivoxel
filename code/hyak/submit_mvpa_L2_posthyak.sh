@@ -96,8 +96,10 @@ if [[ -n "$DEPENDENCY" ]]; then
 fi
 
 bind_args=(-B "${PROJECT_ROOT}:${PROJECT_ROOT}" -B "${REPO_ROOT}:/app" -B "${OUT_BASE}:/output_dir")
-if [[ -n "$SCR_DIR" && "$SCR_DIR" = /* ]]; then
+if [[ -n "$SCR_DIR" && "$SCR_DIR" = /* && -d "$SCR_DIR" ]]; then
   bind_args+=(-B "${SCR_DIR}:${SCR_DIR}")
+elif [[ -n "$SCR_DIR" && "$SCR_DIR" = /* ]]; then
+  echo "WARNING: SCR_DIR does not exist; skipping fallback SCR bind: $SCR_DIR" >&2
 fi
 
 inner_cmd=$(

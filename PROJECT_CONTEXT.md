@@ -1,5 +1,6 @@
 # NARSAD Multivoxel Project Context
 
+Characterize the neural representation of vicarious safety/threat learning in SAD.
 _Last updated: 2026-07-16. Revised to align with decision made during the 1:1 meeting with Angela .
 
 ## Project Purpose
@@ -49,7 +50,7 @@ Decoding is treated as the entry point, not the final scientific claim. Classifi
 
 - **Aims 1-4:** placebo participants only.
 - **Aim 5:** placebo and oxytocin.
-- **Aims 2-4 sensitivity analysis for effect in whole sample:** placebo and oxytocin participants.
+- **Aims 2-4 sensitivity analysis for effect in the whole sample:** placebo and oxytocin participants.
 - **SCR sensitivity cohorts:** used for sensitivity analyses. Because `Group x Drug` subgroups may be small, SCR-defined sensitivity analyses should pool placebo and oxytocin participants within each SCR-defined subgroup rather than restricting to placebo only or splitting by drug, unless an analysis is explicitly designed as an Aim 5 `Group x Drug` sensitivity check.
 
 SCR sensitivity cohort defination:
@@ -57,6 +58,23 @@ SCR sensitivity cohort defination:
 - `SCR_Simple_Acquisition_Differential_Learner`: physiological responder with acquisition `sqrt_scr(CS+) > sqrt_scr(CS-)`.
 - `SCR_Habituation_Adjusted_Learner`: physiological responder with positive `CS+` coefficient from `sqrt_scr ~ CS_type + Trial_Z`.
 - `SCR_Late_Phase_Sensitivity_Learner`: late acquisition `CS+ > CS-` and late differential greater than early differential.
+
+### SCR Transformations And Recoding
+
+SCR analyses use trial-level peak-amplitude scores from `phaBase2Peak`. Trials marked bad are excluded when the source table provides a `bad` indicator. The raw condition labels are recoded so `CS+S` becomes `CSS`, `CS+R` becomes `CSR`, and `CS-` remains `CS-`. `CSS` and `CSR` are also pooled as the `CS+` domain for acquisition fear-learning summaries.
+
+The primary SCR analysis score is a thresholded square-root transform:
+
+```text
+SCR_thresholded = raw SCR if raw SCR >= 0.02 uS, otherwise 0
+sqrt_scr = sqrt(SCR_thresholded)
+```
+
+The `0.02 uS` threshold is used to code very small responses as zero before the square-root transform. Physiological responder status uses the stricter raw-response threshold of `0.05 uS`, requiring at least two acquisition `CS+` trials above threshold.
+
+Trial order is recoded within subject, phase, and condition as `ConditionTrial`. Acquisition, extinction, and reinstatement trials are summarized across `All`, `Early`, and `Late` windows, with early trials defined from the beginning of the condition-specific sequence and late trials from the end of that sequence. For dynamic models, `Trial_Z` is computed by z-scoring phase trial order within each subject and phase.
+
+Subject-level SCR metrics are derived from thresholded square-root SCR. Acquisition learning is summarized as `CS+ - CS-`. Extinction and reinstatement use targeted contrasts including `CSR - CSS`, `CSS - CS-`, `CSR - CS-`, and `(CSR - CS-) - (CSS - CS-)`. For neural-SCR convergence models, SCR indices are z-scored with the same 3 SD outlier rule used for other continuous subject-level association variables.
 
 ## Feature Spaces And Neural Inputs
 
@@ -71,6 +89,17 @@ Analyses use single-trial LSS beta estimates converted into feature matrices, co
 
 - `X_ext`, `y_ext`, `sub_ext`.
 - `X_reinst`, `y_reinst`, `sub_reinst`.
+
+### Single-Trial LSS Estimation
+
+Single-trial neural estimates are generated with a first-level Least Squares Separate (`LSS`) GLM before MVPA. For each subject, task, and `trial_ID`, the event file is recoded into two first-level conditions:
+
+- `trial`: the target event for the current `trial_ID`.
+- `others`: all non-target events in the same run.
+
+This produces a separate trial-level beta/contrast image while modeling the remaining task events together as the `others` condition. The LSS model includes the preprocessed BOLD image, brain mask, event timing, and fMRIPrep confounds. Nuisance regressors include the 6 motion parameters, their first derivatives, up to 2 aCompCor components, cosine drift terms, and spike regressors for high-motion or high-DVARS time points. LSS is run without spatial smoothing by default to preserve trial-specific multivoxel pattern information.
+
+The trial-level LSS outputs are then merged into subject-task 4D images and used to construct downstream MVPA feature matrices and labels for conditions such as `CSR`, `CSS`, `CS-`, `SHOCK`, and `FIXATION`.
 
 Subject-wise centering should be applied within the cross-validation loops to normalize baseline variance across participants before classifier training.
 
@@ -108,7 +137,7 @@ Use a stable primary metric family when comparing group differences, symptom ass
 
 | Domain                        | Primary metric                            | Description                                                                                                                                                         | Operational definition                                                                                                                                                                                                                                                                                                         | Scale and direction                                                                                                                                                                                                                                                             | Primary interpretation                                                                                                                                                                                                                           | Key reporting and inferential considerations                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | ----------------------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Representational geometry** | `Neural_Threat_Safety_Distance`           | Relative differentiation of the reinstated threat representation (`CSR`) and safety representation (`CSS`) with respect to the background safety reference (`CS−`). | For each participant, compute the difference between the distance of `CSR` from `CS−` and the distance of `CSS` from `CS−`:`d(CSR, CS−) − d(CSS, CS−)`                                                                                                                                                                         | Continuous, unbounded difference score in the units of the selected representational-distance measure.**Positive:** `CSR` is farther from `CS−` than `CSS` is.**Zero:** `CSR` and `CSS` are equally distant from `CS−`.**Negative:** `CSS` is farther from `CS−` than `CSR` is. | Larger positive values indicate a representational configuration in which the threat cue is more distinct from the background safety reference than the safety cue is, consistent with stronger threat–safety differentiation relative to `CS−`. | Report the distance metric used, feature normalization, reference-pattern construction, and cross-validation procedure. Because this is a relative difference score, it should be interpreted alongside the component distances `d(CSR, CS−)` and `d(CSS, CS−)` to determine which component drives an observed effect.                                                                                                                                                                   |
+| **Representational geometry** | ``Neural_Threat_Safety_Distance``         | Relative differentiation of the reinstated threat representation (`CSR`) and safety representation (`CSS`) with respect to the background safety reference (`CS−`). | For each participant, compute the difference between the distance of `CSR` from `CS−` and the distance of `CSS` from `CS−`:`d(CSR, CS−) − d(CSS, CS−)`                                                                                                                                                                         | Continuous, unbounded difference score in the units of the selected representational-distance measure.**Positive:** `CSR` is farther from `CS−` than `CSS` is.**Zero:** `CSR` and `CSS` are equally distant from `CS−`.**Negative:** `CSS` is farther from `CS−` than `CSR` is. | Larger positive values indicate a representational configuration in which the threat cue is more distinct from the background safety reference than the safety cue is, consistent with stronger threat–safety differentiation relative to `CS−`. | Report the distance metric used, feature normalization, reference-pattern construction, and cross-validation procedure. Because this is a relative difference score, it should be interpreted alongside the component distances `d(CSR, CS−)` and `d(CSS, CS−)` to determine which component drives an observed effect.                                                                                                                                                                   |
 | **Decision certainty**        | `Prototype_Certainty`                     | Strength of neural evidence supporting the expected safety state for `CSS` and expected threat state for `CSR`, relative to maximal posterior ambiguity.            | Estimate the target-class posterior probabilities:`p_safety_css = P(safety \| CSS)``p_threat_csr = P(threat \| CSR)`Convert each posterior to certainty:`CSS_Certainty = 2 × \|p_safety_css − 0.50\|``CSR_Certainty = 2 × \|p_threat_csr − 0.50\|`Primary aggregate:`Prototype_Certainty = mean(CSS_Certainty, CSR_Certainty)` | Bounded continuous score from **0 to 1**.**0:** posterior probability equals `0.50`, indicating maximal ambiguity.**1:** posterior probability equals `0` or `1`, indicating maximal distance from ambiguity.                                                                   | Higher values indicate stronger, less ambiguous decoder evidence for the represented state. The aggregate score summarizes certainty across the safety and threat conditions.                                                                    | Absolute distance from `0.50` measures certainty but not whether the decoder favors the scientifically expected class. A confidently incorrect posterior can therefore yield high certainty. Report `p_safety_css` and `p_threat_csr`, or signed target-class margins, alongside the aggregate certainty score. Decoder probabilities should be generated from held-out data and assessed for calibration. Condition-specific certainty scores should be retained for secondary analyses. |
 | **Learning dynamics**         | `Neural_DynamicDiscrimination_Volatility` | Temporal instability in neural discrimination between threat and safety representations during extinction learning.                                                 | First calculate trial-wise neural discrimination:`Δ_t = ThreatEvidence(CSR_t) − SafetyEvidence(CSS_t)`Then calculate the root mean square of successive changes across the `T` ordered trials:`sqrt[(1 / (T − 1)) × Σ_(t=2)^T (Δ_t − Δ_(t−1))²]`                                                                               | Nonnegative continuous score in the same evidence units as `Δ_t`.**0:** no change in discrimination across successive trials.**Higher values:** larger trial-to-trial changes in discrimination.                                                                                | Higher values indicate greater temporal instability or volatility in neural threat–safety discrimination. Lower values indicate a more stable discrimination profile over the extinction period.                                                 | Volatility quantifies fluctuation magnitude, not the mean level, direction, or adaptive quality of learning. Report it alongside the mean discrimination level and trial-wise trajectory. Trial ordering, missing-trial handling, minimum trial requirements, and any smoothing or residualization must be prespecified. Because volatility can be sensitive to measurement noise, trial-level evidence should be obtained using cross-validated or otherwise independent estimates.      |
 
@@ -329,8 +358,8 @@ Confirmatory analyses support the main paper claims and should be prioritized fo
 
 - Placebo `CSR` vs `CSS` decoding.
 - Placebo `SAD` vs `HC` tests of prespecified primary neural metrics.
-- Associations of `dass_anxiety` and `lsas_total` with prespecified primary neural metrics.
 - Primary SCR-neural convergence tests.
+- Associations of `dass_anxiety` and `lsas_total` with prespecified primary neural metrics.
 - `Group x Drug` tests of the same primary neural metrics.
 
 ### Secondary Analyses
@@ -348,7 +377,7 @@ Sensitivity analyses evaluate robustness:
 
 - Alternative feature spaces and parcellations, including `MemoryFearNetwork`and whole-brain (`Schaefer`, and `Tian`).
 - SCR-defined responder or learner cohorts.
-- For aim 2 to 4, using whole dataset with including drug as an factor instead of in primary analysis only use placebo dataset.
+- For aim 2 to 4, using the whole dataset with including drug as a factor instead of in primary analysis only use placebo dataset.
 
 ## Evaluation And Inference
 
