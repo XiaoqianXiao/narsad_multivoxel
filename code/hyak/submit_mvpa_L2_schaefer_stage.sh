@@ -39,6 +39,9 @@ STAGE11_CHUNK_IDX="${STAGE11_CHUNK_IDX:-}"
 STAGE11_MASK_MODE="${STAGE11_MASK_MODE:-current}"
 STAGE11_SCORING="${STAGE11_SCORING:-auto}"
 STAGE11_GROUPS=(SAD HC)
+STAGE12_CHUNKS="${STAGE12_CHUNKS:-1}"
+STAGE12_ARRAY_MAX_RUNNING="${STAGE12_ARRAY_MAX_RUNNING:-20}"
+STAGE12_ARRAY_SPEC="${STAGE12_ARRAY_SPEC:-}"
 
 # User-facing stages mirror MemoryFearNetwork/FearNetwork.
 PRE_STAGE11_STAGES=(6)
@@ -107,6 +110,9 @@ Examples:
   STAGE11_CHUNKS=500 submit_mvpa_L2_schaefer_stage.sh 11:SAD
   STAGE11_CHUNKS=500 STAGE11_CHUNK_IDX=80 submit_mvpa_L2_schaefer_stage.sh 11:SAD
   STAGE11_CHUNKS=500 STAGE11_ARRAY_SPEC=309,310,320-359 submit_mvpa_L2_schaefer_stage.sh 11:SAD
+  STAGE12_CHUNKS=4 submit_mvpa_L2_schaefer_stage.sh 12:SAD
+  STAGE12_CHUNKS=4 submit_mvpa_L2_schaefer_stage.sh 12:HC
+  submit_mvpa_L2_schaefer_stage.sh 12:merge
 
 Analysis structure:
   Main prerequisite chain:
@@ -144,6 +150,7 @@ Environment overrides:
   STAGE11_ACTUAL_REPEATS, STAGE11_CHUNKS, STAGE11_ARRAY_MAX_RUNNING
   STAGE11_ARRAY_SPEC for sparse array recovery
   STAGE11_CHUNK_IDX for single-chunk recovery
+  STAGE12_CHUNKS, STAGE12_ARRAY_MAX_RUNNING, STAGE12_ARRAY_SPEC
 
 EOF
 }
@@ -281,6 +288,63 @@ submit_stage() {
     --job-name="mvpa_schaefer_${job_suffix}" \
     --output="$LOG_DIR/mvpa_schaefer_${job_suffix}_%j.out" \
     --error="$LOG_DIR/mvpa_schaefer_${job_suffix}_%j.err" \
+    --wrap="$wrap"
+}
+
+submit_stage12_array() {
+  local group_name="$1"
+  local dependency="${2:-}"
+  local dependency_args=()
+  if [[ -n "$dependency" ]]; then
+    dependency_args=(--dependency="afterok:${dependency}")
+  fi
+
+  local max_task=$((STAGE12_CHUNKS - 1))
+  local array_spec="${STAGE12_ARRAY_SPEC:-0-${max_task}}"
+  if [[ "$array_spec" != *%* ]]; then
+    array_spec="${array_spec}%${STAGE12_ARRAY_MAX_RUNNING}"
+  fi
+  local wrap
+  wrap="$(base_wrap_prefix)$(python_cmd 12 ALL "--resume --stage_split ${group_name} --stage12_chunk_idx "'$SLURM_ARRAY_TASK_ID'" --stage12_chunk_count ${STAGE12_CHUNKS}")"
+
+  sbatch --parsable \
+    "${dependency_args[@]}" \
+    --array="$array_spec" \
+    --partition="$PARTITION" \
+    --account="$ACCOUNT" \
+    --nodes=1 \
+    --ntasks=1 \
+    --cpus-per-task="$CPUS" \
+    --mem="$MEM" \
+    --time="$TIME" \
+    --job-name="mvpa_schaefer_a12_topology_${group_name}" \
+    --output="$LOG_DIR/mvpa_schaefer_a12_topology_${group_name}_%A_%a.out" \
+    --error="$LOG_DIR/mvpa_schaefer_a12_topology_${group_name}_%A_%a.err" \
+    --wrap="$wrap"
+}
+
+submit_stage12_group_merge() {
+  local group_name="$1"
+  local dependency="${2:-}"
+  local dependency_args=()
+  if [[ -n "$dependency" ]]; then
+    dependency_args=(--dependency="afterok:${dependency}")
+  fi
+  local wrap
+  wrap="$(base_wrap_prefix)$(python_cmd 12 ALL "--resume --stage_split ${group_name} --stage12_merge --stage12_chunk_count ${STAGE12_CHUNKS}")"
+
+  sbatch --parsable \
+    "${dependency_args[@]}" \
+    --partition="$PARTITION" \
+    --account="$ACCOUNT" \
+    --nodes=1 \
+    --ntasks=1 \
+    --cpus-per-task="$CPUS" \
+    --mem="$MEM" \
+    --time="$TIME" \
+    --job-name="mvpa_schaefer_a12_topology_${group_name}_merge" \
+    --output="$LOG_DIR/mvpa_schaefer_a12_topology_${group_name}_merge_%j.out" \
+    --error="$LOG_DIR/mvpa_schaefer_a12_topology_${group_name}_merge_%j.err" \
     --wrap="$wrap"
 }
 
@@ -443,8 +507,15 @@ elif [[ "$REQUESTED" == "POST11-PARALLEL" || "$REQUESTED" == "12+PARALLEL" ]]; t
   declare -A post11_jobs=()
 
   for split in SAD HC; do
-    post11_jobs["12:${split}"]="$(submit_stage "12:${split}")"
-    echo "Submitted Schaefer stage 12:${split}: job ${post11_jobs["12:${split}"]}"
+    if [[ "$STAGE12_CHUNKS" -gt 1 ]]; then
+      array_job_id="$(submit_stage12_array "$split")"
+      echo "Submitted Schaefer stage 12:${split} subject array (${STAGE12_CHUNKS} chunks): job ${array_job_id}"
+      post11_jobs["12:${split}"]="$(submit_stage12_group_merge "$split" "$array_job_id")"
+      echo "Submitted Schaefer stage 12:${split} group merge: job ${post11_jobs["12:${split}"]}"
+    else
+      post11_jobs["12:${split}"]="$(submit_stage "12:${split}")"
+      echo "Submitted Schaefer stage 12:${split}: job ${post11_jobs["12:${split}"]}"
+    fi
   done
   stage12_dep="${post11_jobs["12:SAD"]}:${post11_jobs["12:HC"]}"
   post11_jobs[12]="$(submit_stage "12:MERGE" "$stage12_dep")"
@@ -513,6 +584,13 @@ elif [[ "$REQUESTED" =~ ^11[:_-](SAD|HC)[:_-]MERGE$ ]]; then
   group_name="${BASH_REMATCH[1]}"
   merge_job_id="$(submit_stage11_merge "$group_name" "")"
   echo "Submitted Schaefer stage ${requested_stage}:${group_name} merge: job ${merge_job_id}"
+elif [[ "$REQUESTED" =~ ^12[:_-](SAD|HC)$ && "$STAGE12_CHUNKS" -gt 1 ]]; then
+  requested_stage="12"
+  group_name="${BASH_REMATCH[1]}"
+  array_job_id="$(submit_stage12_array "$group_name")"
+  echo "Submitted Schaefer stage ${requested_stage}:${group_name} subject array (${STAGE12_CHUNKS} chunks): job ${array_job_id}"
+  merge_job_id="$(submit_stage12_group_merge "$group_name" "$array_job_id")"
+  echo "Submitted Schaefer stage ${requested_stage}:${group_name} group merge: job ${merge_job_id}"
 else
   if [[ "$REQUESTED" == "11" && "$STAGE11_CHUNKS" -gt 1 ]]; then
     echo "ERROR: Stage 11 is split by group when STAGE11_CHUNKS > 1." >&2

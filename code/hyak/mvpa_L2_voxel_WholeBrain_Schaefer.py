@@ -211,6 +211,31 @@ def parse_runtime_args():
         help="Merge stage 11 permutation-importance chunks instead of computing a chunk.",
     )
     parser.add_argument(
+        "--stage12_chunk_idx",
+        dest="stage12_chunk_idx",
+        type=int,
+        default=(
+            None
+            if os.environ.get("STAGE12_CHUNK_IDX") is None
+            else int(os.environ.get("STAGE12_CHUNK_IDX"))
+        ),
+        help="Zero-based subject chunk index for split Stage 12 SAD/HC jobs.",
+    )
+    parser.add_argument(
+        "--stage12_chunk_count",
+        dest="stage12_chunk_count",
+        type=int,
+        default=int(os.environ.get("STAGE12_CHUNK_COUNT", "1")),
+        help="Total number of subject chunks for split Stage 12 SAD/HC jobs.",
+    )
+    parser.add_argument(
+        "--stage12_merge",
+        dest="stage12_merge",
+        action="store_true",
+        default=os.environ.get("STAGE12_MERGE", "0") == "1",
+        help="Merge Stage 12 subject chunks for one group instead of computing a chunk.",
+    )
+    parser.add_argument(
         "--stage11_mask_mode",
         default=os.environ.get("STAGE11_MASK_MODE", "current"),
         choices=["current", "original_notebook"],
@@ -269,6 +294,9 @@ STAGE11_ACTUAL_REPEATS = _args.stage11_actual_repeats
 STAGE11_CHUNK_IDX = _args.stage11_chunk_idx
 STAGE11_CHUNK_COUNT = _args.stage11_chunk_count
 STAGE11_MERGE = _args.stage11_merge
+STAGE12_CHUNK_IDX = _args.stage12_chunk_idx
+STAGE12_CHUNK_COUNT = _args.stage12_chunk_count
+STAGE12_MERGE = _args.stage12_merge
 STAGE11_MASK_MODE = _args.stage11_mask_mode
 STAGE11_SCORING = resolve_stage11_scoring_label(STAGE11_MASK_MODE, _args.stage11_scoring)
 STAGE11_SCORER_NAME = stage11_scorer_name_from_label(STAGE11_SCORING)
@@ -817,6 +845,19 @@ def calculate_crossnobis_rdm(X, y, subjects, conditions, n_repeats=CROSSNOBIS_RE
         rdms.append(rdm_accum / valid_reps)
         sub_ids.append(sub)
     return np.array(rdms), np.array(sub_ids)
+
+
+def subject_chunk_mask(subjects, chunk_idx, chunk_count):
+    unique_subjects = np.unique(np.asarray(subjects).astype(str))
+    if chunk_count < 1:
+        raise ValueError(f"chunk_count must be >= 1, got {chunk_count}.")
+    if chunk_idx is None:
+        return np.ones(len(subjects), dtype=bool), unique_subjects
+    if chunk_idx < 0 or chunk_idx >= chunk_count:
+        raise ValueError(f"chunk_idx={chunk_idx} must be between 0 and {chunk_count - 1}.")
+    chunks = np.array_split(unique_subjects, chunk_count)
+    selected_subjects = chunks[chunk_idx]
+    return np.isin(np.asarray(subjects).astype(str), selected_subjects), selected_subjects
 
 
 def extract_topology_metrics(rdms, idx_cs_minus=0, idx_css=1, idx_csr=2, include_threat_background=False):
@@ -3403,46 +3444,99 @@ if stage_active(12):
     stage12_split = STAGE_SPLIT
     if stage12_split in ("SAD", "HC"):
         print(f"  Calculating Stage 12 split for {stage12_split}...")
+        if STAGE12_MERGE:
+            print(f"  Merging Stage 12 {stage12_split} chunks: 0..{STAGE12_CHUNK_COUNT - 1}")
+            chunk_payloads = [
+                load_intermediate(f"stage12_split_{stage12_split}_chunk{chunk_idx}")
+                for chunk_idx in range(STAGE12_CHUNK_COUNT)
+            ]
+            rdms_group = np.concatenate([payload["rdms"] for payload in chunk_payloads], axis=0)
+            subs_group = np.concatenate([payload["subs_rdm"] for payload in chunk_payloads], axis=0)
+            geom_group = pd.concat(
+                [payload.get("aim2_geometry_panel", pd.DataFrame()) for payload in chunk_payloads],
+                ignore_index=True,
+            )
+            shock_group = pd.concat(
+                [payload.get("shock_anchor_df", pd.DataFrame()) for payload in chunk_payloads],
+                ignore_index=True,
+            )
+            group_mask = chunk_payloads[0]["mask_analysis"]
+            save_intermediate(f"stage12_split_{stage12_split}", {
+                "group": stage12_split,
+                "rdms": rdms_group,
+                "subs_rdm": subs_group,
+                "aim2_geometry_panel": geom_group,
+                "shock_anchor_df": shock_group,
+                "mask_analysis": group_mask,
+                "feature_space": feature_space_12,
+                "stage12_chunk_count": STAGE12_CHUNK_COUNT,
+            })
+            print(f"Stage 12 split {stage12_split} merge complete ({len(subs_group)} subjects).")
+            raise SystemExit(0)
+
         if stage12_split == "SAD":
-            rdms_group, subs_group = calculate_crossnobis_rdm(X_sad_12, y_sad_12, sub_sad_12, RDM_CONDITIONS)
-            geom_group = build_true_condition_centroid_geometry(
-                X_sad_12, y_sad_12, sub_sad_12, "SAD", RDM_CONDITIONS, feature_space_12
-            )
-            X_shock, y_shock, sub_shock = get_shock_target_data("SAD_Placebo")
-            shock_group = (
-                calculate_residualized_shock_anchor_projection(
-                    X_sad_12, y_sad_12, sub_sad_12, X_shock[:, mask_sad_analysis], y_shock, sub_shock
-                )
-                if X_shock is not None else pd.DataFrame()
-            )
-            if not shock_group.empty:
-                shock_group["Group"] = "SAD"
+            X_group_12, y_group_12, sub_group_12 = X_sad_12, y_sad_12, sub_sad_12
             group_mask = mask_sad_analysis
+            shock_key = "SAD_Placebo"
         else:
-            rdms_group, subs_group = calculate_crossnobis_rdm(X_hc_12, y_hc_12, sub_hc_12, RDM_CONDITIONS)
-            geom_group = build_true_condition_centroid_geometry(
-                X_hc_12, y_hc_12, sub_hc_12, "HC", RDM_CONDITIONS, feature_space_12
-            )
-            X_shock, y_shock, sub_shock = get_shock_target_data("HC_Placebo")
-            shock_group = (
-                calculate_residualized_shock_anchor_projection(
-                    X_hc_12, y_hc_12, sub_hc_12, X_shock[:, mask_hc_analysis], y_shock, sub_shock
-                )
-                if X_shock is not None else pd.DataFrame()
-            )
-            if not shock_group.empty:
-                shock_group["Group"] = "HC"
+            X_group_12, y_group_12, sub_group_12 = X_hc_12, y_hc_12, sub_hc_12
             group_mask = mask_hc_analysis
-        save_intermediate(f"stage12_split_{stage12_split}", {
-            "group": stage12_split,
-            "rdms": rdms_group,
-            "subs_rdm": subs_group,
-            "aim2_geometry_panel": geom_group,
-            "shock_anchor_df": shock_group,
-            "mask_analysis": group_mask,
-            "feature_space": feature_space_12,
-        })
-        print(f"Stage 12 split {stage12_split} complete.")
+            shock_key = "HC_Placebo"
+
+        selected_subjects = np.unique(np.asarray(sub_group_12).astype(str))
+        chunk_suffix = ""
+        if STAGE12_CHUNK_IDX is not None:
+            chunk_mask, selected_subjects = subject_chunk_mask(
+                sub_group_12, STAGE12_CHUNK_IDX, STAGE12_CHUNK_COUNT
+            )
+            X_group_12 = X_group_12[chunk_mask]
+            y_group_12 = y_group_12[chunk_mask]
+            sub_group_12 = sub_group_12[chunk_mask]
+            chunk_suffix = f"_chunk{STAGE12_CHUNK_IDX}"
+            print(
+                f"  Stage 12 {stage12_split} chunk {STAGE12_CHUNK_IDX + 1}/"
+                f"{STAGE12_CHUNK_COUNT}: {len(selected_subjects)} subjects."
+            )
+
+        rdms_group, subs_group = calculate_crossnobis_rdm(
+            X_group_12, y_group_12, sub_group_12, RDM_CONDITIONS
+        )
+        geom_group = build_true_condition_centroid_geometry(
+            X_group_12, y_group_12, sub_group_12, stage12_split, RDM_CONDITIONS, feature_space_12
+        )
+        X_shock, y_shock, sub_shock = get_shock_target_data(shock_key)
+        shock_group = (
+            calculate_residualized_shock_anchor_projection(
+                X_group_12, y_group_12, sub_group_12, X_shock[:, group_mask], y_shock, sub_shock
+            )
+            if X_shock is not None else pd.DataFrame()
+        )
+        if not shock_group.empty:
+            shock_group["Group"] = stage12_split
+        if chunk_suffix:
+            save_intermediate(f"stage12_split_{stage12_split}{chunk_suffix}", {
+                "group": stage12_split,
+                "chunk_idx": STAGE12_CHUNK_IDX,
+                "chunk_count": STAGE12_CHUNK_COUNT,
+                "selected_subjects": selected_subjects,
+                "rdms": rdms_group,
+                "subs_rdm": subs_group,
+                "aim2_geometry_panel": geom_group,
+                "shock_anchor_df": shock_group,
+                "mask_analysis": group_mask,
+                "feature_space": feature_space_12,
+            })
+        else:
+            save_intermediate(f"stage12_split_{stage12_split}", {
+                "group": stage12_split,
+                "rdms": rdms_group,
+                "subs_rdm": subs_group,
+                "aim2_geometry_panel": geom_group,
+                "shock_anchor_df": shock_group,
+                "mask_analysis": group_mask,
+                "feature_space": feature_space_12,
+            })
+        print(f"Stage 12 split {stage12_split}{chunk_suffix} complete.")
         raise SystemExit(0)
 
     if stage12_split == "MERGE":
