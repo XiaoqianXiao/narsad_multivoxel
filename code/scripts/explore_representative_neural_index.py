@@ -124,7 +124,7 @@ def metric_family(metric: str) -> str:
 def metric_interpretation(metric: str) -> str:
     descriptions = {
         "Neural_Safety_Differentiation": "Threat-background minus safety-background distance; positive values indicate threat is more differentiated from CS- than safety is.",
-        "Neural_Threat_Safety_Distance": "Threat-background minus safety-background distance; positive values indicate threat is more differentiated from CS- than safety is.",
+        "Neural_Threat_Safety_Distance": "Normalized threat-background minus safety-background distance; positive values indicate threat is more differentiated from CS- than safety is, scaled by the total CS-anchored distance.",
         "Neural_ThreatTriangleOpenness": "Whether threat is farther from background than safety is; positive values indicate an open threat-safety-background geometry.",
         "Neural_VicariousDiscrimination": "Composite separation of threat from safety/background after accounting for safety-background distance.",
         "Neural_ThreatToBackgroundDistanceRatio": "Ratio of threat-background distance to safety-background distance.",
@@ -251,6 +251,43 @@ def corr_similarity(a: np.ndarray, b: np.ndarray) -> float:
     if not np.isfinite(dist):
         return np.nan
     return 1.0 - dist
+
+
+def euclidean_distance(a: np.ndarray, b: np.ndarray) -> float:
+    """Dimension-normalized Euclidean distance between two centroid vectors."""
+    a = np.asarray(a, dtype=np.float64)
+    b = np.asarray(b, dtype=np.float64)
+    if a.size == 0 or b.size == 0:
+        return np.nan
+    return float(np.linalg.norm(a - b) / math.sqrt(a.size))
+
+
+def safe_ratio(numerator: float, denominator: float) -> float:
+    if not np.isfinite(numerator) or not np.isfinite(denominator) or abs(denominator) < EPS:
+        return np.nan
+    return float(numerator / denominator)
+
+
+def triangle_area_from_sides(a: float, b: float, c: float) -> float:
+    """Heron area for side lengths; returns NaN for invalid/degenerated triples."""
+    if not all(np.isfinite(value) and value > 0 for value in [a, b, c]):
+        return np.nan
+    s = 0.5 * (a + b + c)
+    area_sq = s * (s - a) * (s - b) * (s - c)
+    if area_sq < 0:
+        return np.nan
+    return float(math.sqrt(max(area_sq, 0.0)))
+
+
+def triangle_angle(opposite: float, side_a: float, side_b: float) -> float:
+    """Law-of-cosines angle in degrees."""
+    if not all(np.isfinite(value) and value > 0 for value in [opposite, side_a, side_b]):
+        return np.nan
+    denom = 2.0 * side_a * side_b
+    if denom < EPS:
+        return np.nan
+    cos_value = (side_a**2 + side_b**2 - opposite**2) / denom
+    return float(np.degrees(np.arccos(np.clip(cos_value, -1.0, 1.0))))
 
 
 def softmax_threat_evidence(d_background: float, d_threat: float) -> float:
@@ -457,9 +494,26 @@ def subject_indices(x: np.ndarray, y: np.ndarray) -> Dict[str, float]:
     d_safety_background = corr_distance(centroids["CSS"], centroids["CS-"])
     d_threat_safety = corr_distance(centroids["CSR"], centroids["CSS"])
     d_threat_background = corr_distance(centroids["CSR"], centroids["CS-"])
+    e_safety_background = euclidean_distance(centroids["CSS"], centroids["CS-"])
+    e_threat_safety = euclidean_distance(centroids["CSR"], centroids["CSS"])
+    e_threat_background = euclidean_distance(centroids["CSR"], centroids["CS-"])
     cv_d_safety_background = cv_corr_distance(first, second, "CSS", "CS-")
     cv_d_threat_safety = cv_corr_distance(first, second, "CSR", "CSS")
     cv_d_threat_background = cv_corr_distance(first, second, "CSR", "CS-")
+    corr_triangle_perimeter = d_safety_background + d_threat_safety + d_threat_background
+    corr_triangle_mean_edge = corr_triangle_perimeter / 3.0
+    corr_triangle_area = triangle_area_from_sides(
+        d_safety_background,
+        d_threat_safety,
+        d_threat_background,
+    )
+    euclid_triangle_perimeter = e_safety_background + e_threat_safety + e_threat_background
+    euclid_triangle_mean_edge = euclid_triangle_perimeter / 3.0
+    euclid_triangle_area = triangle_area_from_sides(
+        e_safety_background,
+        e_threat_safety,
+        e_threat_background,
+    )
 
     p_proto_threat_css = softmax_threat_evidence(
         corr_distance(centroids["CSS"], centroids["CS-"]),
@@ -511,12 +565,78 @@ def subject_indices(x: np.ndarray, y: np.ndarray) -> Dict[str, float]:
         "Neural_SafetySpecificity": d_threat_safety - d_safety_background,
         "Neural_ThreatVsBackgroundSpecificity": d_threat_background - d_threat_safety,
         "Neural_VicariousDiscrimination": 0.5 * (d_threat_safety + d_threat_background) - d_safety_background,
+        "Neural_VicariousDiscrimination_Normalized": safe_ratio(
+            0.5 * (d_threat_safety + d_threat_background) - d_safety_background,
+            corr_triangle_mean_edge,
+        ),
         "Neural_CV_VicariousDiscrimination": 0.5 * (cv_d_threat_safety + cv_d_threat_background) - cv_d_safety_background,
         "Neural_ThreatToSafetyDistanceRatio": d_threat_safety / (d_safety_background + EPS),
         "Neural_ThreatToBackgroundDistanceRatio": d_threat_background / (d_safety_background + EPS),
         "Neural_ThreatTriangleOpenness": d_threat_background - d_safety_background,
+        "Neural_ThreatTriangleOpenness_Normalized": safe_ratio(
+            d_threat_background - d_safety_background,
+            d_threat_background + d_safety_background,
+        ),
+        "Neural_ThreatSafetyVsBackgroundMean": safe_ratio(
+            d_threat_safety,
+            0.5 * (d_threat_background + d_safety_background),
+        ),
+        "Neural_CorrTrianglePerimeter": corr_triangle_perimeter,
+        "Neural_CorrTriangleArea": corr_triangle_area,
+        "Neural_CorrTriangleArea_Normalized": safe_ratio(corr_triangle_area, corr_triangle_mean_edge**2),
+        "Neural_CorrTriangleAngle_Background": triangle_angle(
+            d_threat_safety,
+            d_safety_background,
+            d_threat_background,
+        ),
+        "Neural_CorrTriangleAngle_Safety": triangle_angle(
+            d_threat_background,
+            d_safety_background,
+            d_threat_safety,
+        ),
+        "Neural_CorrTriangleAngle_Threat": triangle_angle(
+            d_safety_background,
+            d_threat_background,
+            d_threat_safety,
+        ),
         "Neural_Safety_Differentiation": d_threat_background - d_safety_background,
-        "Neural_Threat_Safety_Distance": d_threat_background - d_safety_background,
+        "Neural_Threat_Safety_Distance": safe_ratio(
+            d_threat_background - d_safety_background,
+            d_threat_background + d_safety_background,
+        ),
+        "Neural_Euclid_Dist_Safety_Background": e_safety_background,
+        "Neural_Euclid_Dist_Threat_Safety": e_threat_safety,
+        "Neural_Euclid_Dist_Threat_Background": e_threat_background,
+        "Neural_Euclid_ThreatTriangleOpenness": e_threat_background - e_safety_background,
+        "Neural_Euclid_ThreatTriangleOpenness_Normalized": safe_ratio(
+            e_threat_background - e_safety_background,
+            e_threat_background + e_safety_background,
+        ),
+        "Neural_Euclid_VicariousDiscrimination": 0.5 * (e_threat_safety + e_threat_background) - e_safety_background,
+        "Neural_Euclid_VicariousDiscrimination_Normalized": safe_ratio(
+            0.5 * (e_threat_safety + e_threat_background) - e_safety_background,
+            euclid_triangle_mean_edge,
+        ),
+        "Neural_Euclid_ThreatToBackgroundDistanceRatio": safe_ratio(e_threat_background, e_safety_background),
+        "Neural_Euclid_ThreatToSafetyDistanceRatio": safe_ratio(e_threat_safety, e_safety_background),
+        "Neural_Euclid_TrianglePerimeter": euclid_triangle_perimeter,
+        "Neural_Euclid_TriangleArea": euclid_triangle_area,
+        "Neural_Euclid_TriangleArea_Normalized": safe_ratio(euclid_triangle_area, euclid_triangle_mean_edge**2),
+        "Neural_Euclid_TriangleAngle_Background": triangle_angle(
+            e_threat_safety,
+            e_safety_background,
+            e_threat_background,
+        ),
+        "Neural_Euclid_TriangleAngle_Safety": triangle_angle(
+            e_threat_background,
+            e_safety_background,
+            e_threat_safety,
+        ),
+        "Neural_Euclid_TriangleAngle_Threat": triangle_angle(
+            e_safety_background,
+            e_threat_background,
+            e_threat_safety,
+        ),
         "Neural_SafetyEvidence": 1.0 - p_threat_css,
         "Neural_ThreatEvidence": p_threat_csr,
         "Neural_BoundarySeparation": p_threat_csr - p_threat_css,

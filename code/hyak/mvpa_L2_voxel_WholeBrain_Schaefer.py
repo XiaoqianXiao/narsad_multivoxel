@@ -1421,12 +1421,18 @@ def representative_core_neural_metrics(X_sub, y_sub):
         dynamic_discrimination = np.asarray(threat_contrast[:n_dynamic], dtype=float) - np.asarray(safety_contrast[:n_dynamic], dtype=float)
     else:
         dynamic_discrimination = np.asarray([], dtype=float)
+    threat_safety_denominator = d_threat_background + d_safety_background
+    neural_threat_safety_distance = (
+        (d_threat_background - d_safety_background) / threat_safety_denominator
+        if np.isfinite(threat_safety_denominator) and abs(threat_safety_denominator) > EPS
+        else np.nan
+    )
 
     metrics = {
         "Neural_Dist_Safety_Background": d_safety_background,
         "Neural_Dist_Threat_Safety": d_threat_safety,
         "Neural_Dist_Threat_Background": d_threat_background,
-        "Neural_Threat_Safety_Distance": d_threat_background - d_safety_background,
+        "Neural_Threat_Safety_Distance": neural_threat_safety_distance,
         "Neural_ThreatTriangleOpenness": d_threat_background - d_safety_background,
         "Neural_PrototypeThreatLike_Safety": p_proto_threat_css,
         "Neural_PrototypeThreatLike_Threat": p_proto_threat_csr,
@@ -5538,11 +5544,14 @@ if stage_active(24):
         "Neural_Dist_Threat_Background": np.concatenate([vC_sad_pv, vC_hc_pv]),
         "Group": ["SAD"] * len(s_id_sad) + ["HC"] * len(s_id_hc),
     })
+    threat_background = pd.to_numeric(df_neural_topology["Neural_Dist_Threat_Background"], errors="coerce")
+    safety_background = pd.to_numeric(df_neural_topology["Neural_Dist_Safety_Background"], errors="coerce")
+    threat_safety_denominator = threat_background + safety_background
+    df_neural_topology["Neural_ThreatTriangleOpenness"] = threat_background - safety_background
     df_neural_topology["Neural_Threat_Safety_Distance"] = (
-        pd.to_numeric(df_neural_topology["Neural_Dist_Threat_Background"], errors="coerce")
-        - pd.to_numeric(df_neural_topology["Neural_Dist_Safety_Background"], errors="coerce")
+        df_neural_topology["Neural_ThreatTriangleOpenness"]
+        / threat_safety_denominator.where(threat_safety_denominator.abs() > EPS)
     )
-    df_neural_topology["Neural_ThreatTriangleOpenness"] = df_neural_topology["Neural_Threat_Safety_Distance"]
 
     trajectory_payload = globals().get("results_13b") or globals().get("results_13_2") or globals().get("results_13")
     if not isinstance(trajectory_payload, dict) or "data_safe" not in trajectory_payload:

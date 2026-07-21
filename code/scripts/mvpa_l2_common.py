@@ -59,7 +59,7 @@ NEURAL_METRIC_FAMILIES = {
 }
 
 NEURAL_METRIC_LABELS = {
-    "Neural_Threat_Safety_Distance": "Threat-safety CS- distance diff",
+    "Neural_Threat_Safety_Distance": "Normalized threat-safety CS- distance diff",
     "Prototype_Certainty": "Prototype certainty",
     "Neural_DynamicDiscrimination_Volatility": "Dynamic discrimination volatility",
 }
@@ -417,7 +417,6 @@ def derive_final_metrics(df: pd.DataFrame) -> pd.DataFrame:
         "Dist_Threat_PV": "Neural_Dist_Threat_Safety",
         "Dist_Threat_Background": "Neural_Dist_Threat_Background",
         "Dist_Threat_Background_PV": "Neural_Dist_Threat_Background",
-        "Neural_Safety_Differentiation": "Neural_Threat_Safety_Distance",
         "P_CSR_CSS": "Neural_ThreatLike_Safety",
         "P_CSR_CSR": "Neural_ThreatLike_Threat",
         "Boundary_Separation": "Neural_Boundary_Separation",
@@ -468,14 +467,22 @@ def derive_final_metrics(df: pd.DataFrame) -> pd.DataFrame:
             )
         else:
             out["Prototype_Certainty"] = prototype_certainty
-    if "Neural_Threat_Safety_Distance" not in out.columns:
-        if "Neural_ThreatTriangleOpenness" in out.columns:
-            out["Neural_Threat_Safety_Distance"] = pd.to_numeric(out["Neural_ThreatTriangleOpenness"], errors="coerce")
-        elif {"Neural_Dist_Threat_Background", "Neural_Dist_Safety_Background"}.issubset(out.columns):
-            out["Neural_Threat_Safety_Distance"] = (
-                pd.to_numeric(out["Neural_Dist_Threat_Background"], errors="coerce")
-                - pd.to_numeric(out["Neural_Dist_Safety_Background"], errors="coerce")
+    if {"Neural_Dist_Threat_Background", "Neural_Dist_Safety_Background"}.issubset(out.columns):
+        threat_bg = pd.to_numeric(out["Neural_Dist_Threat_Background"], errors="coerce")
+        safety_bg = pd.to_numeric(out["Neural_Dist_Safety_Background"], errors="coerce")
+        denom = threat_bg + safety_bg
+        normalized_threat_safety = (threat_bg - safety_bg) / denom.where(denom.abs() > 1e-8)
+        if "Neural_Threat_Safety_Distance" in out.columns:
+            out["Neural_Threat_Safety_Distance"] = normalized_threat_safety.combine_first(
+                pd.to_numeric(out["Neural_Threat_Safety_Distance"], errors="coerce")
             )
+        else:
+            out["Neural_Threat_Safety_Distance"] = normalized_threat_safety
+    elif "Neural_Threat_Safety_Distance" not in out.columns and "Neural_ThreatTriangleOpenness_Normalized" in out.columns:
+        out["Neural_Threat_Safety_Distance"] = pd.to_numeric(
+            out["Neural_ThreatTriangleOpenness_Normalized"],
+            errors="coerce",
+        )
     if "Neural_ThreatLike_Safety" in out.columns:
         out["Neural_Decision_Margin_CSS"] = 0.5 - pd.to_numeric(out["Neural_ThreatLike_Safety"], errors="coerce")
     if "Neural_ThreatLike_Threat" in out.columns:
@@ -505,15 +512,11 @@ def derive_final_metrics(df: pd.DataFrame) -> pd.DataFrame:
             )
         else:
             out["Prototype_Certainty"] = prototype_certainty
-    if "Neural_ThreatTriangleOpenness" in out.columns:
-        triangle = pd.to_numeric(out["Neural_ThreatTriangleOpenness"], errors="coerce")
-        if "Neural_Threat_Safety_Distance" in out.columns:
-            out["Neural_Threat_Safety_Distance"] = pd.to_numeric(
-                out["Neural_Threat_Safety_Distance"],
-                errors="coerce",
-            ).combine_first(triangle)
-        else:
-            out["Neural_Threat_Safety_Distance"] = triangle
+    if {"Neural_Dist_Threat_Background", "Neural_Dist_Safety_Background"}.issubset(out.columns):
+        threat_bg = pd.to_numeric(out["Neural_Dist_Threat_Background"], errors="coerce")
+        safety_bg = pd.to_numeric(out["Neural_Dist_Safety_Background"], errors="coerce")
+        denom = threat_bg + safety_bg
+        out["Neural_Threat_Safety_Distance"] = (threat_bg - safety_bg) / denom.where(denom.abs() > 1e-8)
     return out
 
 

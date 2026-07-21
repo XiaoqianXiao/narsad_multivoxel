@@ -120,18 +120,27 @@ def topology_from_results12(payload) -> Optional[pd.DataFrame]:
         for i, sub in enumerate(subs):
             if i >= arr.shape[0] or arr.shape[1] < 3 or arr.shape[2] < 3:
                 continue
+            d_safety_background = arr[i, 1, 0]
+            d_threat_safety = arr[i, 2, 1]
+            d_threat_background = arr[i, 2, 0]
+            threat_safety_denominator = d_threat_background + d_safety_background
+            threat_safety_distance = (
+                (d_threat_background - d_safety_background) / threat_safety_denominator
+                if np.isfinite(threat_safety_denominator) and abs(threat_safety_denominator) > 1e-8
+                else np.nan
+            )
             records.append(
                 {
                     "sub_ID": normalize_subject_id(sub),
                     "Group": group,
                     "Drug": "Placebo",
-                    "Neural_Dist_Safety_Background": arr[i, 1, 0],
-                    "Neural_Dist_Threat_Safety": arr[i, 2, 1],
-                    "Neural_Dist_Threat_Background": arr[i, 2, 0],
-                    "Neural_ThreatTriangleOpenness": arr[i, 2, 0] - arr[i, 1, 0],
-                    "Neural_Threat_Safety_Distance": arr[i, 2, 0] - arr[i, 1, 0],
-                    "Neural_Topology_Safety_Integration": arr[i, 2, 1] - arr[i, 1, 0],
-                    "Neural_Threat_Bias": arr[i, 2, 0] - arr[i, 1, 0],
+                    "Neural_Dist_Safety_Background": d_safety_background,
+                    "Neural_Dist_Threat_Safety": d_threat_safety,
+                    "Neural_Dist_Threat_Background": d_threat_background,
+                    "Neural_ThreatTriangleOpenness": d_threat_background - d_safety_background,
+                    "Neural_Threat_Safety_Distance": threat_safety_distance,
+                    "Neural_Topology_Safety_Integration": d_threat_safety - d_safety_background,
+                    "Neural_Threat_Bias": d_threat_background - d_safety_background,
                 }
             )
         return records
