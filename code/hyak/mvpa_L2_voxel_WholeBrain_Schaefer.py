@@ -1547,7 +1547,13 @@ def get_ext_data(group_key):
     return d["X"], d["y"], d["sub"]
 
 
-def calc_drift_metrics(X_start_phase, y_start_phase, X_tgt_phase, y_tgt_phase, cond_start, cond_target, mask):
+def calc_drift_metrics(X_start_phase, y_start_phase, X_tgt_phase, y_tgt_phase, cond_start, cond_target, mask, sub_id=None):
+    mask = np.asarray(mask, dtype=bool)
+    if np.sum(mask) == 0:
+        if sub_id is not None:
+            print(f"  ! Skipping drift metrics for {sub_id}: analysis mask has zero selected features.")
+        return None
+
     X_s = X_start_phase[:, mask]
     X_t = X_tgt_phase[:, mask]
     mask_tgt = _condition_mask(y_tgt_phase, cond_target)
@@ -1566,7 +1572,11 @@ def calc_drift_metrics(X_start_phase, y_start_phase, X_tgt_phase, y_tgt_phase, c
     if nA == 0 or nD == 0:
         return None
     dot = np.dot(V_drift, V_axis)
-    return {'Cosine': dot / (nA * nD), 'Projection': dot / nA}
+    cosine = dot / (nA * nD)
+    projection = dot / nA
+    if not np.all(np.isfinite([cosine, projection])):
+        return None
+    return {'Cosine': cosine, 'Projection': projection}
 
 
 def calc_metrics_for_subject(X, y, sub_id, feature_mask, cond_threat, cond_safe):
@@ -2310,12 +2320,51 @@ def prepare_group_drug_plot(frames, name):
 def get_significant_mask(scores): return scores > 0
 
 
+def compare_metric(vec1, vec2, metric_name):
+    print(f"\n--- Metric: {metric_name} ---")
+    if len(vec1) == 0 or len(vec2) == 0:
+        print("  ! Insufficient data.")
+        return 1.0
+
+    print(f"  > SAD Mean: {np.mean(vec1):.3f}")
+    print(f"  > HC Mean:  {np.mean(vec2):.3f}")
+
+    t, p, _, _ = perm_ttest_ind(vec1, vec2, n_perm=N_PERMUTATION)
+    sig = "*" if p < 0.05 else "ns"
+    print(f"  > Comparison: t={t:.3f}, p={p:.4f} ({sig})")
+    return p
+
+
 def run_lme(formula, data, title):
     print(f"\n--- {title} ---")
     # Groups='Subject' handles random intercepts per subject
     # If design is between-subject, this converges to GLM/ANOVA but handles missingness better
-    md = smf.mixedlm(formula, data, groups=data["Subject"]) 
     try:
+        if data is None or data.empty:
+            print("  ! No rows available for model.")
+            return 1.0
+
+        outcome = formula.split("~", 1)[0].strip()
+        required_cols = ["Subject", "Group", "Drug", outcome]
+        missing_cols = [col for col in required_cols if col not in data.columns]
+        if missing_cols:
+            print(f"  ! Model data missing columns: {missing_cols}")
+            return 1.0
+
+        model_data = data[required_cols].replace([np.inf, -np.inf], np.nan).dropna()
+        if model_data.empty:
+            print(f"  ! No finite rows available for {outcome}.")
+            return 1.0
+        if model_data["Subject"].nunique() < 2 or model_data["Group"].nunique() < 2 or model_data["Drug"].nunique() < 2:
+            print(
+                "  ! Insufficient model diversity: "
+                f"n={len(model_data)}, subjects={model_data['Subject'].nunique()}, "
+                f"groups={model_data['Group'].nunique()}, drugs={model_data['Drug'].nunique()}."
+            )
+            return 1.0
+
+        print(f"  > Using {len(model_data)} finite rows from {model_data['Subject'].nunique()} subjects.")
+        md = smf.mixedlm(formula, model_data, groups=model_data["Subject"])
         mdf = md.fit()
         print(mdf.summary())
         
@@ -2356,6 +2405,19 @@ def plot_interaction(ax, df, domain, metric, p_val):
 
 
 def plot_metric(ax, metric, p_val):
+    required_cols = {"Drug", "Group", metric}
+    if (
+        "df_metrics" not in globals()
+        or df_metrics is None
+        or df_metrics.empty
+        or not required_cols.issubset(df_metrics.columns)
+        or pd.to_numeric(df_metrics[metric], errors="coerce").replace([np.inf, -np.inf], np.nan).dropna().empty
+    ):
+        ax.set_title(f"{metric}")
+        ax.text(0.5, 0.5, "No finite metric rows", transform=ax.transAxes, ha="center", va="center")
+        ax.set_axis_off()
+        return
+
     sns.pointplot(data=df_metrics, x='Drug', y=metric, hue='Group', 
                   palette=pal_group, order=['Placebo', 'Oxytocin'], hue_order=['SAD', 'HC'],
                   dodge=0.2, markers=['o', 's'], linestyles=['-', '--'], 
@@ -4526,7 +4588,10 @@ if stage_active(16):
         group, drug = key.split('_')
         
         # Select Native Mask
-        current_mask = mask_sad_analysis if group == "SAD" else mask_hc_analysis
+        current_mask = np.asarray(mask_sad_analysis if group == "SAD" else mask_hc_analysis, dtype=bool)
+        if np.sum(current_mask) == 0:
+            print(f"  ! Skipping {key}: analysis mask has zero selected features.")
+            continue
             
         for sub in subject_list:
             mask_sub = (sub_ext == sub)
@@ -4553,6 +4618,8 @@ if stage_active(16):
             # Metric 2: Threat Discrimination (CSR vs CSS)
             dist_threat = cdist(p_csr, p_css, metric='correlation')[0][0]
             dist_threat_background = cdist(p_csr, p_cs_, metric='correlation')[0][0]
+            if not np.all(np.isfinite([dist_safety, dist_threat, dist_threat_background])):
+                continue
                 
             data_rows.append({
                 "Subject": sub, "Group": group, "Drug": drug, "Condition": key,
@@ -4564,7 +4631,9 @@ if stage_active(16):
     shock_anchor_rows = []
     for key, subject_list in subgroups_21.items():
         group, drug = key.split('_')
-        current_mask = mask_sad_analysis if group == "SAD" else mask_hc_analysis
+        current_mask = np.asarray(mask_sad_analysis if group == "SAD" else mask_hc_analysis, dtype=bool)
+        if np.sum(current_mask) == 0:
+            continue
         X_cs, y_cs, sub_cs = get_ext_data(key)
         X_shock, y_shock, sub_shock = get_shock_target_data(key)
         if X_shock is None:
@@ -4583,7 +4652,15 @@ if stage_active(16):
         shock_anchor_group["Drug"] = drug
         shock_anchor_rows.append(shock_anchor_group)
     
-    df_topo = pd.DataFrame(data_rows)
+    df_topo_columns = [
+        "Subject", "Group", "Drug", "Condition",
+        "Dist_Safety", "Dist_Threat", "Dist_Threat_Background",
+    ]
+    df_topo = pd.DataFrame(data_rows, columns=df_topo_columns)
+    if not df_topo.empty:
+        df_topo = df_topo.replace([np.inf, -np.inf], np.nan).dropna(
+            subset=["Dist_Safety", "Dist_Threat", "Dist_Threat_Background"]
+        )
     df_shock_anchor_all_drug = pd.concat(shock_anchor_rows, ignore_index=True) if shock_anchor_rows else pd.DataFrame()
     print(f"  > Computed metrics for {len(df_topo)} subjects.")
     print(f"  > Computed all-drug residualized shock-anchor metrics for {len(df_shock_anchor_all_drug)} subjects.")
@@ -4608,32 +4685,41 @@ if stage_active(16):
     sns.set_context("poster")
     fig, axes = plt.subplots(1, 2, figsize=(20, 9))
     pal_group = {'SAD': '#c44e52', 'HC': '#4c72b0'}
-    
-    # Plot A: Safety Restoration
-    sns.pointplot(data=df_topo, x='Drug', y='Dist_Safety', hue='Group', 
-                  palette=pal_group, order=['Placebo', 'Oxytocin'], hue_order=['SAD', 'HC'],
-                  dodge=0.2, markers=['o', 's'], capsize=0.1, ax=axes[0])
-    sns.stripplot(data=df_topo, x='Drug', y='Dist_Safety', hue='Group', 
-                  palette=pal_group, order=['Placebo', 'Oxytocin'], hue_order=['SAD', 'HC'],
-                  dodge=True, alpha=0.4, jitter=True, legend=False, ax=axes[0])
-    
-    axes[0].set_title("A. Safety Restoration\n(CSS vs CS-)")
-    axes[0].set_ylabel("Correlation Distance (Lower = Better)")
-    if p_int_safe < 0.05:
-        axes[0].text(0.5, 0.95, f"Interaction: p={p_int_safe:.3f}", transform=axes[0].transAxes, ha='center', fontweight='bold')
-    
-    # Plot B: Threat Discrimination
-    sns.pointplot(data=df_topo, x='Drug', y='Dist_Threat', hue='Group', 
-                  palette=pal_group, order=['Placebo', 'Oxytocin'], hue_order=['SAD', 'HC'],
-                  dodge=0.2, markers=['o', 's'], capsize=0.1, ax=axes[1])
-    sns.stripplot(data=df_topo, x='Drug', y='Dist_Threat', hue='Group', 
-                  palette=pal_group, order=['Placebo', 'Oxytocin'], hue_order=['SAD', 'HC'],
-                  dodge=True, alpha=0.4, jitter=True, legend=False, ax=axes[1])
-    
-    axes[1].set_title("B. Threat Discrimination\n(CSR vs CSS)")
-    axes[1].set_ylabel("Correlation Distance (Higher = Better)")
-    if p_int_threat < 0.05:
-        axes[1].text(0.5, 0.95, f"Interaction: p={p_int_threat:.3f}", transform=axes[1].transAxes, ha='center', fontweight='bold')
+
+    if df_topo.empty:
+        for ax, title in zip(
+            axes,
+            ["A. Safety Restoration\n(CSS vs CS-)", "B. Threat Discrimination\n(CSR vs CSS)"],
+        ):
+            ax.set_title(title)
+            ax.text(0.5, 0.5, "No finite topology rows", transform=ax.transAxes, ha="center", va="center")
+            ax.set_axis_off()
+    else:
+        # Plot A: Safety Restoration
+        sns.pointplot(data=df_topo, x='Drug', y='Dist_Safety', hue='Group',
+                      palette=pal_group, order=['Placebo', 'Oxytocin'], hue_order=['SAD', 'HC'],
+                      dodge=0.2, markers=['o', 's'], capsize=0.1, ax=axes[0])
+        sns.stripplot(data=df_topo, x='Drug', y='Dist_Safety', hue='Group',
+                      palette=pal_group, order=['Placebo', 'Oxytocin'], hue_order=['SAD', 'HC'],
+                      dodge=True, alpha=0.4, jitter=True, legend=False, ax=axes[0])
+
+        axes[0].set_title("A. Safety Restoration\n(CSS vs CS-)")
+        axes[0].set_ylabel("Correlation Distance (Lower = Better)")
+        if p_int_safe < 0.05:
+            axes[0].text(0.5, 0.95, f"Interaction: p={p_int_safe:.3f}", transform=axes[0].transAxes, ha='center', fontweight='bold')
+
+        # Plot B: Threat Discrimination
+        sns.pointplot(data=df_topo, x='Drug', y='Dist_Threat', hue='Group',
+                      palette=pal_group, order=['Placebo', 'Oxytocin'], hue_order=['SAD', 'HC'],
+                      dodge=0.2, markers=['o', 's'], capsize=0.1, ax=axes[1])
+        sns.stripplot(data=df_topo, x='Drug', y='Dist_Threat', hue='Group',
+                      palette=pal_group, order=['Placebo', 'Oxytocin'], hue_order=['SAD', 'HC'],
+                      dodge=True, alpha=0.4, jitter=True, legend=False, ax=axes[1])
+
+        axes[1].set_title("B. Threat Discrimination\n(CSR vs CSS)")
+        axes[1].set_ylabel("Correlation Distance (Higher = Better)")
+        if p_int_threat < 0.05:
+            axes[1].text(0.5, 0.95, f"Interaction: p={p_int_threat:.3f}", transform=axes[1].transAxes, ha='center', fontweight='bold')
     
     plt.tight_layout()
     _save_fig("analysis_14")
@@ -4745,7 +4831,10 @@ if stage_active(18):
     
     for key, subject_list in subgroups_22.items():
         group, drug = key.split('_')
-        curr_mask = mask_sad_core if group == "SAD" else mask_hc_core
+        curr_mask = np.asarray(mask_sad_core if group == "SAD" else mask_hc_core, dtype=bool)
+        if np.sum(curr_mask) == 0:
+            print(f"  ! Skipping {key}: drift analysis mask has zero selected features.")
+            continue
         
         for sub in subject_list:
             m_ext = (sub_ext == sub)
@@ -4765,8 +4854,11 @@ if stage_active(18):
                     if res_threat:
                         data_rows.append({"Subject": sub, "Group": group, "Drug": drug, "Domain": "Threat", **res_threat})
     
-    df_drift = pd.DataFrame(data_rows)
-    print(f"  > Computed vectors for {len(df_drift['Subject'].unique())} subjects.")
+    df_drift = pd.DataFrame(data_rows, columns=["Subject", "Group", "Drug", "Domain", "Cosine", "Projection"])
+    if not df_drift.empty:
+        df_drift = df_drift.replace([np.inf, -np.inf], np.nan).dropna(subset=["Cosine", "Projection"])
+    n_drift_subjects = df_drift["Subject"].nunique() if "Subject" in df_drift.columns else 0
+    print(f"  > Computed vectors for {n_drift_subjects} subjects.")
     
     # =============================================================================
     # 2. Statistics (LME)
@@ -4775,7 +4867,7 @@ if stage_active(18):
     lme_results = {}
     
     for domain in ["Safety", "Threat", SHOCK_TARGET_DOMAIN]:
-        if domain not in df_drift['Domain'].values: continue
+        if df_drift.empty or domain not in df_drift['Domain'].values: continue
         df_sub = df_drift[df_drift["Domain"] == domain].copy()
         form_base = "~ C(Group, Treatment(reference='HC')) * C(Drug, Treatment(reference='Placebo'))"
         
@@ -4849,6 +4941,7 @@ if stage_active(19):
         "P_CSR_CSS", "P_CSR_CSR", "Boundary_Separation",
         "Decision_Margin_CSS", "Decision_Margin_CSR", "Decision_Margin_All"
     ]
+    metric_columns = ["Subject", "Group", "Drug"] + metrics_list
     
     # =============================================================================
     # 0. Setup: Masks & Data
@@ -4902,7 +4995,10 @@ if stage_active(19):
     if stage19_split != "MERGE":
         for key, sub_list in subgroups_23.items():
             group, drug = key.split('_')
-            curr_mask = mask_sad_native if group == "SAD" else mask_hc_native
+            curr_mask = np.asarray(mask_sad_native if group == "SAD" else mask_hc_native, dtype=bool)
+            if np.sum(curr_mask) == 0:
+                print(f"  ! Skipping {key}: probabilistic-opening mask has zero selected features.")
+                continue
 
             for sub in sub_list:
                 mask_s = (sub_ext == sub)
@@ -4916,7 +5012,7 @@ if stage_active(19):
                     data_rows.append(row)
     
     if stage19_split in stage19_split_map:
-        df_metrics_split = pd.DataFrame(data_rows)
+        df_metrics_split = pd.DataFrame(data_rows, columns=metric_columns)
         save_intermediate(f"stage19_split_{stage19_split}", {
             "df_metrics": df_metrics_split,
             "metrics_list": metrics_list,
@@ -4929,10 +5025,14 @@ if stage_active(19):
         split_frames = []
         for split_name in ("SAD_PLACEBO", "SAD_OXYTOCIN", "HC_PLACEBO", "HC_OXYTOCIN"):
             split_payload = load_intermediate(f"stage19_split_{split_name}")
-            split_frames.append(split_payload.get("df_metrics", pd.DataFrame()))
-        df_metrics = pd.concat(split_frames, ignore_index=True)
+            split_frames.append(split_payload.get("df_metrics", pd.DataFrame(columns=metric_columns)))
+        df_metrics = pd.concat(split_frames, ignore_index=True) if split_frames else pd.DataFrame(columns=metric_columns)
     else:
-        df_metrics = pd.DataFrame(data_rows)
+        df_metrics = pd.DataFrame(data_rows, columns=metric_columns)
+    missing_metric_cols = [col for col in metric_columns if col not in df_metrics.columns]
+    for col in missing_metric_cols:
+        df_metrics[col] = np.nan
+    df_metrics = df_metrics[metric_columns].replace([np.inf, -np.inf], np.nan)
     print(f"  > Computed metrics for {len(df_metrics)} subjects.")
     
     # =============================================================================
@@ -4944,9 +5044,23 @@ if stage_active(19):
     for met in metrics_list:
         print(f"\n--- Metric: {met} ---")
         try:
+            model_df = df_metrics[["Subject", "Group", "Drug", met]].dropna()
+            if model_df.empty:
+                print("  ! No finite rows available for this metric.")
+                stats_results[met] = 1.0
+                continue
+            if model_df["Subject"].nunique() < 2 or model_df["Group"].nunique() < 2 or model_df["Drug"].nunique() < 2:
+                print(
+                    "  ! Insufficient model diversity: "
+                    f"n={len(model_df)}, subjects={model_df['Subject'].nunique()}, "
+                    f"groups={model_df['Group'].nunique()}, drugs={model_df['Drug'].nunique()}."
+                )
+                stats_results[met] = 1.0
+                continue
+
             # LME: Metric ~ Group * Drug + (1|Subject)
             md = smf.mixedlm(f"{met} ~ C(Group, Treatment(reference='HC')) * C(Drug, Treatment(reference='Placebo'))", 
-                             df_metrics, groups=df_metrics["Subject"])
+                             model_df, groups=model_df["Subject"])
             mdf = md.fit()
             print(mdf.summary())
             
