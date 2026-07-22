@@ -4,39 +4,20 @@
     "type": "split",
     "children": [
       {
-        "id": "93aff74d2d8e6da3",
+        "id": "03b1475441f60553",
         "type": "tabs",
         "children": [
           {
-            "id": "869b554e8635b7d2",
+            "id": "b81108a91f20bffc",
             "type": "leaf",
             "state": {
-              "type": "markdown",
-              "state": {
-                "file": "task_Visualization-Aim2-primary.md",
-                "mode": "source",
-                "source": false
-              },
+              "type": "empty",
+              "state": {},
               "icon": "lucide-file",
-              "title": "task_Visualization-Aim2-primary"
-            }
-          },
-          {
-            "id": "9d40201ae3979ff5",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "task_Visualization-Aim2-primary.md",
-                "mode": "source",
-                "source": false
-              },
-              "icon": "lucide-file",
-              "title": "task_Visualization-Aim2-primary"
+              "title": "New tab"
             }
           }
-        ],
-        "currentTab": 1
+        ]
       }
     ],
     "direction": "vertical"
@@ -198,52 +179,53 @@
       "bases:Create new base": false
     }
   },
-  "active": "9d40201ae3979ff5",
+  "active": "3d742366a438beb9",
   "lastOpenFiles": [
-    "task_Visualization-Aim2.md",
+    "code/figure_aim2_secondary.png",
+    "code/figure_aim2_secondary.pdf",
+    "code/figure_aim2_secondary.svg",
+    "code/Table_aim2_secondary.xlsx",
+    "code/Table_aim2_secondary.csv",
+    "task_Visualization-Aim2-secondary.md",
+    "task_Visualization-Aim2-secondary_revised.md",
     "PROJECT_CONTEXT.md",
-    "outputs/mvpa_l2/geometric_metric_exploration/geometry_roi_metric_rankings.csv",
-    "outputs/mvpa_l2/geometric_metric_exploration/geometry_metric_rankings.csv",
-    "outputs/mvpa_l2/geometric_metric_exploration/geometry_roi_indices.csv",
-    "outputs/mvpa_l2/geometric_metric_exploration/geometry_subject_indices.csv",
-    "outputs/mvpa_l2/geometric_metric_exploration",
-    "code/figure2_aim2.png",
-    "code/figure2_aim2.pdf",
-    "code/figure2_aim2.svg",
+    "task_Visualization-Aim2-primary.md",
+    "task_Visualization-Aim1-secondary.md",
+    "code/figure2_aim2_panelC_no_means.png",
+    "code/figure2_aim2_panelC_round_means.png",
+    "figure2_aim2.png",
+    "figure2_aim2.pdf",
+    "figure2_aim2.svg",
+    "task_Visualization-Aim2-primary 1.md",
+    "task_Visualization-Aim2.md",
+    "results/representative_neural_index/fear_network_css_sim_to_csminus_plot.pdf",
+    "results/representative_neural_index/fear_network_css_sim_to_csminus_plot.png",
+    "results/representative_neural_index/fear_network_css_sim_to_csminus_summary.csv",
+    "results/representative_neural_index/fear_network_safety_to_threat_axis_plot.pdf",
+    "results/representative_neural_index/fear_network_safety_to_threat_axis_plot.png",
+    "results/representative_neural_index/fear_network_safety_to_threat_axis_effects.csv",
+    "results/representative_neural_index/fear_network_safety_to_threat_axis_summary.csv",
+    "results/representative_neural_index/fear_network_safety_to_threat_axis_trialwise.csv",
+    "results/representative_neural_index/fear_network_two_target_forced_choice_safety_minus_threat_plot.png",
+    "results/representative_neural_index/fear_network_two_target_forced_choice_congruent_plot.png",
+    "results/representative_neural_index/fear_network_css_csr_learning_progress_t_exact_plot_all_trials.png",
+    "results/representative_neural_index/fear_network_neural_profile_report.md",
     "task_Visualization-Aim5-primary.md",
     "task_Visualization-Aim5.md",
     "task_Visualization-Aim4-primary.md",
     "task_Visualization-Aim4.md",
     "task_Visualization-Aim3-primary.md",
-    "task_Visualization-Aim2-primary.md",
-    "code/scripts/__pycache__/analyze_primary_neural_clinical_associations.cpython-310.pyc",
     "results/representative_neural_index/clinical_associations/primary_neural_clinical_associations.md",
-    "results/representative_neural_index/clinical_associations/primary_neural_clinical_master.csv",
-    "results/representative_neural_index/clinical_associations/primary_neural_clinical_associations.csv",
-    "results/representative_neural_index/clinical_associations",
     "Table2_Aim2_primary_statistics.md",
     "Table2_Aim2_trialwise_discrimination_statistics.md",
-    "figure2_aim2.png",
-    "figure2_aim2.svg",
     "task_Visualization-Aim2-primary_revised.md",
     "task_Visualization-Aim1-primary.md",
     "task_Visualization-Aim1-sensitivity.md",
-    "task_Visualization-Aim1-secondary.md",
     "task_Visualization-Aim1.md",
     "code/hyak/scripts/README_mvpa_l2_pipeline.md",
     "task_Visualization-Aim3.md",
     "task_Visualization-Aim5-sensitivity.md",
     "task_Visualization-Aim5-secondary.md",
-    "task_Visualization-Aim4-sensitivity.md",
-    "task_Visualization-Aim4-secondary.md",
-    "task_Visualization-Aim3-secondary.md",
-    "task_Visualization-Aim3-sensitivity.md",
-    "code/FigureS2_Aim2_Sensitivity_RobustnessHeatmap.svg",
-    "code/FigureS2_Aim2_Sensitivity_RobustnessHeatmap.png",
-    "FigureS2_Aim2_Sensitivity_RobustnessHeatmap.svg",
-    "FigureS2_Aim2_Sensitivity_RobustnessHeatmap.png",
-    "task_Visualization-Aim2-sensitivity.md",
-    "outputs/mvpa_l2/stats/figures/figure_aim2.png",
-    "outputs/mvpa_l2/stats/figures/figure_aim2.svg"
+    "task_Visualization-Aim4-sensitivity.md"
   ]
 }
