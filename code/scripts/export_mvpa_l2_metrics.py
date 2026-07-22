@@ -503,6 +503,7 @@ def export_aim2_panel_inputs(subject_df: pd.DataFrame, feature_dirs: Dict[str, P
     if trajectory.empty:
         trajectory = pd.DataFrame(columns=["subject_id", "group", "trial", "trajectory", "trajectory_metric", "value"])
     write_csv(trajectory, stats_dir / "aim2_trajectory_panel.csv")
+    write_csv(trajectory, stats_dir / "aim2_secondary_trajectory_panel.csv")
     print(f"Wrote Aim 2 panel inputs -> {stats_dir / 'aim2_geometry_panel.csv'} and {stats_dir / 'aim2_trajectory_panel.csv'}")
 
 

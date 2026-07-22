@@ -299,6 +299,7 @@ def write_aim2_panel_inputs(input_path: Path, stats_dir: Path) -> None:
     if df.empty:
         write_csv(pd.DataFrame(), stats_dir / "aim2_geometry_panel.csv")
         write_csv(pd.DataFrame(), stats_dir / "aim2_trajectory_panel.csv")
+        write_csv(pd.DataFrame(), stats_dir / "aim2_secondary_trajectory_panel.csv")
         return
 
     geometry = build_aim2_geometry_panel(stats_dir)
@@ -306,6 +307,7 @@ def write_aim2_panel_inputs(input_path: Path, stats_dir: Path) -> None:
 
     trajectory = build_aim2_trajectory_panel(stats_dir)
     write_csv(trajectory, stats_dir / "aim2_trajectory_panel.csv")
+    write_csv(trajectory, stats_dir / "aim2_secondary_trajectory_panel.csv")
 
 
 GEOMETRY_PANEL_COLUMNS = ["subject_id", "group", "condition", "safety_alignment", "threat_alignment", "source"]
@@ -370,11 +372,16 @@ def standardize_aim2_geometry_panel(data: pd.DataFrame, source_name: str) -> pd.
 
 def build_aim2_trajectory_panel(stats_dir: Path) -> pd.DataFrame:
     """Load Figure 2 panel-D input only from the true upstream trajectory export."""
-    path = stats_dir / "aim2_trajectory_panel.csv"
+    candidate_names = ["aim2_trajectory_panel.csv", "aim2_secondary_trajectory_panel.csv"]
     columns = ["subject_id", "group", "trial", "trajectory", "trajectory_metric", "value"]
-    if not path.exists():
-        return pd.DataFrame(columns=columns)
-    data = read_csv_if_exists(path)
+    data = pd.DataFrame()
+    for name in candidate_names:
+        path = stats_dir / name
+        if not path.exists():
+            continue
+        data = read_csv_if_exists(path)
+        if not data.empty:
+            break
     if data.empty:
         return pd.DataFrame(columns=columns)
     if not set(columns).issubset(data.columns):
@@ -389,6 +396,9 @@ def build_aim2_trajectory_panel(stats_dir: Path) -> pd.DataFrame:
     out["trajectory"] = out["trajectory"].astype(str)
     out["trial"] = pd.to_numeric(out["trial"], errors="coerce")
     out["value"] = pd.to_numeric(out["value"], errors="coerce")
+    trajectory_norm = out["trajectory"].str.lower()
+    out.loc[trajectory_norm.str.contains("safety", na=False), "trajectory"] = "safety"
+    out.loc[trajectory_norm.str.contains("threat", na=False), "trajectory"] = "threat"
     out = out[out["group"].isin(["SAD", "HC"])]
     out = out[out["trajectory"].isin(["safety", "threat"])]
     return out.dropna(subset=["trial", "value"])[columns]
