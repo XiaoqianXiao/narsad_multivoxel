@@ -67,7 +67,7 @@ SCR_FLAGS="${SCR_FLAGS:-}"
 SCR_FLAGS_OUT="$OUT_ROOT/harmonized/scr_sensitivity_groups.csv"
 CLINICAL_OUTLIER_Z="${CLINICAL_OUTLIER_Z:-3.0}"
 RUN_AIM1_SCR="${RUN_AIM1_SCR:-1}"
-REUSE_EXISTING_STATS="${REUSE_EXISTING_STATS:-auto}"
+REUSE_EXISTING_STATS="${REUSE_EXISTING_STATS:-0}"
 
 pick_default_scr_dir() {
   local candidates=(
