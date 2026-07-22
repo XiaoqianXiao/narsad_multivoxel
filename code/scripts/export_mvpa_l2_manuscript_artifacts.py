@@ -373,7 +373,8 @@ def standardize_aim2_geometry_panel(data: pd.DataFrame, source_name: str) -> pd.
 def build_aim2_trajectory_panel(stats_dir: Path) -> pd.DataFrame:
     """Load Figure 2 panel-D input only from the true upstream trajectory export."""
     candidate_names = ["aim2_trajectory_panel.csv", "aim2_secondary_trajectory_panel.csv"]
-    columns = ["subject_id", "group", "trial", "trajectory", "trajectory_metric", "value"]
+    columns = ["subject_id", "group", "phase", "trial", "trajectory", "trajectory_metric", "value"]
+    required_columns = ["subject_id", "group", "trial", "trajectory", "trajectory_metric", "value"]
     data = pd.DataFrame()
     for name in candidate_names:
         path = stats_dir / name
@@ -384,13 +385,15 @@ def build_aim2_trajectory_panel(stats_dir: Path) -> pd.DataFrame:
             break
     if data.empty:
         return pd.DataFrame(columns=columns)
-    if not set(columns).issubset(data.columns):
+    if not set(required_columns).issubset(data.columns):
         return pd.DataFrame(columns=columns)
     if not data["trajectory_metric"].astype(str).eq("early_to_target_normalized_projection").all():
         return pd.DataFrame(columns=columns)
     if "drug" in data.columns:
         data = data[data["drug"].astype(str).eq("Placebo")].copy()
-    out = data[columns].copy()
+    out = data[required_columns].copy()
+    if "phase" in data.columns:
+        out["phase"] = data["phase"].astype(str).values
     out["subject_id"] = out["subject_id"].astype(str)
     out["group"] = out["group"].astype(str)
     out["trajectory"] = out["trajectory"].astype(str)
@@ -399,6 +402,12 @@ def build_aim2_trajectory_panel(stats_dir: Path) -> pd.DataFrame:
     trajectory_norm = out["trajectory"].str.lower()
     out.loc[trajectory_norm.str.contains("safety", na=False), "trajectory"] = "safety"
     out.loc[trajectory_norm.str.contains("threat", na=False), "trajectory"] = "threat"
+    if "phase" not in out.columns:
+        out["phase"] = pd.NA
+    phase_missing = out["phase"].isna() | out["phase"].astype(str).str.strip().str.lower().isin(["", "nan", "<na>", "none"])
+    out.loc[out["trajectory"].eq("safety") & phase_missing, "phase"] = "extinction"
+    out.loc[out["trajectory"].eq("threat") & phase_missing, "phase"] = "reinstatement"
+    out["phase"] = out["phase"].fillna("")
     out = out[out["group"].isin(["SAD", "HC"])]
     out = out[out["trajectory"].isin(["safety", "threat"])]
     return out.dropna(subset=["trial", "value"])[columns]

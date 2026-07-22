@@ -281,11 +281,16 @@ def _standardize_trial_alignment(data: pd.DataFrame, trajectory: str, value_col:
         out["drug"] = data[drug_col].astype(str).values
         out = out[out["drug"].eq("Placebo")].copy()
     out["trajectory"] = trajectory
+    out["phase"] = "extinction" if trajectory == "safety" else "reinstatement"
     out["trajectory_metric"] = AIM2_TRAJECTORY_METRIC
     out["trial"] = pd.to_numeric(out["trial"], errors="coerce")
     out["value"] = pd.to_numeric(out["value"], errors="coerce")
     out["group"] = out["group"].astype(str)
-    columns = ["subject_id", "group", "drug", "trial", "trajectory", "trajectory_metric", "value"] if "drug" in out.columns else ["subject_id", "group", "trial", "trajectory", "trajectory_metric", "value"]
+    columns = (
+        ["subject_id", "group", "drug", "phase", "trial", "trajectory", "trajectory_metric", "value"]
+        if "drug" in out.columns
+        else ["subject_id", "group", "phase", "trial", "trajectory", "trajectory_metric", "value"]
+    )
     return out.dropna(subset=["trial", "value"])[columns]
 
 
@@ -501,7 +506,7 @@ def export_aim2_panel_inputs(subject_df: pd.DataFrame, feature_dirs: Dict[str, P
     if feature_space in feature_dirs:
         trajectory = trajectory_panel_from_feature_dir(feature_dirs[feature_space])
     if trajectory.empty:
-        trajectory = pd.DataFrame(columns=["subject_id", "group", "trial", "trajectory", "trajectory_metric", "value"])
+        trajectory = pd.DataFrame(columns=["subject_id", "group", "phase", "trial", "trajectory", "trajectory_metric", "value"])
     write_csv(trajectory, stats_dir / "aim2_trajectory_panel.csv")
     write_csv(trajectory, stats_dir / "aim2_secondary_trajectory_panel.csv")
     print(f"Wrote Aim 2 panel inputs -> {stats_dir / 'aim2_geometry_panel.csv'} and {stats_dir / 'aim2_trajectory_panel.csv'}")

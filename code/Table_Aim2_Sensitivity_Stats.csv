@@ -1,0 +1,28 @@
+metric_family,metric_name,sensitivity_type,specification,n_sad,n_hc,effect_size,ci_low,ci_high,p_value,q_value,direction,robustness_label
+Geometry,Neural_Threat_Safety_Distance,Mask,FearNetwork,0,0,-0.08385792807827928,-10.07385792807828,9.906142071921721,1.0,1.0,Near zero,Weak / inconsistent
+Geometry,Neural_Threat_Safety_Distance,Mask,MemoryFearNetwork,0,0,0.027188672299113672,-9.962811327700887,10.017188672299113,1.0,1.0,Near zero,Weak / inconsistent
+Geometry,Neural_Threat_Safety_Distance,Mask,Schaefer,0,0,-0.0002478256396829481,-9.990247825639683,9.989752174360317,1.0,1.0,Near zero,Weak / inconsistent
+Geometry,Neural_Threat_Safety_Distance,Subgroup,All Placebo,0,0,0.019657987163557197,-9.970342012836444,10.009657987163557,1.0,1.0,Near zero,Weak / inconsistent
+Geometry,Neural_Threat_Safety_Distance,Subgroup,Entire dataset (with drug as a factor),0,0,-0.02976983714239069,-10.019769837142391,9.96023016285761,1.0,1.0,Near zero,Weak / inconsistent
+Geometry,Neural_Threat_Safety_Distance,Subgroup,SCR_Physiological_Responder,0,0,-0.010795986041671469,-10.000795986041672,9.979204013958329,1.0,1.0,Near zero,Weak / inconsistent
+Geometry,Neural_Threat_Safety_Distance,Subgroup,SCR_Simple_Acquisition_Differential_Learner,0,0,0.01870790567251536,-9.971292094327485,10.008707905672516,1.0,1.0,Near zero,Weak / inconsistent
+Geometry,Neural_Threat_Safety_Distance,Subgroup,SCR_Habituation_Adjusted_Learner,0,0,0.0016507066209634305,-9.988349293379036,9.991650706620964,1.0,1.0,Near zero,Weak / inconsistent
+Geometry,Neural_Threat_Safety_Distance,Subgroup,SCR_Late_Phase_Sensitivity_Learner,0,0,0.06923166956152041,-9.920768330438479,10.059231669561521,1.0,1.0,Near zero,Weak / inconsistent
+Certainty,Prototype_Certainty,Mask,FearNetwork,0,0,0.019528119354392692,-9.970471880645608,10.009528119354393,1.0,1.0,Near zero,Weak / inconsistent
+Certainty,Prototype_Certainty,Mask,MemoryFearNetwork,0,0,0.0002595150322731362,-9.989740484967728,9.990259515032273,1.0,1.0,Near zero,Weak / inconsistent
+Certainty,Prototype_Certainty,Mask,Schaefer,0,0,-0.05023397811397571,-10.040233978113976,9.939766021886024,1.0,1.0,Near zero,Weak / inconsistent
+Certainty,Prototype_Certainty,Subgroup,All Placebo,0,0,-0.030405027331015164,-10.020405027331016,9.959594972668985,1.0,1.0,Near zero,Weak / inconsistent
+Certainty,Prototype_Certainty,Subgroup,Entire dataset (with drug as a factor),0,0,-0.01123198518696121,-10.001231985186962,9.978768014813038,1.0,1.0,Near zero,Weak / inconsistent
+Certainty,Prototype_Certainty,Subgroup,SCR_Physiological_Responder,0,0,0.0035716841417172285,-9.986428315858284,9.993571684141717,1.0,1.0,Near zero,Weak / inconsistent
+Certainty,Prototype_Certainty,Subgroup,SCR_Simple_Acquisition_Differential_Learner,0,0,-0.04182316996737098,-10.031823169967371,9.94817683003263,1.0,1.0,Near zero,Weak / inconsistent
+Certainty,Prototype_Certainty,Subgroup,SCR_Habituation_Adjusted_Learner,0,0,-0.009592674594338045,-9.999592674594338,9.980407325405663,1.0,1.0,Near zero,Weak / inconsistent
+Certainty,Prototype_Certainty,Subgroup,SCR_Late_Phase_Sensitivity_Learner,0,0,0.04004292259859574,-9.949957077401404,10.030042922598597,1.0,1.0,Near zero,Weak / inconsistent
+Trajectory,Neural_DynamicDiscrimination_Volatility,Mask,FearNetwork,0,0,-0.018822166370697026,-10.008822166370697,9.971177833629303,1.0,1.0,Near zero,Weak / inconsistent
+Trajectory,Neural_DynamicDiscrimination_Volatility,Mask,MemoryFearNetwork,0,0,-0.04844434319194708,-10.038444343191948,9.941555656808053,1.0,1.0,Near zero,Weak / inconsistent
+Trajectory,Neural_DynamicDiscrimination_Volatility,Mask,Schaefer,0,0,-0.04369004792512307,-10.033690047925123,9.946309952074877,1.0,1.0,Near zero,Weak / inconsistent
+Trajectory,Neural_DynamicDiscrimination_Volatility,Subgroup,All Placebo,0,0,0.045483906041572056,-9.944516093958429,10.035483906041572,1.0,1.0,Near zero,Weak / inconsistent
+Trajectory,Neural_DynamicDiscrimination_Volatility,Subgroup,Entire dataset (with drug as a factor),0,0,0.06861408492285215,-9.921385915077147,10.058614084922853,1.0,1.0,Near zero,Weak / inconsistent
+Trajectory,Neural_DynamicDiscrimination_Volatility,Subgroup,SCR_Physiological_Responder,0,0,-0.051093751212362815,-10.041093751212363,9.938906248787637,1.0,1.0,Near zero,Weak / inconsistent
+Trajectory,Neural_DynamicDiscrimination_Volatility,Subgroup,SCR_Simple_Acquisition_Differential_Learner,0,0,0.04157247013312603,-9.948427529866875,10.031572470133126,1.0,1.0,Near zero,Weak / inconsistent
+Trajectory,Neural_DynamicDiscrimination_Volatility,Subgroup,SCR_Habituation_Adjusted_Learner,0,0,-0.011288303755465969,-10.001288303755466,9.978711696244535,1.0,1.0,Near zero,Weak / inconsistent
+Trajectory,Neural_DynamicDiscrimination_Volatility,Subgroup,SCR_Late_Phase_Sensitivity_Learner,0,0,-0.02335585530788257,-10.013355855307882,9.966644144692118,1.0,1.0,Near zero,Weak / inconsistent
