@@ -215,6 +215,16 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         default=Path("results/representative_neural_index"),
     )
+    parser.add_argument(
+        "--use-heldout-decoder",
+        action="store_true",
+        help="Use leave-one-trial-out CSS/CSR logistic evidence. Slower; default uses prototype-distance evidence.",
+    )
+    parser.add_argument(
+        "--skip-roi",
+        action="store_true",
+        help="Skip ROI-wise FearNetwork localization for a faster whole-feature-space exploration.",
+    )
     return parser.parse_args()
 
 
@@ -486,7 +496,7 @@ def axis_projection_metrics(vec: np.ndarray, origin: np.ndarray, axis_unit: np.n
     return projection, cosine
 
 
-def subject_indices(x: np.ndarray, y: np.ndarray) -> Dict[str, float]:
+def subject_indices(x: np.ndarray, y: np.ndarray, use_heldout_decoder: bool = False) -> Dict[str, float]:
     xz = zscore_subject_trials(x)
     centroids = {label: xz[y == label].mean(axis=0) for label in CS_LABELS}
     first, second = split_half_centroids(xz, y)
@@ -523,10 +533,10 @@ def subject_indices(x: np.ndarray, y: np.ndarray) -> Dict[str, float]:
         corr_distance(centroids["CSR"], centroids["CS-"]),
         corr_distance(centroids["CSR"], centroids["CSR"]),
     )
-    decoder_evidence = heldout_decoder_evidence(xz, y)
-    p_threat_css = decoder_evidence.get("p_threat_css", np.nan)
-    p_safety_css = decoder_evidence.get("p_safety_css", np.nan)
-    p_threat_csr = decoder_evidence.get("p_threat_csr", np.nan)
+    decoder_evidence = heldout_decoder_evidence(xz, y) if use_heldout_decoder else {}
+    p_threat_css = decoder_evidence.get("p_threat_css", p_proto_threat_css)
+    p_safety_css = decoder_evidence.get("p_safety_css", 1.0 - p_proto_threat_css)
+    p_threat_csr = decoder_evidence.get("p_threat_csr", p_proto_threat_csr)
     prototype_margins = [p_safety_css - 0.5, p_threat_csr - 0.5]
     prototype_certainty = [abs(value) * 2.0 for value in prototype_margins if np.isfinite(value)]
 
@@ -538,7 +548,7 @@ def subject_indices(x: np.ndarray, y: np.ndarray) -> Dict[str, float]:
             sim_threat = corr_similarity(trial, centroids["CSR"])
             holder.append(sim_bg - sim_threat if label == "CSS" else sim_threat - sim_bg)
     prototype_dynamic_discrimination = np.asarray(threat_contrast, dtype=float) - np.asarray(safety_contrast, dtype=float)
-    dynamic_discrimination = decoder_evidence.get("dynamic_discrimination", np.asarray([], dtype=float))
+    dynamic_discrimination = decoder_evidence.get("dynamic_discrimination", prototype_dynamic_discrimination)
     trialwise_margins = np.r_[
         np.asarray(safety_contrast, dtype=float),
         np.asarray(threat_contrast, dtype=float),
@@ -781,7 +791,7 @@ def subject_indices(x: np.ndarray, y: np.ndarray) -> Dict[str, float]:
     return metrics
 
 
-def load_npz_table(path: Path, feature_space: str) -> pd.DataFrame:
+def load_npz_table(path: Path, feature_space: str, use_heldout_decoder: bool = False) -> pd.DataFrame:
     payload = np.load(path, allow_pickle=True)
     if "X_ext" in payload.files:
         x = payload["X_ext"]
@@ -806,12 +816,12 @@ def load_npz_table(path: Path, feature_space: str) -> pd.DataFrame:
             "n_trials": int(mask.sum()),
             "n_features": int(x.shape[1]),
         }
-        row.update(subject_indices(x[mask], y_sub))
+        row.update(subject_indices(x[mask], y_sub, use_heldout_decoder=use_heldout_decoder))
         rows.append(row)
     return pd.DataFrame(rows)
 
 
-def load_roi_metric_table(path: Path, feature_space: str) -> pd.DataFrame:
+def load_roi_metric_table(path: Path, feature_space: str, use_heldout_decoder: bool = False) -> pd.DataFrame:
     payload = np.load(path, allow_pickle=True)
     if "roi_names" not in payload.files or "roi_voxel_counts" not in payload.files:
         return pd.DataFrame()
@@ -845,7 +855,7 @@ def load_roi_metric_table(path: Path, feature_space: str) -> pd.DataFrame:
                 "n_trials": int(mask.sum()),
                 "n_features": int(stop - start),
             }
-            row.update(subject_indices(x_roi[mask], y_sub))
+            row.update(subject_indices(x_roi[mask], y_sub, use_heldout_decoder=use_heldout_decoder))
             rows.append(row)
     return pd.DataFrame(rows)
 
@@ -1090,10 +1100,10 @@ def main() -> None:
         path = args.input_dir / filename
         if path.exists():
             print(f"Deriving indices: {filename}")
-            tables.append(load_npz_table(path, feature_space))
-            if feature_space in {"phase2_ext_roi", "phase3_reinst_roi"}:
+            tables.append(load_npz_table(path, feature_space, use_heldout_decoder=args.use_heldout_decoder))
+            if feature_space in {"phase2_ext_roi", "phase3_reinst_roi"} and not args.skip_roi:
                 print(f"Deriving ROI-wise FearNetwork indices: {filename}")
-                roi_tables.append(load_roi_metric_table(path, feature_space))
+                roi_tables.append(load_roi_metric_table(path, feature_space, use_heldout_decoder=args.use_heldout_decoder))
         else:
             print(f"Missing input, skipping: {path}")
 

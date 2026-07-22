@@ -31,12 +31,8 @@ COMPANION_NEURAL_METRICS = [
     "Neural_Dist_Threat_Background",
     "Neural_Certainty_CSS",
     "Neural_Certainty_CSR",
-    "Neural_Decoder_Entropy_CSS",
-    "Neural_Decoder_Entropy_CSR",
     "Neural_Safety_Trajectory_Slope",
     "Neural_Threat_Trajectory_Slope",
-    "Shock_Anchor_Trajectory_Slope",
-    "Residualized_Shock_Anchor_Trajectory_Slope",
 ]
 
 PRESPECIFIED_NEURAL_METRICS = CORE_NEURAL_METRICS + COMPANION_NEURAL_METRICS
@@ -50,12 +46,8 @@ NEURAL_METRIC_FAMILIES = {
     "Neural_Dist_Threat_Safety": "Geometry",
     "Neural_Certainty_CSS": "Certainty",
     "Neural_Certainty_CSR": "Certainty",
-    "Neural_Decoder_Entropy_CSS": "Certainty",
-    "Neural_Decoder_Entropy_CSR": "Certainty",
     "Neural_Safety_Trajectory_Slope": "Trajectory",
     "Neural_Threat_Trajectory_Slope": "Trajectory",
-    "Shock_Anchor_Trajectory_Slope": "Trajectory",
-    "Residualized_Shock_Anchor_Trajectory_Slope": "Trajectory",
 }
 
 NEURAL_METRIC_LABELS = {

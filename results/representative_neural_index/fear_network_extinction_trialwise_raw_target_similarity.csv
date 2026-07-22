@@ -1,0 +1,1601 @@
+sub_ID,cue,trial,metric,similarity,target,Group,Drug,drug_condition,Gender,gender_code,demo_age,guess
+N101,CSS,1,CSS_CSminus_TargetSimilarity,-0.1912878945443672,CS- extinction prototype,SAD,Placebo,0,Female,0,21,0.0
+N101,CSS,2,CSS_CSminus_TargetSimilarity,-0.06965156786247484,CS- extinction prototype,SAD,Placebo,0,Female,0,21,0.0
+N101,CSS,3,CSS_CSminus_TargetSimilarity,-0.024476628024554525,CS- extinction prototype,SAD,Placebo,0,Female,0,21,0.0
+N101,CSS,4,CSS_CSminus_TargetSimilarity,-0.2139361455301414,CS- extinction prototype,SAD,Placebo,0,Female,0,21,0.0
+N101,CSS,5,CSS_CSminus_TargetSimilarity,-0.13438773807558305,CS- extinction prototype,SAD,Placebo,0,Female,0,21,0.0
+N101,CSS,6,CSS_CSminus_TargetSimilarity,-0.25270461890796136,CS- extinction prototype,SAD,Placebo,0,Female,0,21,0.0
+N101,CSS,7,CSS_CSminus_TargetSimilarity,-0.2648032207570242,CS- extinction prototype,SAD,Placebo,0,Female,0,21,0.0
+N101,CSS,8,CSS_CSminus_TargetSimilarity,0.0025470152269898546,CS- extinction prototype,SAD,Placebo,0,Female,0,21,0.0
+N101,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,-0.094942799837454,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,21,0.0
+N101,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,-0.036984365542342926,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,21,0.0
+N101,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,0.038237478993509016,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,21,0.0
+N101,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,-0.06822994597263077,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,21,0.0
+N101,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.03881797862018659,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,21,0.0
+N101,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,0.16166351978011526,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,21,0.0
+N101,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,0.36011986245537153,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,21,0.0
+N101,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.22420889432430047,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,21,0.0
+N103,CSS,1,CSS_CSminus_TargetSimilarity,-0.21519304083589472,CS- extinction prototype,SAD,Oxytocin,1,Female,0,23,0.0
+N103,CSS,2,CSS_CSminus_TargetSimilarity,0.028633167333550917,CS- extinction prototype,SAD,Oxytocin,1,Female,0,23,0.0
+N103,CSS,3,CSS_CSminus_TargetSimilarity,-0.20617193141327814,CS- extinction prototype,SAD,Oxytocin,1,Female,0,23,0.0
+N103,CSS,4,CSS_CSminus_TargetSimilarity,-0.08392919585381903,CS- extinction prototype,SAD,Oxytocin,1,Female,0,23,0.0
+N103,CSS,5,CSS_CSminus_TargetSimilarity,-0.02484275084725582,CS- extinction prototype,SAD,Oxytocin,1,Female,0,23,0.0
+N103,CSS,6,CSS_CSminus_TargetSimilarity,-0.24489205783587362,CS- extinction prototype,SAD,Oxytocin,1,Female,0,23,0.0
+N103,CSS,7,CSS_CSminus_TargetSimilarity,-0.13710546356691528,CS- extinction prototype,SAD,Oxytocin,1,Female,0,23,0.0
+N103,CSS,8,CSS_CSminus_TargetSimilarity,-0.06527979491994713,CS- extinction prototype,SAD,Oxytocin,1,Female,0,23,0.0
+N103,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,0.01572999383403163,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,23,0.0
+N103,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,0.18640380967785422,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,23,0.0
+N103,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,-0.19949328060858595,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,23,0.0
+N103,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,0.1592219449842832,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,23,0.0
+N103,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.008207088195172971,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,23,0.0
+N103,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,-0.08321688622282514,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,23,0.0
+N103,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,0.0070653058963551655,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,23,0.0
+N103,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,0.03744395931283503,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,23,0.0
+N104,CSS,1,CSS_CSminus_TargetSimilarity,0.023099202086690043,CS- extinction prototype,SAD,Oxytocin,1,Male,1,33,0.0
+N104,CSS,2,CSS_CSminus_TargetSimilarity,0.026400741642033602,CS- extinction prototype,SAD,Oxytocin,1,Male,1,33,0.0
+N104,CSS,3,CSS_CSminus_TargetSimilarity,-0.30919851044383745,CS- extinction prototype,SAD,Oxytocin,1,Male,1,33,0.0
+N104,CSS,4,CSS_CSminus_TargetSimilarity,-0.22862516210461084,CS- extinction prototype,SAD,Oxytocin,1,Male,1,33,0.0
+N104,CSS,5,CSS_CSminus_TargetSimilarity,-0.17915235271683913,CS- extinction prototype,SAD,Oxytocin,1,Male,1,33,0.0
+N104,CSS,6,CSS_CSminus_TargetSimilarity,-0.1761024397720022,CS- extinction prototype,SAD,Oxytocin,1,Male,1,33,0.0
+N104,CSS,7,CSS_CSminus_TargetSimilarity,-0.2748268677120687,CS- extinction prototype,SAD,Oxytocin,1,Male,1,33,0.0
+N104,CSS,8,CSS_CSminus_TargetSimilarity,-0.27392928923389315,CS- extinction prototype,SAD,Oxytocin,1,Male,1,33,0.0
+N104,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,-0.0008415933591875035,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,33,0.0
+N104,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,0.0380380379626352,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,33,0.0
+N104,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,0.052627326901802246,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,33,0.0
+N104,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,-0.06251688483871125,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,33,0.0
+N104,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.04990923164996094,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,33,0.0
+N104,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,-0.0955512210079589,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,33,0.0
+N104,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,0.10397863317980478,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,33,0.0
+N104,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.06225632097522687,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,33,0.0
+N105,CSS,1,CSS_CSminus_TargetSimilarity,-0.14853837587839855,CS- extinction prototype,SAD,Oxytocin,1,Female,0,21,0.0
+N105,CSS,2,CSS_CSminus_TargetSimilarity,-0.13164101606698705,CS- extinction prototype,SAD,Oxytocin,1,Female,0,21,0.0
+N105,CSS,3,CSS_CSminus_TargetSimilarity,-0.3049054791376437,CS- extinction prototype,SAD,Oxytocin,1,Female,0,21,0.0
+N105,CSS,4,CSS_CSminus_TargetSimilarity,-0.11625402147883065,CS- extinction prototype,SAD,Oxytocin,1,Female,0,21,0.0
+N105,CSS,5,CSS_CSminus_TargetSimilarity,-0.18005954852529701,CS- extinction prototype,SAD,Oxytocin,1,Female,0,21,0.0
+N105,CSS,6,CSS_CSminus_TargetSimilarity,-0.1604525624414056,CS- extinction prototype,SAD,Oxytocin,1,Female,0,21,0.0
+N105,CSS,7,CSS_CSminus_TargetSimilarity,-0.18759082609451125,CS- extinction prototype,SAD,Oxytocin,1,Female,0,21,0.0
+N105,CSS,8,CSS_CSminus_TargetSimilarity,-0.35732563370017995,CS- extinction prototype,SAD,Oxytocin,1,Female,0,21,0.0
+N105,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,-0.00013343225406977269,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,21,0.0
+N105,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,-0.009424185786299196,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,21,0.0
+N105,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,-0.00012059641270131382,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,21,0.0
+N105,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,-0.0006601708831400224,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,21,0.0
+N105,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.006547372970329437,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,21,0.0
+N105,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,0.00791853747840841,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,21,0.0
+N105,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,0.001744390257901817,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,21,0.0
+N105,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,0.0032374126796815422,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,21,0.0
+N106,CSS,1,CSS_CSminus_TargetSimilarity,0.025153439533643587,CS- extinction prototype,SAD,Oxytocin,1,Female,0,22,0.0
+N106,CSS,2,CSS_CSminus_TargetSimilarity,-0.20075969724247764,CS- extinction prototype,SAD,Oxytocin,1,Female,0,22,0.0
+N106,CSS,3,CSS_CSminus_TargetSimilarity,-0.26143789360965386,CS- extinction prototype,SAD,Oxytocin,1,Female,0,22,0.0
+N106,CSS,4,CSS_CSminus_TargetSimilarity,-0.1031997055411492,CS- extinction prototype,SAD,Oxytocin,1,Female,0,22,0.0
+N106,CSS,5,CSS_CSminus_TargetSimilarity,-0.3890982545886829,CS- extinction prototype,SAD,Oxytocin,1,Female,0,22,0.0
+N106,CSS,6,CSS_CSminus_TargetSimilarity,-0.14978066785942803,CS- extinction prototype,SAD,Oxytocin,1,Female,0,22,0.0
+N106,CSS,7,CSS_CSminus_TargetSimilarity,0.11715326325633967,CS- extinction prototype,SAD,Oxytocin,1,Female,0,22,0.0
+N106,CSS,8,CSS_CSminus_TargetSimilarity,-0.11914666886151076,CS- extinction prototype,SAD,Oxytocin,1,Female,0,22,0.0
+N106,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,-0.056474150724924475,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,22,0.0
+N106,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,0.0361629183450393,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,22,0.0
+N106,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,-0.014079504305730486,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,22,0.0
+N106,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,0.016697932664562536,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,22,0.0
+N106,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.03385111866174048,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,22,0.0
+N106,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,-0.031435882098478876,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,22,0.0
+N106,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,-0.037122735601714675,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,22,0.0
+N106,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.10450968049800487,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,22,0.0
+N108,CSS,1,CSS_CSminus_TargetSimilarity,-0.21788225390818772,CS- extinction prototype,SAD,Oxytocin,1,Male,1,22,1.0
+N108,CSS,2,CSS_CSminus_TargetSimilarity,0.04265688244659346,CS- extinction prototype,SAD,Oxytocin,1,Male,1,22,1.0
+N108,CSS,3,CSS_CSminus_TargetSimilarity,-0.36449548499379525,CS- extinction prototype,SAD,Oxytocin,1,Male,1,22,1.0
+N108,CSS,4,CSS_CSminus_TargetSimilarity,0.06900190925494212,CS- extinction prototype,SAD,Oxytocin,1,Male,1,22,1.0
+N108,CSS,5,CSS_CSminus_TargetSimilarity,-0.0067354371460911005,CS- extinction prototype,SAD,Oxytocin,1,Male,1,22,1.0
+N108,CSS,6,CSS_CSminus_TargetSimilarity,-0.13133665242321416,CS- extinction prototype,SAD,Oxytocin,1,Male,1,22,1.0
+N108,CSS,7,CSS_CSminus_TargetSimilarity,-0.39328897088506515,CS- extinction prototype,SAD,Oxytocin,1,Male,1,22,1.0
+N108,CSS,8,CSS_CSminus_TargetSimilarity,-0.14473345195332424,CS- extinction prototype,SAD,Oxytocin,1,Male,1,22,1.0
+N108,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,0.0851479942368213,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,22,1.0
+N108,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,-0.008480647174946319,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,22,1.0
+N108,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,0.03751580534761269,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,22,1.0
+N108,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,0.05437090761197824,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,22,1.0
+N108,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.003747502098805365,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,22,1.0
+N108,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,0.01346098969463056,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,22,1.0
+N108,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,-0.007108518824257117,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,22,1.0
+N108,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.053019781446093595,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,22,1.0
+N109,CSS,1,CSS_CSminus_TargetSimilarity,-0.2741754532371138,CS- extinction prototype,SAD,Oxytocin,1,Female,0,33,1.0
+N109,CSS,2,CSS_CSminus_TargetSimilarity,-0.1803420049592764,CS- extinction prototype,SAD,Oxytocin,1,Female,0,33,1.0
+N109,CSS,3,CSS_CSminus_TargetSimilarity,-0.38574308883898756,CS- extinction prototype,SAD,Oxytocin,1,Female,0,33,1.0
+N109,CSS,4,CSS_CSminus_TargetSimilarity,-0.18349523138964732,CS- extinction prototype,SAD,Oxytocin,1,Female,0,33,1.0
+N109,CSS,5,CSS_CSminus_TargetSimilarity,-0.18063290626851242,CS- extinction prototype,SAD,Oxytocin,1,Female,0,33,1.0
+N109,CSS,6,CSS_CSminus_TargetSimilarity,-0.09503158942548103,CS- extinction prototype,SAD,Oxytocin,1,Female,0,33,1.0
+N109,CSS,7,CSS_CSminus_TargetSimilarity,-0.2246351959257567,CS- extinction prototype,SAD,Oxytocin,1,Female,0,33,1.0
+N109,CSS,8,CSS_CSminus_TargetSimilarity,-0.2761789028615013,CS- extinction prototype,SAD,Oxytocin,1,Female,0,33,1.0
+N109,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,-0.022743687813610993,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,33,1.0
+N109,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,0.06474204512255435,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,33,1.0
+N109,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,0.028453036727600287,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,33,1.0
+N109,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,0.09123656627125316,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,33,1.0
+N109,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.008121796214882005,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,33,1.0
+N109,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,0.03127489092246309,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,33,1.0
+N109,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,0.07784180190704863,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,33,1.0
+N109,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.08129175360729363,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,33,1.0
+N110,CSS,1,CSS_CSminus_TargetSimilarity,-0.1634369115908678,CS- extinction prototype,SAD,Placebo,0,Female,0,21,0.0
+N110,CSS,2,CSS_CSminus_TargetSimilarity,-0.04768109896889678,CS- extinction prototype,SAD,Placebo,0,Female,0,21,0.0
+N110,CSS,3,CSS_CSminus_TargetSimilarity,-0.2654350294777138,CS- extinction prototype,SAD,Placebo,0,Female,0,21,0.0
+N110,CSS,4,CSS_CSminus_TargetSimilarity,-0.10211670099774227,CS- extinction prototype,SAD,Placebo,0,Female,0,21,0.0
+N110,CSS,5,CSS_CSminus_TargetSimilarity,-0.17158863684604875,CS- extinction prototype,SAD,Placebo,0,Female,0,21,0.0
+N110,CSS,6,CSS_CSminus_TargetSimilarity,-0.0702504989389151,CS- extinction prototype,SAD,Placebo,0,Female,0,21,0.0
+N110,CSS,7,CSS_CSminus_TargetSimilarity,-0.1540409450985618,CS- extinction prototype,SAD,Placebo,0,Female,0,21,0.0
+N110,CSS,8,CSS_CSminus_TargetSimilarity,-0.25720833427211215,CS- extinction prototype,SAD,Placebo,0,Female,0,21,0.0
+N110,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,-0.046920202317095525,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,21,0.0
+N110,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,0.13435610406630646,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,21,0.0
+N110,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,0.007828718089539681,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,21,0.0
+N110,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,-0.05585178661965353,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,21,0.0
+N110,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.14650469477318345,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,21,0.0
+N110,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,-0.0105447866383139,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,21,0.0
+N110,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,-0.07636623262038007,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,21,0.0
+N110,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.11594729338023596,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,21,0.0
+N111,CSS,1,CSS_CSminus_TargetSimilarity,-0.19387158192868456,CS- extinction prototype,SAD,Placebo,0,Male,1,19,0.0
+N111,CSS,2,CSS_CSminus_TargetSimilarity,-0.2373959339770243,CS- extinction prototype,SAD,Placebo,0,Male,1,19,0.0
+N111,CSS,3,CSS_CSminus_TargetSimilarity,-0.2135329886111519,CS- extinction prototype,SAD,Placebo,0,Male,1,19,0.0
+N111,CSS,4,CSS_CSminus_TargetSimilarity,-0.14323255288330586,CS- extinction prototype,SAD,Placebo,0,Male,1,19,0.0
+N111,CSS,5,CSS_CSminus_TargetSimilarity,-0.0829574322364768,CS- extinction prototype,SAD,Placebo,0,Male,1,19,0.0
+N111,CSS,6,CSS_CSminus_TargetSimilarity,-0.07954774161019831,CS- extinction prototype,SAD,Placebo,0,Male,1,19,0.0
+N111,CSS,7,CSS_CSminus_TargetSimilarity,-0.23998451149481206,CS- extinction prototype,SAD,Placebo,0,Male,1,19,0.0
+N111,CSS,8,CSS_CSminus_TargetSimilarity,-0.2340038469817999,CS- extinction prototype,SAD,Placebo,0,Male,1,19,0.0
+N111,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,0.10731990553286944,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,19,0.0
+N111,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,0.17338813345253282,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,19,0.0
+N111,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,-0.09981801844169376,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,19,0.0
+N111,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,0.009346666586498183,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,19,0.0
+N111,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.04841969641714108,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,19,0.0
+N111,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,-0.10007328857816274,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,19,0.0
+N111,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,0.07770413174655606,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,19,0.0
+N111,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,0.02102805128548468,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,19,0.0
+N112,CSS,1,CSS_CSminus_TargetSimilarity,-0.16160116351472992,CS- extinction prototype,SAD,Placebo,0,Male,1,22,1.0
+N112,CSS,2,CSS_CSminus_TargetSimilarity,-0.0677699033238195,CS- extinction prototype,SAD,Placebo,0,Male,1,22,1.0
+N112,CSS,3,CSS_CSminus_TargetSimilarity,-0.10312282804957822,CS- extinction prototype,SAD,Placebo,0,Male,1,22,1.0
+N112,CSS,4,CSS_CSminus_TargetSimilarity,-0.2146883204249457,CS- extinction prototype,SAD,Placebo,0,Male,1,22,1.0
+N112,CSS,5,CSS_CSminus_TargetSimilarity,-0.07188808692113256,CS- extinction prototype,SAD,Placebo,0,Male,1,22,1.0
+N112,CSS,6,CSS_CSminus_TargetSimilarity,-0.2588773121625641,CS- extinction prototype,SAD,Placebo,0,Male,1,22,1.0
+N112,CSS,7,CSS_CSminus_TargetSimilarity,-0.012072721143258275,CS- extinction prototype,SAD,Placebo,0,Male,1,22,1.0
+N112,CSS,8,CSS_CSminus_TargetSimilarity,-0.1664006992649757,CS- extinction prototype,SAD,Placebo,0,Male,1,22,1.0
+N112,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,-0.02994433335733852,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,22,1.0
+N112,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,0.17609907359215232,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,22,1.0
+N112,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,0.11499357333505046,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,22,1.0
+N112,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,0.030663640444581093,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,22,1.0
+N112,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.031946357217244446,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,22,1.0
+N112,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,-0.0369988756890193,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,22,1.0
+N112,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,-0.0606893894386138,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,22,1.0
+N112,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.04065800486318284,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,22,1.0
+N113,CSS,1,CSS_CSminus_TargetSimilarity,-0.05885315499265542,CS- extinction prototype,SAD,Oxytocin,1,Male,1,20,0.0
+N113,CSS,2,CSS_CSminus_TargetSimilarity,-0.09224405371939899,CS- extinction prototype,SAD,Oxytocin,1,Male,1,20,0.0
+N113,CSS,3,CSS_CSminus_TargetSimilarity,-0.4218429879689744,CS- extinction prototype,SAD,Oxytocin,1,Male,1,20,0.0
+N113,CSS,4,CSS_CSminus_TargetSimilarity,-0.1357991125872379,CS- extinction prototype,SAD,Oxytocin,1,Male,1,20,0.0
+N113,CSS,5,CSS_CSminus_TargetSimilarity,-0.16597161993311405,CS- extinction prototype,SAD,Oxytocin,1,Male,1,20,0.0
+N113,CSS,6,CSS_CSminus_TargetSimilarity,-0.08165481474361168,CS- extinction prototype,SAD,Oxytocin,1,Male,1,20,0.0
+N113,CSS,7,CSS_CSminus_TargetSimilarity,-0.27947813515718334,CS- extinction prototype,SAD,Oxytocin,1,Male,1,20,0.0
+N113,CSS,8,CSS_CSminus_TargetSimilarity,-0.10410945122626004,CS- extinction prototype,SAD,Oxytocin,1,Male,1,20,0.0
+N113,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,-0.013904212178625978,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,20,0.0
+N113,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,-0.012270429147479141,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,20,0.0
+N113,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,0.041336645799945365,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,20,0.0
+N113,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,0.010061762735624724,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,20,0.0
+N113,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.017599002571833076,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,20,0.0
+N113,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,-0.020605636646155726,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,20,0.0
+N113,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,0.006639213615371995,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,20,0.0
+N113,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,0.008467367251404933,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,20,0.0
+N114,CSS,1,CSS_CSminus_TargetSimilarity,0.009172586445972923,CS- extinction prototype,SAD,Placebo,0,Male,1,23,0.0
+N114,CSS,2,CSS_CSminus_TargetSimilarity,-0.1573537668023239,CS- extinction prototype,SAD,Placebo,0,Male,1,23,0.0
+N114,CSS,3,CSS_CSminus_TargetSimilarity,0.11577476607589558,CS- extinction prototype,SAD,Placebo,0,Male,1,23,0.0
+N114,CSS,4,CSS_CSminus_TargetSimilarity,-0.0013239789953674273,CS- extinction prototype,SAD,Placebo,0,Male,1,23,0.0
+N114,CSS,5,CSS_CSminus_TargetSimilarity,-0.05295787831864951,CS- extinction prototype,SAD,Placebo,0,Male,1,23,0.0
+N114,CSS,6,CSS_CSminus_TargetSimilarity,0.1542782794033629,CS- extinction prototype,SAD,Placebo,0,Male,1,23,0.0
+N114,CSS,7,CSS_CSminus_TargetSimilarity,-0.006595549038381916,CS- extinction prototype,SAD,Placebo,0,Male,1,23,0.0
+N114,CSS,8,CSS_CSminus_TargetSimilarity,0.007081609913465187,CS- extinction prototype,SAD,Placebo,0,Male,1,23,0.0
+N114,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,-0.03895391125625087,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,23,0.0
+N114,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,-0.009065783553304299,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,23,0.0
+N114,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,-0.018345304414420862,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,23,0.0
+N114,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,0.03457325521539803,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,23,0.0
+N114,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,-0.02713549950496787,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,23,0.0
+N114,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,0.09115576026961199,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,23,0.0
+N114,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,0.3111068402418977,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,23,0.0
+N114,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.07131521816420576,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,23,0.0
+N115,CSS,1,CSS_CSminus_TargetSimilarity,-0.17454270428557833,CS- extinction prototype,SAD,Oxytocin,1,Male,1,20,0.0
+N115,CSS,2,CSS_CSminus_TargetSimilarity,-0.3195103402921108,CS- extinction prototype,SAD,Oxytocin,1,Male,1,20,0.0
+N115,CSS,3,CSS_CSminus_TargetSimilarity,-0.11675792335698275,CS- extinction prototype,SAD,Oxytocin,1,Male,1,20,0.0
+N115,CSS,4,CSS_CSminus_TargetSimilarity,-0.13992359904321064,CS- extinction prototype,SAD,Oxytocin,1,Male,1,20,0.0
+N115,CSS,5,CSS_CSminus_TargetSimilarity,-0.16674841707251692,CS- extinction prototype,SAD,Oxytocin,1,Male,1,20,0.0
+N115,CSS,6,CSS_CSminus_TargetSimilarity,-0.041006831818265116,CS- extinction prototype,SAD,Oxytocin,1,Male,1,20,0.0
+N115,CSS,7,CSS_CSminus_TargetSimilarity,-0.19322398667851717,CS- extinction prototype,SAD,Oxytocin,1,Male,1,20,0.0
+N115,CSS,8,CSS_CSminus_TargetSimilarity,-0.057982611843676604,CS- extinction prototype,SAD,Oxytocin,1,Male,1,20,0.0
+N115,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,-0.08793287454312364,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,20,0.0
+N115,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,0.04722393274892266,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,20,0.0
+N115,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,-0.0018122507503498747,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,20,0.0
+N115,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,0.14713478199226754,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,20,0.0
+N115,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.09599901325786724,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,20,0.0
+N115,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,-0.006744593997666306,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,20,0.0
+N115,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,0.017065122390176952,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,20,0.0
+N115,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.25504914420267627,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,20,0.0
+N117,CSS,1,CSS_CSminus_TargetSimilarity,-0.1029235791893664,CS- extinction prototype,SAD,Placebo,0,Male,1,19,1.0
+N117,CSS,2,CSS_CSminus_TargetSimilarity,-0.028967227601124135,CS- extinction prototype,SAD,Placebo,0,Male,1,19,1.0
+N117,CSS,3,CSS_CSminus_TargetSimilarity,-0.041913721552744955,CS- extinction prototype,SAD,Placebo,0,Male,1,19,1.0
+N117,CSS,4,CSS_CSminus_TargetSimilarity,-0.15537842933390103,CS- extinction prototype,SAD,Placebo,0,Male,1,19,1.0
+N117,CSS,5,CSS_CSminus_TargetSimilarity,-0.09339574952647928,CS- extinction prototype,SAD,Placebo,0,Male,1,19,1.0
+N117,CSS,6,CSS_CSminus_TargetSimilarity,-0.1302011877068503,CS- extinction prototype,SAD,Placebo,0,Male,1,19,1.0
+N117,CSS,7,CSS_CSminus_TargetSimilarity,-0.043716971139767156,CS- extinction prototype,SAD,Placebo,0,Male,1,19,1.0
+N117,CSS,8,CSS_CSminus_TargetSimilarity,-0.03647400049857926,CS- extinction prototype,SAD,Placebo,0,Male,1,19,1.0
+N117,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,-0.10098837934208868,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,19,1.0
+N117,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,0.06718942676658037,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,19,1.0
+N117,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,-0.008269492343552643,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,19,1.0
+N117,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,0.11676594832902559,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,19,1.0
+N117,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,-0.038529141731605265,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,19,1.0
+N117,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,0.05268240052387935,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,19,1.0
+N117,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,0.052784761565602446,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,19,1.0
+N117,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.05147145247704016,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,19,1.0
+N118,CSS,1,CSS_CSminus_TargetSimilarity,-0.14846706121147674,CS- extinction prototype,SAD,Oxytocin,1,Male,1,21,1.0
+N118,CSS,2,CSS_CSminus_TargetSimilarity,0.0819888145430708,CS- extinction prototype,SAD,Oxytocin,1,Male,1,21,1.0
+N118,CSS,3,CSS_CSminus_TargetSimilarity,-0.38342868838278105,CS- extinction prototype,SAD,Oxytocin,1,Male,1,21,1.0
+N118,CSS,4,CSS_CSminus_TargetSimilarity,-0.22414627808360968,CS- extinction prototype,SAD,Oxytocin,1,Male,1,21,1.0
+N118,CSS,5,CSS_CSminus_TargetSimilarity,-0.24468188899305066,CS- extinction prototype,SAD,Oxytocin,1,Male,1,21,1.0
+N118,CSS,6,CSS_CSminus_TargetSimilarity,-0.1164394437025919,CS- extinction prototype,SAD,Oxytocin,1,Male,1,21,1.0
+N118,CSS,7,CSS_CSminus_TargetSimilarity,-0.12153100248181296,CS- extinction prototype,SAD,Oxytocin,1,Male,1,21,1.0
+N118,CSS,8,CSS_CSminus_TargetSimilarity,-0.25254127425490847,CS- extinction prototype,SAD,Oxytocin,1,Male,1,21,1.0
+N118,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,-0.06305090614383278,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,21,1.0
+N118,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,0.13017108891343007,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,21,1.0
+N118,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,0.07534893230790667,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,21,1.0
+N118,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,0.19331146730387108,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,21,1.0
+N118,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.20908605740749991,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,21,1.0
+N118,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,-0.021687768550844595,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,21,1.0
+N118,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,0.11307534331454241,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,21,1.0
+N118,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.20018696672716135,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,21,1.0
+N121,CSS,1,CSS_CSminus_TargetSimilarity,-0.05459081966649722,CS- extinction prototype,SAD,Oxytocin,1,Male,1,20,1.0
+N121,CSS,2,CSS_CSminus_TargetSimilarity,-0.12962420096835905,CS- extinction prototype,SAD,Oxytocin,1,Male,1,20,1.0
+N121,CSS,3,CSS_CSminus_TargetSimilarity,-0.2296854037891745,CS- extinction prototype,SAD,Oxytocin,1,Male,1,20,1.0
+N121,CSS,4,CSS_CSminus_TargetSimilarity,-0.15790698702282516,CS- extinction prototype,SAD,Oxytocin,1,Male,1,20,1.0
+N121,CSS,5,CSS_CSminus_TargetSimilarity,-0.1799272004692364,CS- extinction prototype,SAD,Oxytocin,1,Male,1,20,1.0
+N121,CSS,6,CSS_CSminus_TargetSimilarity,-0.27514399022154207,CS- extinction prototype,SAD,Oxytocin,1,Male,1,20,1.0
+N121,CSS,7,CSS_CSminus_TargetSimilarity,-0.19859169206056043,CS- extinction prototype,SAD,Oxytocin,1,Male,1,20,1.0
+N121,CSS,8,CSS_CSminus_TargetSimilarity,-0.20951015951962737,CS- extinction prototype,SAD,Oxytocin,1,Male,1,20,1.0
+N121,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,0.03188468831231163,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,20,1.0
+N121,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,0.02037355971263223,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,20,1.0
+N121,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,0.07923527325804443,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,20,1.0
+N121,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,-0.0047797163877389475,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,20,1.0
+N121,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.10829623566563781,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,20,1.0
+N121,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,0.004435550419129771,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,20,1.0
+N121,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,0.0623263310010232,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,20,1.0
+N121,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.06269516537976025,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,20,1.0
+N122,CSS,1,CSS_CSminus_TargetSimilarity,-0.3083912464000276,CS- extinction prototype,SAD,Oxytocin,1,Female,0,21,0.0
+N122,CSS,2,CSS_CSminus_TargetSimilarity,-0.1846679024373979,CS- extinction prototype,SAD,Oxytocin,1,Female,0,21,0.0
+N122,CSS,3,CSS_CSminus_TargetSimilarity,0.020110915251561078,CS- extinction prototype,SAD,Oxytocin,1,Female,0,21,0.0
+N122,CSS,4,CSS_CSminus_TargetSimilarity,-0.09178581043711811,CS- extinction prototype,SAD,Oxytocin,1,Female,0,21,0.0
+N122,CSS,5,CSS_CSminus_TargetSimilarity,-0.04873527766745451,CS- extinction prototype,SAD,Oxytocin,1,Female,0,21,0.0
+N122,CSS,6,CSS_CSminus_TargetSimilarity,-0.06899596467959454,CS- extinction prototype,SAD,Oxytocin,1,Female,0,21,0.0
+N122,CSS,7,CSS_CSminus_TargetSimilarity,-0.17646855394713146,CS- extinction prototype,SAD,Oxytocin,1,Female,0,21,0.0
+N122,CSS,8,CSS_CSminus_TargetSimilarity,-0.13941377604357,CS- extinction prototype,SAD,Oxytocin,1,Female,0,21,0.0
+N122,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,-0.07707459806403263,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,21,0.0
+N122,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,0.1258939108337801,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,21,0.0
+N122,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,-0.07133529177907107,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,21,0.0
+N122,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,-0.0054838816854872385,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,21,0.0
+N122,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,-0.03499686931777622,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,21,0.0
+N122,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,-0.022879896115153106,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,21,0.0
+N122,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,-0.09704655500380102,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,21,0.0
+N122,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.05179529958991492,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,21,0.0
+N123,CSS,1,CSS_CSminus_TargetSimilarity,-0.2416263226490883,CS- extinction prototype,SAD,Placebo,0,Female,0,22,0.0
+N123,CSS,2,CSS_CSminus_TargetSimilarity,0.01035989360099685,CS- extinction prototype,SAD,Placebo,0,Female,0,22,0.0
+N123,CSS,3,CSS_CSminus_TargetSimilarity,0.06293801147794242,CS- extinction prototype,SAD,Placebo,0,Female,0,22,0.0
+N123,CSS,4,CSS_CSminus_TargetSimilarity,-0.20390389682265112,CS- extinction prototype,SAD,Placebo,0,Female,0,22,0.0
+N123,CSS,5,CSS_CSminus_TargetSimilarity,-0.026328523080317398,CS- extinction prototype,SAD,Placebo,0,Female,0,22,0.0
+N123,CSS,6,CSS_CSminus_TargetSimilarity,-0.331576803481822,CS- extinction prototype,SAD,Placebo,0,Female,0,22,0.0
+N123,CSS,7,CSS_CSminus_TargetSimilarity,-0.2712763663976596,CS- extinction prototype,SAD,Placebo,0,Female,0,22,0.0
+N123,CSS,8,CSS_CSminus_TargetSimilarity,-0.17427175227038666,CS- extinction prototype,SAD,Placebo,0,Female,0,22,0.0
+N123,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,0.011221510692613719,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,22,0.0
+N123,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,-0.0391349137746864,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,22,0.0
+N123,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,-0.00808429367117843,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,22,0.0
+N123,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,0.002694637012347223,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,22,0.0
+N123,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.02219324045233331,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,22,0.0
+N123,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,-0.04050677097575229,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,22,0.0
+N123,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,0.06754229537758616,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,22,0.0
+N123,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.04783263168914986,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,22,0.0
+N124,CSS,1,CSS_CSminus_TargetSimilarity,-0.16278503654112517,CS- extinction prototype,SAD,Oxytocin,1,Female,0,25,1.0
+N124,CSS,2,CSS_CSminus_TargetSimilarity,0.00024236683466586067,CS- extinction prototype,SAD,Oxytocin,1,Female,0,25,1.0
+N124,CSS,3,CSS_CSminus_TargetSimilarity,-0.3173896179199045,CS- extinction prototype,SAD,Oxytocin,1,Female,0,25,1.0
+N124,CSS,4,CSS_CSminus_TargetSimilarity,-0.31856844382764704,CS- extinction prototype,SAD,Oxytocin,1,Female,0,25,1.0
+N124,CSS,5,CSS_CSminus_TargetSimilarity,-0.2087826317375358,CS- extinction prototype,SAD,Oxytocin,1,Female,0,25,1.0
+N124,CSS,6,CSS_CSminus_TargetSimilarity,-0.37678260644565276,CS- extinction prototype,SAD,Oxytocin,1,Female,0,25,1.0
+N124,CSS,7,CSS_CSminus_TargetSimilarity,0.027572899382269898,CS- extinction prototype,SAD,Oxytocin,1,Female,0,25,1.0
+N124,CSS,8,CSS_CSminus_TargetSimilarity,-0.09628186199521033,CS- extinction prototype,SAD,Oxytocin,1,Female,0,25,1.0
+N124,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,0.012504937730555783,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,25,1.0
+N124,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,0.05407009742188717,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,25,1.0
+N124,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,0.007499120949852912,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,25,1.0
+N124,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,0.07221032335782009,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,25,1.0
+N124,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.01720302797425827,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,25,1.0
+N124,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,-0.00916862064119045,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,25,1.0
+N124,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,0.09959417330915217,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,25,1.0
+N124,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.09333868828868555,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,25,1.0
+N125,CSS,1,CSS_CSminus_TargetSimilarity,-0.17318366083213305,CS- extinction prototype,SAD,Placebo,0,Female,0,19,0.0
+N125,CSS,2,CSS_CSminus_TargetSimilarity,-0.1338001193444493,CS- extinction prototype,SAD,Placebo,0,Female,0,19,0.0
+N125,CSS,3,CSS_CSminus_TargetSimilarity,-0.28984595754319853,CS- extinction prototype,SAD,Placebo,0,Female,0,19,0.0
+N125,CSS,4,CSS_CSminus_TargetSimilarity,0.05338761318210661,CS- extinction prototype,SAD,Placebo,0,Female,0,19,0.0
+N125,CSS,5,CSS_CSminus_TargetSimilarity,0.08032018218641408,CS- extinction prototype,SAD,Placebo,0,Female,0,19,0.0
+N125,CSS,6,CSS_CSminus_TargetSimilarity,-0.31575185085685753,CS- extinction prototype,SAD,Placebo,0,Female,0,19,0.0
+N125,CSS,7,CSS_CSminus_TargetSimilarity,-0.04831016170715713,CS- extinction prototype,SAD,Placebo,0,Female,0,19,0.0
+N125,CSS,8,CSS_CSminus_TargetSimilarity,-0.0770053384936534,CS- extinction prototype,SAD,Placebo,0,Female,0,19,0.0
+N125,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,0.12138628726546423,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,19,0.0
+N125,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,0.07741328338228157,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,19,0.0
+N125,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,-0.040384930245546596,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,19,0.0
+N125,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,0.0020264118169177727,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,19,0.0
+N125,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,-0.07652490088665122,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,19,0.0
+N125,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,0.006470158503613248,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,19,0.0
+N125,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,0.031156161206681462,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,19,0.0
+N125,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.21869971277809452,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,19,0.0
+N127,CSS,1,CSS_CSminus_TargetSimilarity,0.0038651783796017467,CS- extinction prototype,SAD,Oxytocin,1,Female,0,41,0.0
+N127,CSS,2,CSS_CSminus_TargetSimilarity,-0.24917862726722048,CS- extinction prototype,SAD,Oxytocin,1,Female,0,41,0.0
+N127,CSS,3,CSS_CSminus_TargetSimilarity,-0.24420811952814933,CS- extinction prototype,SAD,Oxytocin,1,Female,0,41,0.0
+N127,CSS,4,CSS_CSminus_TargetSimilarity,-0.24181586847726164,CS- extinction prototype,SAD,Oxytocin,1,Female,0,41,0.0
+N127,CSS,5,CSS_CSminus_TargetSimilarity,-0.139985467287426,CS- extinction prototype,SAD,Oxytocin,1,Female,0,41,0.0
+N127,CSS,6,CSS_CSminus_TargetSimilarity,-0.1525190258976348,CS- extinction prototype,SAD,Oxytocin,1,Female,0,41,0.0
+N127,CSS,7,CSS_CSminus_TargetSimilarity,-0.263778192605629,CS- extinction prototype,SAD,Oxytocin,1,Female,0,41,0.0
+N127,CSS,8,CSS_CSminus_TargetSimilarity,-0.2540429483901402,CS- extinction prototype,SAD,Oxytocin,1,Female,0,41,0.0
+N127,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,-0.048053035616107326,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,41,0.0
+N127,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,-0.017148982662918862,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,41,0.0
+N127,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,0.010729974420527822,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,41,0.0
+N127,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,0.03985975087525993,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,41,0.0
+N127,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.06754277541202745,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,41,0.0
+N127,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,0.020771378486279347,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,41,0.0
+N127,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,0.06506416361092154,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,41,0.0
+N127,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.07131308372792027,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,41,0.0
+N128,CSS,1,CSS_CSminus_TargetSimilarity,-0.1861923321594559,CS- extinction prototype,SAD,Placebo,0,Male,1,25,1.0
+N128,CSS,2,CSS_CSminus_TargetSimilarity,0.008941455621737676,CS- extinction prototype,SAD,Placebo,0,Male,1,25,1.0
+N128,CSS,3,CSS_CSminus_TargetSimilarity,-0.1300563747805595,CS- extinction prototype,SAD,Placebo,0,Male,1,25,1.0
+N128,CSS,4,CSS_CSminus_TargetSimilarity,-0.1637681560926154,CS- extinction prototype,SAD,Placebo,0,Male,1,25,1.0
+N128,CSS,5,CSS_CSminus_TargetSimilarity,-0.1155309595860284,CS- extinction prototype,SAD,Placebo,0,Male,1,25,1.0
+N128,CSS,6,CSS_CSminus_TargetSimilarity,-0.13973579488122714,CS- extinction prototype,SAD,Placebo,0,Male,1,25,1.0
+N128,CSS,7,CSS_CSminus_TargetSimilarity,-0.2503733852567044,CS- extinction prototype,SAD,Placebo,0,Male,1,25,1.0
+N128,CSS,8,CSS_CSminus_TargetSimilarity,-0.21160611420034825,CS- extinction prototype,SAD,Placebo,0,Male,1,25,1.0
+N128,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,-0.07863150196616984,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,25,1.0
+N128,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,0.07549761905670195,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,25,1.0
+N128,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,0.044956988116775176,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,25,1.0
+N128,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,-0.06789198926003655,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,25,1.0
+N128,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,-0.05903639717864524,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,25,1.0
+N128,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,0.013615524412174344,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,25,1.0
+N128,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,-0.037140157403225765,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,25,1.0
+N128,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,0.07494818234617392,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,25,1.0
+N129,CSS,1,CSS_CSminus_TargetSimilarity,-0.38826133485901426,CS- extinction prototype,SAD,Oxytocin,1,Female,0,26,1.0
+N129,CSS,2,CSS_CSminus_TargetSimilarity,0.04837561764582236,CS- extinction prototype,SAD,Oxytocin,1,Female,0,26,1.0
+N129,CSS,3,CSS_CSminus_TargetSimilarity,-0.388647824567464,CS- extinction prototype,SAD,Oxytocin,1,Female,0,26,1.0
+N129,CSS,4,CSS_CSminus_TargetSimilarity,-0.19168934800689558,CS- extinction prototype,SAD,Oxytocin,1,Female,0,26,1.0
+N129,CSS,5,CSS_CSminus_TargetSimilarity,-0.18197063225986504,CS- extinction prototype,SAD,Oxytocin,1,Female,0,26,1.0
+N129,CSS,6,CSS_CSminus_TargetSimilarity,-0.1459929677135075,CS- extinction prototype,SAD,Oxytocin,1,Female,0,26,1.0
+N129,CSS,7,CSS_CSminus_TargetSimilarity,-0.33033669841185576,CS- extinction prototype,SAD,Oxytocin,1,Female,0,26,1.0
+N129,CSS,8,CSS_CSminus_TargetSimilarity,-0.1671743821877491,CS- extinction prototype,SAD,Oxytocin,1,Female,0,26,1.0
+N129,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,0.1541213300656577,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,26,1.0
+N129,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,-0.06913287168940216,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,26,1.0
+N129,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,-0.07406641519353918,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,26,1.0
+N129,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,-0.04375965498846123,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,26,1.0
+N129,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,-0.02993183525869925,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,26,1.0
+N129,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,0.059078009228021096,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,26,1.0
+N129,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,0.03625132240175551,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,26,1.0
+N129,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,0.10717267263414651,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,26,1.0
+N130,CSS,1,CSS_CSminus_TargetSimilarity,-0.0063503749994062424,CS- extinction prototype,SAD,Placebo,0,Male,1,23,0.0
+N130,CSS,2,CSS_CSminus_TargetSimilarity,-0.19897779263928828,CS- extinction prototype,SAD,Placebo,0,Male,1,23,0.0
+N130,CSS,3,CSS_CSminus_TargetSimilarity,-0.04826681086172687,CS- extinction prototype,SAD,Placebo,0,Male,1,23,0.0
+N130,CSS,4,CSS_CSminus_TargetSimilarity,-0.19864510231211174,CS- extinction prototype,SAD,Placebo,0,Male,1,23,0.0
+N130,CSS,5,CSS_CSminus_TargetSimilarity,-0.169536105702504,CS- extinction prototype,SAD,Placebo,0,Male,1,23,0.0
+N130,CSS,6,CSS_CSminus_TargetSimilarity,-0.30862388879399283,CS- extinction prototype,SAD,Placebo,0,Male,1,23,0.0
+N130,CSS,7,CSS_CSminus_TargetSimilarity,-0.08685185746175757,CS- extinction prototype,SAD,Placebo,0,Male,1,23,0.0
+N130,CSS,8,CSS_CSminus_TargetSimilarity,-0.36630007495658845,CS- extinction prototype,SAD,Placebo,0,Male,1,23,0.0
+N130,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,-0.10652155154489203,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,23,0.0
+N130,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,-0.10183841447638262,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,23,0.0
+N130,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,0.056473096504036924,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,23,0.0
+N130,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,-0.001491837246345896,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,23,0.0
+N130,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,-0.020270553618659468,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,23,0.0
+N130,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,0.12030142886991736,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,23,0.0
+N130,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,0.1309873044022001,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,23,0.0
+N130,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.12560923397249527,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,23,0.0
+N131,CSS,1,CSS_CSminus_TargetSimilarity,-0.12332022762740784,CS- extinction prototype,SAD,Placebo,0,Female,0,26,1.0
+N131,CSS,2,CSS_CSminus_TargetSimilarity,-0.2528944513389144,CS- extinction prototype,SAD,Placebo,0,Female,0,26,1.0
+N131,CSS,3,CSS_CSminus_TargetSimilarity,-0.22580494101422022,CS- extinction prototype,SAD,Placebo,0,Female,0,26,1.0
+N131,CSS,4,CSS_CSminus_TargetSimilarity,-0.0628213390764204,CS- extinction prototype,SAD,Placebo,0,Female,0,26,1.0
+N131,CSS,5,CSS_CSminus_TargetSimilarity,-0.24652820117393226,CS- extinction prototype,SAD,Placebo,0,Female,0,26,1.0
+N131,CSS,6,CSS_CSminus_TargetSimilarity,-0.012495489438714742,CS- extinction prototype,SAD,Placebo,0,Female,0,26,1.0
+N131,CSS,7,CSS_CSminus_TargetSimilarity,-0.2076342414512934,CS- extinction prototype,SAD,Placebo,0,Female,0,26,1.0
+N131,CSS,8,CSS_CSminus_TargetSimilarity,-0.1825483507521196,CS- extinction prototype,SAD,Placebo,0,Female,0,26,1.0
+N131,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,0.01582601911708821,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,26,1.0
+N131,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,0.0011660201037446494,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,26,1.0
+N131,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,0.09063221438072937,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,26,1.0
+N131,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,-0.001481798169887108,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,26,1.0
+N131,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,-0.028002349705672492,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,26,1.0
+N131,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,-0.11855527732709266,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,26,1.0
+N131,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,-0.006545065985970707,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,26,1.0
+N131,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.017414375065578438,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,26,1.0
+N132,CSS,1,CSS_CSminus_TargetSimilarity,-0.0915004702949375,CS- extinction prototype,SAD,Oxytocin,1,Female,0,19,0.0
+N132,CSS,2,CSS_CSminus_TargetSimilarity,-0.33519219944587797,CS- extinction prototype,SAD,Oxytocin,1,Female,0,19,0.0
+N132,CSS,3,CSS_CSminus_TargetSimilarity,-0.024980809612806604,CS- extinction prototype,SAD,Oxytocin,1,Female,0,19,0.0
+N132,CSS,4,CSS_CSminus_TargetSimilarity,0.16412698211112156,CS- extinction prototype,SAD,Oxytocin,1,Female,0,19,0.0
+N132,CSS,5,CSS_CSminus_TargetSimilarity,-0.1201552749715046,CS- extinction prototype,SAD,Oxytocin,1,Female,0,19,0.0
+N132,CSS,6,CSS_CSminus_TargetSimilarity,0.008298687675941307,CS- extinction prototype,SAD,Oxytocin,1,Female,0,19,0.0
+N132,CSS,7,CSS_CSminus_TargetSimilarity,0.057349628411679635,CS- extinction prototype,SAD,Oxytocin,1,Female,0,19,0.0
+N132,CSS,8,CSS_CSminus_TargetSimilarity,0.13758321153025008,CS- extinction prototype,SAD,Oxytocin,1,Female,0,19,0.0
+N132,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,-0.03299427677952559,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,19,0.0
+N132,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,0.021783405265865446,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,19,0.0
+N132,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,-0.0397977917005996,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,19,0.0
+N132,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,-0.0667339815987971,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,19,0.0
+N132,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.017484100588441475,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,19,0.0
+N132,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,0.02780898759673593,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,19,0.0
+N132,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,-0.007048174257380203,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,19,0.0
+N132,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.03656427346774723,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,19,0.0
+N133,CSS,1,CSS_CSminus_TargetSimilarity,-0.40137018489451687,CS- extinction prototype,SAD,Placebo,0,Male,1,33,1.0
+N133,CSS,2,CSS_CSminus_TargetSimilarity,-0.13396610517194907,CS- extinction prototype,SAD,Placebo,0,Male,1,33,1.0
+N133,CSS,3,CSS_CSminus_TargetSimilarity,-0.1767457229984598,CS- extinction prototype,SAD,Placebo,0,Male,1,33,1.0
+N133,CSS,4,CSS_CSminus_TargetSimilarity,-0.03692486320665967,CS- extinction prototype,SAD,Placebo,0,Male,1,33,1.0
+N133,CSS,5,CSS_CSminus_TargetSimilarity,-0.14759653070705858,CS- extinction prototype,SAD,Placebo,0,Male,1,33,1.0
+N133,CSS,6,CSS_CSminus_TargetSimilarity,-0.09387975495315354,CS- extinction prototype,SAD,Placebo,0,Male,1,33,1.0
+N133,CSS,7,CSS_CSminus_TargetSimilarity,-0.11335690889718103,CS- extinction prototype,SAD,Placebo,0,Male,1,33,1.0
+N133,CSS,8,CSS_CSminus_TargetSimilarity,-0.16280361627535225,CS- extinction prototype,SAD,Placebo,0,Male,1,33,1.0
+N133,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,0.03567321629082184,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,33,1.0
+N133,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,-0.020886502770961036,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,33,1.0
+N133,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,0.07017918583410158,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,33,1.0
+N133,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,0.03643761555720078,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,33,1.0
+N133,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.0164128904134532,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,33,1.0
+N133,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,0.09498547079006928,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,33,1.0
+N133,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,0.07165611356802636,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,33,1.0
+N133,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,0.04454710427669361,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,33,1.0
+N134,CSS,1,CSS_CSminus_TargetSimilarity,-0.041362102704920314,CS- extinction prototype,SAD,Placebo,0,Female,0,21,0.0
+N134,CSS,2,CSS_CSminus_TargetSimilarity,0.019931091707068502,CS- extinction prototype,SAD,Placebo,0,Female,0,21,0.0
+N134,CSS,3,CSS_CSminus_TargetSimilarity,-0.05094802943655774,CS- extinction prototype,SAD,Placebo,0,Female,0,21,0.0
+N134,CSS,4,CSS_CSminus_TargetSimilarity,0.06980311527507821,CS- extinction prototype,SAD,Placebo,0,Female,0,21,0.0
+N134,CSS,5,CSS_CSminus_TargetSimilarity,-0.03383303349205513,CS- extinction prototype,SAD,Placebo,0,Female,0,21,0.0
+N134,CSS,6,CSS_CSminus_TargetSimilarity,0.01000020636864133,CS- extinction prototype,SAD,Placebo,0,Female,0,21,0.0
+N134,CSS,7,CSS_CSminus_TargetSimilarity,-0.47120408309863565,CS- extinction prototype,SAD,Placebo,0,Female,0,21,0.0
+N134,CSS,8,CSS_CSminus_TargetSimilarity,0.05064445876046963,CS- extinction prototype,SAD,Placebo,0,Female,0,21,0.0
+N134,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,-0.01365700880172982,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,21,0.0
+N134,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,-0.015713370208985136,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,21,0.0
+N134,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,-0.00472023468835792,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,21,0.0
+N134,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,0.010835027995092653,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,21,0.0
+N134,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,-0.019542574873012142,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,21,0.0
+N134,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,0.007925072153948822,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,21,0.0
+N134,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,0.01458096665059825,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,21,0.0
+N134,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.005859325382281496,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,21,0.0
+N135,CSS,1,CSS_CSminus_TargetSimilarity,0.12279173388848816,CS- extinction prototype,SAD,Oxytocin,1,Male,1,45,0.0
+N135,CSS,2,CSS_CSminus_TargetSimilarity,-0.027124159512570085,CS- extinction prototype,SAD,Oxytocin,1,Male,1,45,0.0
+N135,CSS,3,CSS_CSminus_TargetSimilarity,-0.22753515659679074,CS- extinction prototype,SAD,Oxytocin,1,Male,1,45,0.0
+N135,CSS,4,CSS_CSminus_TargetSimilarity,-0.22452937220106378,CS- extinction prototype,SAD,Oxytocin,1,Male,1,45,0.0
+N135,CSS,5,CSS_CSminus_TargetSimilarity,-0.036471648881253003,CS- extinction prototype,SAD,Oxytocin,1,Male,1,45,0.0
+N135,CSS,6,CSS_CSminus_TargetSimilarity,0.10637990034566994,CS- extinction prototype,SAD,Oxytocin,1,Male,1,45,0.0
+N135,CSS,7,CSS_CSminus_TargetSimilarity,-0.20887195718632331,CS- extinction prototype,SAD,Oxytocin,1,Male,1,45,0.0
+N135,CSS,8,CSS_CSminus_TargetSimilarity,-0.32489918033265686,CS- extinction prototype,SAD,Oxytocin,1,Male,1,45,0.0
+N135,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,0.0033811364354383072,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,45,0.0
+N135,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,-0.008237629928978077,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,45,0.0
+N135,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,0.0038772079885792785,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,45,0.0
+N135,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,-0.0023965459237085093,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,45,0.0
+N135,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.0034361964477103335,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,45,0.0
+N135,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,0.009003339145320437,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,45,0.0
+N135,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,0.005116555597187745,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,45,0.0
+N135,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.0008336758193558175,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,45,0.0
+N136,CSS,1,CSS_CSminus_TargetSimilarity,-0.16384294193142473,CS- extinction prototype,SAD,Placebo,0,Female,0,26,0.0
+N136,CSS,2,CSS_CSminus_TargetSimilarity,-0.17831872315363412,CS- extinction prototype,SAD,Placebo,0,Female,0,26,0.0
+N136,CSS,3,CSS_CSminus_TargetSimilarity,-0.26258045165917354,CS- extinction prototype,SAD,Placebo,0,Female,0,26,0.0
+N136,CSS,4,CSS_CSminus_TargetSimilarity,-0.2517372861795555,CS- extinction prototype,SAD,Placebo,0,Female,0,26,0.0
+N136,CSS,5,CSS_CSminus_TargetSimilarity,-0.2625950077838768,CS- extinction prototype,SAD,Placebo,0,Female,0,26,0.0
+N136,CSS,6,CSS_CSminus_TargetSimilarity,-0.266327954442299,CS- extinction prototype,SAD,Placebo,0,Female,0,26,0.0
+N136,CSS,7,CSS_CSminus_TargetSimilarity,-0.11439710184168692,CS- extinction prototype,SAD,Placebo,0,Female,0,26,0.0
+N136,CSS,8,CSS_CSminus_TargetSimilarity,-0.02841813381677552,CS- extinction prototype,SAD,Placebo,0,Female,0,26,0.0
+N136,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,-0.006770790994373621,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,26,0.0
+N136,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,0.03433538837394428,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,26,0.0
+N136,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,-0.03347034155544344,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,26,0.0
+N136,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,0.060204683192806814,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,26,0.0
+N136,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.026024211078450248,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,26,0.0
+N136,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,-0.073279903765307,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,26,0.0
+N136,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,0.03753331306412038,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,26,0.0
+N136,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.06910536287309471,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,26,0.0
+N137,CSS,1,CSS_CSminus_TargetSimilarity,-0.2802656972474702,CS- extinction prototype,SAD,Oxytocin,1,Female,0,27,1.0
+N137,CSS,2,CSS_CSminus_TargetSimilarity,-0.08946285553119228,CS- extinction prototype,SAD,Oxytocin,1,Female,0,27,1.0
+N137,CSS,3,CSS_CSminus_TargetSimilarity,-0.24883590117520032,CS- extinction prototype,SAD,Oxytocin,1,Female,0,27,1.0
+N137,CSS,4,CSS_CSminus_TargetSimilarity,-0.1288182995481059,CS- extinction prototype,SAD,Oxytocin,1,Female,0,27,1.0
+N137,CSS,5,CSS_CSminus_TargetSimilarity,-0.05233413986954333,CS- extinction prototype,SAD,Oxytocin,1,Female,0,27,1.0
+N137,CSS,6,CSS_CSminus_TargetSimilarity,-0.0647898807200637,CS- extinction prototype,SAD,Oxytocin,1,Female,0,27,1.0
+N137,CSS,7,CSS_CSminus_TargetSimilarity,-0.1627124734611153,CS- extinction prototype,SAD,Oxytocin,1,Female,0,27,1.0
+N137,CSS,8,CSS_CSminus_TargetSimilarity,-0.16947963207912714,CS- extinction prototype,SAD,Oxytocin,1,Female,0,27,1.0
+N137,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,0.01190865682540678,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,27,1.0
+N137,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,0.01258891512336354,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,27,1.0
+N137,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,0.004822343906323194,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,27,1.0
+N137,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,0.00706565791484227,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,27,1.0
+N137,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.000550635597711212,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,27,1.0
+N137,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,-0.007322796224863107,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,27,1.0
+N137,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,0.013571147550598794,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,27,1.0
+N137,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,0.006118815602430106,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,27,1.0
+N138,CSS,1,CSS_CSminus_TargetSimilarity,-0.0793486625616359,CS- extinction prototype,SAD,Oxytocin,1,Male,1,30,0.0
+N138,CSS,2,CSS_CSminus_TargetSimilarity,-0.1440599097513096,CS- extinction prototype,SAD,Oxytocin,1,Male,1,30,0.0
+N138,CSS,3,CSS_CSminus_TargetSimilarity,-0.028854893959642032,CS- extinction prototype,SAD,Oxytocin,1,Male,1,30,0.0
+N138,CSS,4,CSS_CSminus_TargetSimilarity,-0.04860916671576251,CS- extinction prototype,SAD,Oxytocin,1,Male,1,30,0.0
+N138,CSS,5,CSS_CSminus_TargetSimilarity,-0.1951496938587571,CS- extinction prototype,SAD,Oxytocin,1,Male,1,30,0.0
+N138,CSS,6,CSS_CSminus_TargetSimilarity,-0.12803337247514146,CS- extinction prototype,SAD,Oxytocin,1,Male,1,30,0.0
+N138,CSS,7,CSS_CSminus_TargetSimilarity,-0.1584291243613263,CS- extinction prototype,SAD,Oxytocin,1,Male,1,30,0.0
+N138,CSS,8,CSS_CSminus_TargetSimilarity,-0.3464239868788309,CS- extinction prototype,SAD,Oxytocin,1,Male,1,30,0.0
+N138,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,0.05548988656685426,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,30,0.0
+N138,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,0.016738986626035093,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,30,0.0
+N138,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,-0.06875889720843903,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,30,0.0
+N138,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,-0.05373210047529724,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,30,0.0
+N138,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.038471283133799015,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,30,0.0
+N138,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,0.08239621794683677,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,30,0.0
+N138,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,0.04060766816591126,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,30,0.0
+N138,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.13804442359082741,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,30,0.0
+N141,CSS,1,CSS_CSminus_TargetSimilarity,-0.21774486897109896,CS- extinction prototype,SAD,Placebo,0,Female,0,22,0.0
+N141,CSS,2,CSS_CSminus_TargetSimilarity,-0.19405973639552307,CS- extinction prototype,SAD,Placebo,0,Female,0,22,0.0
+N141,CSS,3,CSS_CSminus_TargetSimilarity,-0.19509496102253152,CS- extinction prototype,SAD,Placebo,0,Female,0,22,0.0
+N141,CSS,4,CSS_CSminus_TargetSimilarity,-0.18268218379822596,CS- extinction prototype,SAD,Placebo,0,Female,0,22,0.0
+N141,CSS,5,CSS_CSminus_TargetSimilarity,-0.12916430853246016,CS- extinction prototype,SAD,Placebo,0,Female,0,22,0.0
+N141,CSS,6,CSS_CSminus_TargetSimilarity,-0.001378719035679414,CS- extinction prototype,SAD,Placebo,0,Female,0,22,0.0
+N141,CSS,7,CSS_CSminus_TargetSimilarity,-0.19317263143376615,CS- extinction prototype,SAD,Placebo,0,Female,0,22,0.0
+N141,CSS,8,CSS_CSminus_TargetSimilarity,-0.17273875371323824,CS- extinction prototype,SAD,Placebo,0,Female,0,22,0.0
+N141,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,0.0010654847459435424,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,22,0.0
+N141,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,-0.057869416690683684,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,22,0.0
+N141,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,-0.005403941333575806,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,22,0.0
+N141,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,-0.015454998684500194,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,22,0.0
+N141,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.039383308544156,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,22,0.0
+N141,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,0.03244309387520547,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,22,0.0
+N141,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,-0.020966828436144194,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,22,0.0
+N141,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.06574999156955566,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,22,0.0
+N142,CSS,1,CSS_CSminus_TargetSimilarity,-0.09153691568212707,CS- extinction prototype,SAD,Oxytocin,1,Female,0,20,0.0
+N142,CSS,2,CSS_CSminus_TargetSimilarity,0.09587235555014777,CS- extinction prototype,SAD,Oxytocin,1,Female,0,20,0.0
+N142,CSS,3,CSS_CSminus_TargetSimilarity,-0.05994032260899628,CS- extinction prototype,SAD,Oxytocin,1,Female,0,20,0.0
+N142,CSS,4,CSS_CSminus_TargetSimilarity,0.08725425719057735,CS- extinction prototype,SAD,Oxytocin,1,Female,0,20,0.0
+N142,CSS,5,CSS_CSminus_TargetSimilarity,-0.10718911081711065,CS- extinction prototype,SAD,Oxytocin,1,Female,0,20,0.0
+N142,CSS,6,CSS_CSminus_TargetSimilarity,-0.2055505035214197,CS- extinction prototype,SAD,Oxytocin,1,Female,0,20,0.0
+N142,CSS,7,CSS_CSminus_TargetSimilarity,-0.19604783925283212,CS- extinction prototype,SAD,Oxytocin,1,Female,0,20,0.0
+N142,CSS,8,CSS_CSminus_TargetSimilarity,-0.02639314423721948,CS- extinction prototype,SAD,Oxytocin,1,Female,0,20,0.0
+N142,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,0.010334264616601092,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,20,0.0
+N142,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,0.00048276043469548766,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,20,0.0
+N142,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,0.005343622344550028,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,20,0.0
+N142,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,0.008877835654034895,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,20,0.0
+N142,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.006683605623883073,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,20,0.0
+N142,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,0.006403972884820391,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,20,0.0
+N142,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,0.006911584340969216,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,20,0.0
+N142,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.0161790194031765,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,20,0.0
+N143,CSS,1,CSS_CSminus_TargetSimilarity,-0.036750695323956674,CS- extinction prototype,SAD,Oxytocin,1,Male,1,23,0.0
+N143,CSS,2,CSS_CSminus_TargetSimilarity,-0.2748194951104858,CS- extinction prototype,SAD,Oxytocin,1,Male,1,23,0.0
+N143,CSS,3,CSS_CSminus_TargetSimilarity,-0.09290761381979765,CS- extinction prototype,SAD,Oxytocin,1,Male,1,23,0.0
+N143,CSS,4,CSS_CSminus_TargetSimilarity,-0.27547279428075006,CS- extinction prototype,SAD,Oxytocin,1,Male,1,23,0.0
+N143,CSS,5,CSS_CSminus_TargetSimilarity,-0.18747303801298568,CS- extinction prototype,SAD,Oxytocin,1,Male,1,23,0.0
+N143,CSS,6,CSS_CSminus_TargetSimilarity,-0.04803513037324107,CS- extinction prototype,SAD,Oxytocin,1,Male,1,23,0.0
+N143,CSS,7,CSS_CSminus_TargetSimilarity,-0.3520234263668279,CS- extinction prototype,SAD,Oxytocin,1,Male,1,23,0.0
+N143,CSS,8,CSS_CSminus_TargetSimilarity,-0.08090545500415489,CS- extinction prototype,SAD,Oxytocin,1,Male,1,23,0.0
+N143,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,0.007605569249469361,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,23,0.0
+N143,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,-0.030600271580693315,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,23,0.0
+N143,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,-0.003064031794447618,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,23,0.0
+N143,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,-0.015849676070700945,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,23,0.0
+N143,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.05117303929252361,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,23,0.0
+N143,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,-0.006402140679613637,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,23,0.0
+N143,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,-0.023930780984438803,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,23,0.0
+N143,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.0033073272597722997,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,23,0.0
+N144,CSS,1,CSS_CSminus_TargetSimilarity,-0.27935496870593757,CS- extinction prototype,SAD,Oxytocin,1,Female,0,18,0.0
+N144,CSS,2,CSS_CSminus_TargetSimilarity,-0.12842566882629666,CS- extinction prototype,SAD,Oxytocin,1,Female,0,18,0.0
+N144,CSS,3,CSS_CSminus_TargetSimilarity,0.07578161251990781,CS- extinction prototype,SAD,Oxytocin,1,Female,0,18,0.0
+N144,CSS,4,CSS_CSminus_TargetSimilarity,-0.23087329724500216,CS- extinction prototype,SAD,Oxytocin,1,Female,0,18,0.0
+N144,CSS,5,CSS_CSminus_TargetSimilarity,0.011946476641004102,CS- extinction prototype,SAD,Oxytocin,1,Female,0,18,0.0
+N144,CSS,6,CSS_CSminus_TargetSimilarity,-0.05050705939800301,CS- extinction prototype,SAD,Oxytocin,1,Female,0,18,0.0
+N144,CSS,7,CSS_CSminus_TargetSimilarity,-0.032928985027590986,CS- extinction prototype,SAD,Oxytocin,1,Female,0,18,0.0
+N144,CSS,8,CSS_CSminus_TargetSimilarity,-0.22856039275262027,CS- extinction prototype,SAD,Oxytocin,1,Female,0,18,0.0
+N144,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,-0.01126401884493886,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,18,0.0
+N144,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,0.016180941613793035,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,18,0.0
+N144,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,0.01772825750220065,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,18,0.0
+N144,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,0.08484237755914206,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,18,0.0
+N144,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.0511944198935568,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,18,0.0
+N144,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,0.013761940463925763,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,18,0.0
+N144,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,0.07258192786874977,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,18,0.0
+N144,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,0.08604570358495749,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,18,0.0
+N145,CSS,1,CSS_CSminus_TargetSimilarity,0.05541851365154631,CS- extinction prototype,SAD,Placebo,0,Female,0,34,0.0
+N145,CSS,2,CSS_CSminus_TargetSimilarity,0.185880445110476,CS- extinction prototype,SAD,Placebo,0,Female,0,34,0.0
+N145,CSS,3,CSS_CSminus_TargetSimilarity,-0.12523164844662865,CS- extinction prototype,SAD,Placebo,0,Female,0,34,0.0
+N145,CSS,4,CSS_CSminus_TargetSimilarity,0.06103285907720692,CS- extinction prototype,SAD,Placebo,0,Female,0,34,0.0
+N145,CSS,5,CSS_CSminus_TargetSimilarity,0.1126413780809422,CS- extinction prototype,SAD,Placebo,0,Female,0,34,0.0
+N145,CSS,6,CSS_CSminus_TargetSimilarity,0.020724564541863517,CS- extinction prototype,SAD,Placebo,0,Female,0,34,0.0
+N145,CSS,7,CSS_CSminus_TargetSimilarity,0.05071681751608511,CS- extinction prototype,SAD,Placebo,0,Female,0,34,0.0
+N145,CSS,8,CSS_CSminus_TargetSimilarity,-0.6784185677396876,CS- extinction prototype,SAD,Placebo,0,Female,0,34,0.0
+N145,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,0.09047423576952505,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,34,0.0
+N145,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,-0.06875391397089621,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,34,0.0
+N145,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,0.015500363978389211,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,34,0.0
+N145,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,0.13374410351918,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,34,0.0
+N145,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,-0.007518787837370105,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,34,0.0
+N145,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,0.016950004134836924,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,34,0.0
+N145,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,0.06765751243327954,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,34,0.0
+N145,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,0.09435602544785356,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,34,0.0
+N146,CSS,1,CSS_CSminus_TargetSimilarity,-0.20559856737293303,CS- extinction prototype,SAD,Oxytocin,1,Male,1,33,1.0
+N146,CSS,2,CSS_CSminus_TargetSimilarity,-0.29056540713215306,CS- extinction prototype,SAD,Oxytocin,1,Male,1,33,1.0
+N146,CSS,3,CSS_CSminus_TargetSimilarity,-0.14840960968235437,CS- extinction prototype,SAD,Oxytocin,1,Male,1,33,1.0
+N146,CSS,4,CSS_CSminus_TargetSimilarity,-0.07737756291859914,CS- extinction prototype,SAD,Oxytocin,1,Male,1,33,1.0
+N146,CSS,5,CSS_CSminus_TargetSimilarity,-0.09296099518018443,CS- extinction prototype,SAD,Oxytocin,1,Male,1,33,1.0
+N146,CSS,6,CSS_CSminus_TargetSimilarity,0.13735487414056644,CS- extinction prototype,SAD,Oxytocin,1,Male,1,33,1.0
+N146,CSS,7,CSS_CSminus_TargetSimilarity,-0.29120057473334177,CS- extinction prototype,SAD,Oxytocin,1,Male,1,33,1.0
+N146,CSS,8,CSS_CSminus_TargetSimilarity,-0.22073612186799202,CS- extinction prototype,SAD,Oxytocin,1,Male,1,33,1.0
+N146,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,-0.1269889060394153,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,33,1.0
+N146,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,-0.04939872926956841,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,33,1.0
+N146,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,-0.04941198323479766,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,33,1.0
+N146,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,-0.05757011340376555,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,33,1.0
+N146,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.028145751171317485,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,33,1.0
+N146,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,-0.006525942726367489,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,33,1.0
+N146,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,0.07303098660695619,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,33,1.0
+N146,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.08504402209669581,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,33,1.0
+N147,CSS,1,CSS_CSminus_TargetSimilarity,-0.2093227429608082,CS- extinction prototype,SAD,Oxytocin,1,Female,0,18,0.0
+N147,CSS,2,CSS_CSminus_TargetSimilarity,-0.17423241898639832,CS- extinction prototype,SAD,Oxytocin,1,Female,0,18,0.0
+N147,CSS,3,CSS_CSminus_TargetSimilarity,-0.3843640177895191,CS- extinction prototype,SAD,Oxytocin,1,Female,0,18,0.0
+N147,CSS,4,CSS_CSminus_TargetSimilarity,-0.2592369373189322,CS- extinction prototype,SAD,Oxytocin,1,Female,0,18,0.0
+N147,CSS,5,CSS_CSminus_TargetSimilarity,-0.1114385832345813,CS- extinction prototype,SAD,Oxytocin,1,Female,0,18,0.0
+N147,CSS,6,CSS_CSminus_TargetSimilarity,-0.17172918630607334,CS- extinction prototype,SAD,Oxytocin,1,Female,0,18,0.0
+N147,CSS,7,CSS_CSminus_TargetSimilarity,-0.29280571950798906,CS- extinction prototype,SAD,Oxytocin,1,Female,0,18,0.0
+N147,CSS,8,CSS_CSminus_TargetSimilarity,-0.35003416272552046,CS- extinction prototype,SAD,Oxytocin,1,Female,0,18,0.0
+N147,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,-0.016516193768858024,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,18,0.0
+N147,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,-0.06304816664909121,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,18,0.0
+N147,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,-0.006996446784311037,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,18,0.0
+N147,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,-0.06334638977959502,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,18,0.0
+N147,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.06221060486353486,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,18,0.0
+N147,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,-0.022668969505742823,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,18,0.0
+N147,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,0.1024205363463708,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,18,0.0
+N147,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,0.046778600907365527,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,18,0.0
+N148,CSS,1,CSS_CSminus_TargetSimilarity,-0.03832230651069743,CS- extinction prototype,SAD,Placebo,0,Female,0,33,0.0
+N148,CSS,2,CSS_CSminus_TargetSimilarity,-0.034890757497991434,CS- extinction prototype,SAD,Placebo,0,Female,0,33,0.0
+N148,CSS,3,CSS_CSminus_TargetSimilarity,-0.17273466411745378,CS- extinction prototype,SAD,Placebo,0,Female,0,33,0.0
+N148,CSS,4,CSS_CSminus_TargetSimilarity,-0.09527399187878098,CS- extinction prototype,SAD,Placebo,0,Female,0,33,0.0
+N148,CSS,5,CSS_CSminus_TargetSimilarity,-0.17381646186996616,CS- extinction prototype,SAD,Placebo,0,Female,0,33,0.0
+N148,CSS,6,CSS_CSminus_TargetSimilarity,0.05414769314474828,CS- extinction prototype,SAD,Placebo,0,Female,0,33,0.0
+N148,CSS,7,CSS_CSminus_TargetSimilarity,-0.22676773277630974,CS- extinction prototype,SAD,Placebo,0,Female,0,33,0.0
+N148,CSS,8,CSS_CSminus_TargetSimilarity,-0.15133402648266167,CS- extinction prototype,SAD,Placebo,0,Female,0,33,0.0
+N148,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,-0.013131862447988788,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,33,0.0
+N148,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,0.12291433690741477,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,33,0.0
+N148,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,0.11314009728667412,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,33,0.0
+N148,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,-0.07588425813598156,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,33,0.0
+N148,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.09747886764750191,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,33,0.0
+N148,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,0.10653999601618358,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,33,0.0
+N148,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,-0.12198107236697056,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,33,0.0
+N148,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.15628037106349546,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,33,0.0
+N149,CSS,1,CSS_CSminus_TargetSimilarity,-0.15344725703837028,CS- extinction prototype,SAD,Placebo,0,Female,0,18,0.0
+N149,CSS,2,CSS_CSminus_TargetSimilarity,-0.09990807684242893,CS- extinction prototype,SAD,Placebo,0,Female,0,18,0.0
+N149,CSS,3,CSS_CSminus_TargetSimilarity,-0.285478559926858,CS- extinction prototype,SAD,Placebo,0,Female,0,18,0.0
+N149,CSS,4,CSS_CSminus_TargetSimilarity,-0.12795067987516676,CS- extinction prototype,SAD,Placebo,0,Female,0,18,0.0
+N149,CSS,5,CSS_CSminus_TargetSimilarity,-0.02329900173520095,CS- extinction prototype,SAD,Placebo,0,Female,0,18,0.0
+N149,CSS,6,CSS_CSminus_TargetSimilarity,-0.3292985865523449,CS- extinction prototype,SAD,Placebo,0,Female,0,18,0.0
+N149,CSS,7,CSS_CSminus_TargetSimilarity,-0.22571497276577554,CS- extinction prototype,SAD,Placebo,0,Female,0,18,0.0
+N149,CSS,8,CSS_CSminus_TargetSimilarity,0.08452177394057589,CS- extinction prototype,SAD,Placebo,0,Female,0,18,0.0
+N149,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,-0.03215893064151363,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,18,0.0
+N149,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,-0.06127300364169506,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,18,0.0
+N149,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,0.03568562769761323,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,18,0.0
+N149,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,-0.042415629342120245,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,18,0.0
+N149,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.1208456591519862,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,18,0.0
+N149,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,-0.0021196228980670103,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,18,0.0
+N149,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,0.011071719381866359,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,18,0.0
+N149,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.14572619091605538,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,18,0.0
+N150,CSS,1,CSS_CSminus_TargetSimilarity,-0.10286656475533071,CS- extinction prototype,SAD,Placebo,0,Female,0,19,0.0
+N150,CSS,2,CSS_CSminus_TargetSimilarity,-0.08193038383006401,CS- extinction prototype,SAD,Placebo,0,Female,0,19,0.0
+N150,CSS,3,CSS_CSminus_TargetSimilarity,-0.1547083365095659,CS- extinction prototype,SAD,Placebo,0,Female,0,19,0.0
+N150,CSS,4,CSS_CSminus_TargetSimilarity,-0.13956002636994175,CS- extinction prototype,SAD,Placebo,0,Female,0,19,0.0
+N150,CSS,5,CSS_CSminus_TargetSimilarity,-0.08988736899973529,CS- extinction prototype,SAD,Placebo,0,Female,0,19,0.0
+N150,CSS,6,CSS_CSminus_TargetSimilarity,-0.18502611159151103,CS- extinction prototype,SAD,Placebo,0,Female,0,19,0.0
+N150,CSS,7,CSS_CSminus_TargetSimilarity,-0.17953455573508084,CS- extinction prototype,SAD,Placebo,0,Female,0,19,0.0
+N150,CSS,8,CSS_CSminus_TargetSimilarity,-0.4560886966748188,CS- extinction prototype,SAD,Placebo,0,Female,0,19,0.0
+N150,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,0.03737878694427112,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,19,0.0
+N150,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,-0.0145902145106687,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,19,0.0
+N150,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,0.0390506709074475,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,19,0.0
+N150,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,0.027526626437146366,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,19,0.0
+N150,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.02873370260655228,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,19,0.0
+N150,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,-0.022225608533161637,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,19,0.0
+N150,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,-0.06073863951012103,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,19,0.0
+N150,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.04908736981458267,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,19,0.0
+N151,CSS,1,CSS_CSminus_TargetSimilarity,-0.11100240563020912,CS- extinction prototype,SAD,Oxytocin,1,Female,0,22,1.0
+N151,CSS,2,CSS_CSminus_TargetSimilarity,0.003816447484650178,CS- extinction prototype,SAD,Oxytocin,1,Female,0,22,1.0
+N151,CSS,3,CSS_CSminus_TargetSimilarity,-0.17721336629687082,CS- extinction prototype,SAD,Oxytocin,1,Female,0,22,1.0
+N151,CSS,4,CSS_CSminus_TargetSimilarity,-0.18152247515133468,CS- extinction prototype,SAD,Oxytocin,1,Female,0,22,1.0
+N151,CSS,5,CSS_CSminus_TargetSimilarity,-0.037074011872353006,CS- extinction prototype,SAD,Oxytocin,1,Female,0,22,1.0
+N151,CSS,6,CSS_CSminus_TargetSimilarity,-0.1646906504211571,CS- extinction prototype,SAD,Oxytocin,1,Female,0,22,1.0
+N151,CSS,7,CSS_CSminus_TargetSimilarity,-0.013160568272423455,CS- extinction prototype,SAD,Oxytocin,1,Female,0,22,1.0
+N151,CSS,8,CSS_CSminus_TargetSimilarity,-0.14515428804516517,CS- extinction prototype,SAD,Oxytocin,1,Female,0,22,1.0
+N151,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,-0.146289465181466,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,22,1.0
+N151,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,-0.0008920097987375749,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,22,1.0
+N151,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,0.11648137990160709,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,22,1.0
+N151,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,0.03269420725899193,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,22,1.0
+N151,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.15719714612117006,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,22,1.0
+N151,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,0.05128439849163162,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,22,1.0
+N151,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,0.01969907906794824,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,22,1.0
+N151,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.07466782401708727,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,22,1.0
+N153,CSS,1,CSS_CSminus_TargetSimilarity,-0.21525536995716626,CS- extinction prototype,SAD,Placebo,0,Female,0,25,0.0
+N153,CSS,2,CSS_CSminus_TargetSimilarity,-0.12167573524936556,CS- extinction prototype,SAD,Placebo,0,Female,0,25,0.0
+N153,CSS,3,CSS_CSminus_TargetSimilarity,-0.15715128315847396,CS- extinction prototype,SAD,Placebo,0,Female,0,25,0.0
+N153,CSS,4,CSS_CSminus_TargetSimilarity,-0.23975270491970532,CS- extinction prototype,SAD,Placebo,0,Female,0,25,0.0
+N153,CSS,5,CSS_CSminus_TargetSimilarity,-0.03726680093925171,CS- extinction prototype,SAD,Placebo,0,Female,0,25,0.0
+N153,CSS,6,CSS_CSminus_TargetSimilarity,-0.06525022749644792,CS- extinction prototype,SAD,Placebo,0,Female,0,25,0.0
+N153,CSS,7,CSS_CSminus_TargetSimilarity,-0.25260003191887526,CS- extinction prototype,SAD,Placebo,0,Female,0,25,0.0
+N153,CSS,8,CSS_CSminus_TargetSimilarity,0.011174069618563653,CS- extinction prototype,SAD,Placebo,0,Female,0,25,0.0
+N153,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,-0.014046519209153339,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,25,0.0
+N153,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,0.028780780552344117,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,25,0.0
+N153,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,-0.0003149846547694812,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,25,0.0
+N153,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,-0.032308005081177066,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,25,0.0
+N153,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.015721036145478727,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,25,0.0
+N153,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,-0.004411557766436163,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,25,0.0
+N153,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,0.06390790553941161,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,25,0.0
+N153,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.011168954306193786,early reinstatement CSR prototype,SAD,Placebo,0,Female,0,25,0.0
+N154,CSS,1,CSS_CSminus_TargetSimilarity,-0.05910653162394322,CS- extinction prototype,SAD,Oxytocin,1,Male,1,19,1.0
+N154,CSS,2,CSS_CSminus_TargetSimilarity,-0.24041162928756699,CS- extinction prototype,SAD,Oxytocin,1,Male,1,19,1.0
+N154,CSS,3,CSS_CSminus_TargetSimilarity,-0.08213037093787355,CS- extinction prototype,SAD,Oxytocin,1,Male,1,19,1.0
+N154,CSS,4,CSS_CSminus_TargetSimilarity,-0.02533103927710889,CS- extinction prototype,SAD,Oxytocin,1,Male,1,19,1.0
+N154,CSS,5,CSS_CSminus_TargetSimilarity,0.06890330352940853,CS- extinction prototype,SAD,Oxytocin,1,Male,1,19,1.0
+N154,CSS,6,CSS_CSminus_TargetSimilarity,-0.0479846088308316,CS- extinction prototype,SAD,Oxytocin,1,Male,1,19,1.0
+N154,CSS,7,CSS_CSminus_TargetSimilarity,-0.0948844583880822,CS- extinction prototype,SAD,Oxytocin,1,Male,1,19,1.0
+N154,CSS,8,CSS_CSminus_TargetSimilarity,-0.11434796395281019,CS- extinction prototype,SAD,Oxytocin,1,Male,1,19,1.0
+N154,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,-0.022186111906117998,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,19,1.0
+N154,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,-0.050848346610261545,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,19,1.0
+N154,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,0.076637641356423,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,19,1.0
+N154,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,0.05733302534218992,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,19,1.0
+N154,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.09170759286324123,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,19,1.0
+N154,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,0.08789108608580597,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,19,1.0
+N154,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,0.12157146674057143,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,19,1.0
+N154,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.11419600900078819,early reinstatement CSR prototype,SAD,Oxytocin,1,Male,1,19,1.0
+N155,CSS,1,CSS_CSminus_TargetSimilarity,-0.20949071587394935,CS- extinction prototype,SAD,Oxytocin,1,Female,0,26,1.0
+N155,CSS,2,CSS_CSminus_TargetSimilarity,-0.13384423259748526,CS- extinction prototype,SAD,Oxytocin,1,Female,0,26,1.0
+N155,CSS,3,CSS_CSminus_TargetSimilarity,-0.15045348832331037,CS- extinction prototype,SAD,Oxytocin,1,Female,0,26,1.0
+N155,CSS,4,CSS_CSminus_TargetSimilarity,-0.23034329409745272,CS- extinction prototype,SAD,Oxytocin,1,Female,0,26,1.0
+N155,CSS,5,CSS_CSminus_TargetSimilarity,-0.3524080244405534,CS- extinction prototype,SAD,Oxytocin,1,Female,0,26,1.0
+N155,CSS,6,CSS_CSminus_TargetSimilarity,-0.2586117871107531,CS- extinction prototype,SAD,Oxytocin,1,Female,0,26,1.0
+N155,CSS,7,CSS_CSminus_TargetSimilarity,-0.0869970626584341,CS- extinction prototype,SAD,Oxytocin,1,Female,0,26,1.0
+N155,CSS,8,CSS_CSminus_TargetSimilarity,0.08699328547161032,CS- extinction prototype,SAD,Oxytocin,1,Female,0,26,1.0
+N155,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,-0.006652674778303778,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,26,1.0
+N155,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,0.018270504413220336,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,26,1.0
+N155,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,0.0026620801492600057,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,26,1.0
+N155,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,0.00018285202388492735,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,26,1.0
+N155,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.02789861344439993,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,26,1.0
+N155,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,-0.025503216458131403,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,26,1.0
+N155,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,-0.03242587148837731,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,26,1.0
+N155,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,0.007116549082589885,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,26,1.0
+N156,CSS,1,CSS_CSminus_TargetSimilarity,-0.1239483732675115,CS- extinction prototype,SAD,Placebo,0,Male,1,19,1.0
+N156,CSS,2,CSS_CSminus_TargetSimilarity,-0.08273107070011583,CS- extinction prototype,SAD,Placebo,0,Male,1,19,1.0
+N156,CSS,3,CSS_CSminus_TargetSimilarity,-0.05689371071960988,CS- extinction prototype,SAD,Placebo,0,Male,1,19,1.0
+N156,CSS,4,CSS_CSminus_TargetSimilarity,0.019467590356111945,CS- extinction prototype,SAD,Placebo,0,Male,1,19,1.0
+N156,CSS,5,CSS_CSminus_TargetSimilarity,-0.16747154552761234,CS- extinction prototype,SAD,Placebo,0,Male,1,19,1.0
+N156,CSS,6,CSS_CSminus_TargetSimilarity,-0.2449242177871738,CS- extinction prototype,SAD,Placebo,0,Male,1,19,1.0
+N156,CSS,7,CSS_CSminus_TargetSimilarity,-0.002260147215325402,CS- extinction prototype,SAD,Placebo,0,Male,1,19,1.0
+N156,CSS,8,CSS_CSminus_TargetSimilarity,-0.1595917120285151,CS- extinction prototype,SAD,Placebo,0,Male,1,19,1.0
+N156,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,-0.07910189447095826,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,19,1.0
+N156,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,0.00020326160923224304,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,19,1.0
+N156,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,0.03126322928911303,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,19,1.0
+N156,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,0.026796201835547106,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,19,1.0
+N156,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,-0.06321531316693269,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,19,1.0
+N156,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,-0.02658886093223163,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,19,1.0
+N156,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,0.01149759431712928,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,19,1.0
+N156,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.022181805466070546,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,19,1.0
+N157,CSS,1,CSS_CSminus_TargetSimilarity,-0.19450655581498202,CS- extinction prototype,SAD,Oxytocin,1,Female,0,20,0.0
+N157,CSS,2,CSS_CSminus_TargetSimilarity,-0.08490996408519648,CS- extinction prototype,SAD,Oxytocin,1,Female,0,20,0.0
+N157,CSS,3,CSS_CSminus_TargetSimilarity,-0.2922529549408264,CS- extinction prototype,SAD,Oxytocin,1,Female,0,20,0.0
+N157,CSS,4,CSS_CSminus_TargetSimilarity,-0.21995448941359633,CS- extinction prototype,SAD,Oxytocin,1,Female,0,20,0.0
+N157,CSS,5,CSS_CSminus_TargetSimilarity,-0.21384939852086993,CS- extinction prototype,SAD,Oxytocin,1,Female,0,20,0.0
+N157,CSS,6,CSS_CSminus_TargetSimilarity,-0.21873089776601445,CS- extinction prototype,SAD,Oxytocin,1,Female,0,20,0.0
+N157,CSS,7,CSS_CSminus_TargetSimilarity,-0.08405780071170021,CS- extinction prototype,SAD,Oxytocin,1,Female,0,20,0.0
+N157,CSS,8,CSS_CSminus_TargetSimilarity,-0.20465355024803397,CS- extinction prototype,SAD,Oxytocin,1,Female,0,20,0.0
+N157,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,0.010305790903965197,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,20,0.0
+N157,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,0.005121251947359139,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,20,0.0
+N157,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,-0.0018562375241187525,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,20,0.0
+N157,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,-0.0014664561718942127,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,20,0.0
+N157,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.003849836343612666,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,20,0.0
+N157,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,-0.007466218298735188,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,20,0.0
+N157,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,-0.0013168799913210914,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,20,0.0
+N157,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.019683406328763416,early reinstatement CSR prototype,SAD,Oxytocin,1,Female,0,20,0.0
+N158,CSS,1,CSS_CSminus_TargetSimilarity,-0.0052193046755464635,CS- extinction prototype,SAD,Placebo,0,Male,1,18,0.0
+N158,CSS,2,CSS_CSminus_TargetSimilarity,-0.035480476748340005,CS- extinction prototype,SAD,Placebo,0,Male,1,18,0.0
+N158,CSS,3,CSS_CSminus_TargetSimilarity,-0.05484508706545052,CS- extinction prototype,SAD,Placebo,0,Male,1,18,0.0
+N158,CSS,4,CSS_CSminus_TargetSimilarity,-0.1597464330169877,CS- extinction prototype,SAD,Placebo,0,Male,1,18,0.0
+N158,CSS,5,CSS_CSminus_TargetSimilarity,-0.30089045708328255,CS- extinction prototype,SAD,Placebo,0,Male,1,18,0.0
+N158,CSS,6,CSS_CSminus_TargetSimilarity,-0.1438424625017729,CS- extinction prototype,SAD,Placebo,0,Male,1,18,0.0
+N158,CSS,7,CSS_CSminus_TargetSimilarity,-0.18216046287577534,CS- extinction prototype,SAD,Placebo,0,Male,1,18,0.0
+N158,CSS,8,CSS_CSminus_TargetSimilarity,-0.2987852060733484,CS- extinction prototype,SAD,Placebo,0,Male,1,18,0.0
+N158,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,-0.0897839685357486,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,18,0.0
+N158,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,-0.034699470319820624,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,18,0.0
+N158,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,-0.06338561553153621,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,18,0.0
+N158,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,0.13403797163754644,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,18,0.0
+N158,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.10923255356079271,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,18,0.0
+N158,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,-0.09736844087313663,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,18,0.0
+N158,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,0.08312226818848467,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,18,0.0
+N158,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,0.0759087790276239,early reinstatement CSR prototype,SAD,Placebo,0,Male,1,18,0.0
+N201,CSS,1,CSS_CSminus_TargetSimilarity,-0.28512108219652227,CS- extinction prototype,HC,Placebo,0,Male,1,45,0.0
+N201,CSS,2,CSS_CSminus_TargetSimilarity,-0.25126210394076837,CS- extinction prototype,HC,Placebo,0,Male,1,45,0.0
+N201,CSS,3,CSS_CSminus_TargetSimilarity,-0.19738566638019436,CS- extinction prototype,HC,Placebo,0,Male,1,45,0.0
+N201,CSS,4,CSS_CSminus_TargetSimilarity,0.17612972900038124,CS- extinction prototype,HC,Placebo,0,Male,1,45,0.0
+N201,CSS,5,CSS_CSminus_TargetSimilarity,-0.22365968976566028,CS- extinction prototype,HC,Placebo,0,Male,1,45,0.0
+N201,CSS,6,CSS_CSminus_TargetSimilarity,-0.3518963323439937,CS- extinction prototype,HC,Placebo,0,Male,1,45,0.0
+N201,CSS,7,CSS_CSminus_TargetSimilarity,0.10091527234721188,CS- extinction prototype,HC,Placebo,0,Male,1,45,0.0
+N201,CSS,8,CSS_CSminus_TargetSimilarity,-0.48795988113183064,CS- extinction prototype,HC,Placebo,0,Male,1,45,0.0
+N201,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,-0.21736033854030892,early reinstatement CSR prototype,HC,Placebo,0,Male,1,45,0.0
+N201,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,-0.02311150655281564,early reinstatement CSR prototype,HC,Placebo,0,Male,1,45,0.0
+N201,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,0.1396898524630128,early reinstatement CSR prototype,HC,Placebo,0,Male,1,45,0.0
+N201,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,-0.0768204032277609,early reinstatement CSR prototype,HC,Placebo,0,Male,1,45,0.0
+N201,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.10116526318656237,early reinstatement CSR prototype,HC,Placebo,0,Male,1,45,0.0
+N201,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,0.06389060904840406,early reinstatement CSR prototype,HC,Placebo,0,Male,1,45,0.0
+N201,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,0.2847612112145346,early reinstatement CSR prototype,HC,Placebo,0,Male,1,45,0.0
+N201,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.12393374522418554,early reinstatement CSR prototype,HC,Placebo,0,Male,1,45,0.0
+N203,CSS,1,CSS_CSminus_TargetSimilarity,-0.022364898940930453,CS- extinction prototype,HC,Oxytocin,1,Female,0,22,1.0
+N203,CSS,2,CSS_CSminus_TargetSimilarity,-0.059744424060903474,CS- extinction prototype,HC,Oxytocin,1,Female,0,22,1.0
+N203,CSS,3,CSS_CSminus_TargetSimilarity,-0.2277765028702348,CS- extinction prototype,HC,Oxytocin,1,Female,0,22,1.0
+N203,CSS,4,CSS_CSminus_TargetSimilarity,-0.034535225847078806,CS- extinction prototype,HC,Oxytocin,1,Female,0,22,1.0
+N203,CSS,5,CSS_CSminus_TargetSimilarity,-0.22884184253777554,CS- extinction prototype,HC,Oxytocin,1,Female,0,22,1.0
+N203,CSS,6,CSS_CSminus_TargetSimilarity,-0.17228917662335477,CS- extinction prototype,HC,Oxytocin,1,Female,0,22,1.0
+N203,CSS,7,CSS_CSminus_TargetSimilarity,-0.2674688687953701,CS- extinction prototype,HC,Oxytocin,1,Female,0,22,1.0
+N203,CSS,8,CSS_CSminus_TargetSimilarity,-0.13787471701639684,CS- extinction prototype,HC,Oxytocin,1,Female,0,22,1.0
+N203,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,0.013618737900369476,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,22,1.0
+N203,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,0.048865561526836916,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,22,1.0
+N203,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,0.050894919696592364,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,22,1.0
+N203,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,0.13783025758440598,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,22,1.0
+N203,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.052065042772828286,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,22,1.0
+N203,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,-0.01976805691815253,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,22,1.0
+N203,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,-0.009023372535915437,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,22,1.0
+N203,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.097128862886522,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,22,1.0
+N204,CSS,1,CSS_CSminus_TargetSimilarity,0.042220575571604836,CS- extinction prototype,HC,Placebo,0,Female,0,28,0.0
+N204,CSS,2,CSS_CSminus_TargetSimilarity,-0.10711796550189458,CS- extinction prototype,HC,Placebo,0,Female,0,28,0.0
+N204,CSS,3,CSS_CSminus_TargetSimilarity,0.01737984588414531,CS- extinction prototype,HC,Placebo,0,Female,0,28,0.0
+N204,CSS,4,CSS_CSminus_TargetSimilarity,-0.13024176020210876,CS- extinction prototype,HC,Placebo,0,Female,0,28,0.0
+N204,CSS,5,CSS_CSminus_TargetSimilarity,-0.06806958186618532,CS- extinction prototype,HC,Placebo,0,Female,0,28,0.0
+N204,CSS,6,CSS_CSminus_TargetSimilarity,-0.07548307385993817,CS- extinction prototype,HC,Placebo,0,Female,0,28,0.0
+N204,CSS,7,CSS_CSminus_TargetSimilarity,-0.06494771770435007,CS- extinction prototype,HC,Placebo,0,Female,0,28,0.0
+N204,CSS,8,CSS_CSminus_TargetSimilarity,-0.32525983262396047,CS- extinction prototype,HC,Placebo,0,Female,0,28,0.0
+N204,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,-0.08662169102437019,early reinstatement CSR prototype,HC,Placebo,0,Female,0,28,0.0
+N204,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,-0.0858473920960682,early reinstatement CSR prototype,HC,Placebo,0,Female,0,28,0.0
+N204,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,0.11227012040494666,early reinstatement CSR prototype,HC,Placebo,0,Female,0,28,0.0
+N204,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,-0.11998603841341841,early reinstatement CSR prototype,HC,Placebo,0,Female,0,28,0.0
+N204,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,-0.09737442942569242,early reinstatement CSR prototype,HC,Placebo,0,Female,0,28,0.0
+N204,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,-0.14306535391354538,early reinstatement CSR prototype,HC,Placebo,0,Female,0,28,0.0
+N204,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,-0.0394529587456245,early reinstatement CSR prototype,HC,Placebo,0,Female,0,28,0.0
+N204,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,0.16801705928691912,early reinstatement CSR prototype,HC,Placebo,0,Female,0,28,0.0
+N206,CSS,1,CSS_CSminus_TargetSimilarity,-0.11768037681860813,CS- extinction prototype,HC,Placebo,0,Male,1,38,0.0
+N206,CSS,2,CSS_CSminus_TargetSimilarity,-0.0775429841437922,CS- extinction prototype,HC,Placebo,0,Male,1,38,0.0
+N206,CSS,3,CSS_CSminus_TargetSimilarity,-0.06294422044597432,CS- extinction prototype,HC,Placebo,0,Male,1,38,0.0
+N206,CSS,4,CSS_CSminus_TargetSimilarity,-0.16137230281205686,CS- extinction prototype,HC,Placebo,0,Male,1,38,0.0
+N206,CSS,5,CSS_CSminus_TargetSimilarity,-0.12117752600063803,CS- extinction prototype,HC,Placebo,0,Male,1,38,0.0
+N206,CSS,6,CSS_CSminus_TargetSimilarity,-0.2891977092687231,CS- extinction prototype,HC,Placebo,0,Male,1,38,0.0
+N206,CSS,7,CSS_CSminus_TargetSimilarity,-0.13379925178034557,CS- extinction prototype,HC,Placebo,0,Male,1,38,0.0
+N206,CSS,8,CSS_CSminus_TargetSimilarity,-0.11375864302894714,CS- extinction prototype,HC,Placebo,0,Male,1,38,0.0
+N206,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,-0.03593987896023852,early reinstatement CSR prototype,HC,Placebo,0,Male,1,38,0.0
+N206,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,0.08896769892795603,early reinstatement CSR prototype,HC,Placebo,0,Male,1,38,0.0
+N206,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,-0.03880673934397446,early reinstatement CSR prototype,HC,Placebo,0,Male,1,38,0.0
+N206,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,-0.008357368868916658,early reinstatement CSR prototype,HC,Placebo,0,Male,1,38,0.0
+N206,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.014268963429091456,early reinstatement CSR prototype,HC,Placebo,0,Male,1,38,0.0
+N206,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,0.05172448981500415,early reinstatement CSR prototype,HC,Placebo,0,Male,1,38,0.0
+N206,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,-0.016795368587310785,early reinstatement CSR prototype,HC,Placebo,0,Male,1,38,0.0
+N206,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.10064591574585358,early reinstatement CSR prototype,HC,Placebo,0,Male,1,38,0.0
+N207,CSS,1,CSS_CSminus_TargetSimilarity,-0.10717464543175126,CS- extinction prototype,HC,Placebo,0,Male,1,38,1.0
+N207,CSS,2,CSS_CSminus_TargetSimilarity,-0.05623979812277754,CS- extinction prototype,HC,Placebo,0,Male,1,38,1.0
+N207,CSS,3,CSS_CSminus_TargetSimilarity,-0.15525751367296528,CS- extinction prototype,HC,Placebo,0,Male,1,38,1.0
+N207,CSS,4,CSS_CSminus_TargetSimilarity,-0.027352802338842096,CS- extinction prototype,HC,Placebo,0,Male,1,38,1.0
+N207,CSS,5,CSS_CSminus_TargetSimilarity,-0.1974231962261054,CS- extinction prototype,HC,Placebo,0,Male,1,38,1.0
+N207,CSS,6,CSS_CSminus_TargetSimilarity,-0.2946677432388919,CS- extinction prototype,HC,Placebo,0,Male,1,38,1.0
+N207,CSS,7,CSS_CSminus_TargetSimilarity,-0.12258541967693008,CS- extinction prototype,HC,Placebo,0,Male,1,38,1.0
+N207,CSS,8,CSS_CSminus_TargetSimilarity,-0.04297726189519963,CS- extinction prototype,HC,Placebo,0,Male,1,38,1.0
+N207,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,-0.12568858863337484,early reinstatement CSR prototype,HC,Placebo,0,Male,1,38,1.0
+N207,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,-0.040315096677924725,early reinstatement CSR prototype,HC,Placebo,0,Male,1,38,1.0
+N207,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,0.06438315345885243,early reinstatement CSR prototype,HC,Placebo,0,Male,1,38,1.0
+N207,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,-0.05072808376898912,early reinstatement CSR prototype,HC,Placebo,0,Male,1,38,1.0
+N207,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.1214479622831116,early reinstatement CSR prototype,HC,Placebo,0,Male,1,38,1.0
+N207,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,0.09237555102497004,early reinstatement CSR prototype,HC,Placebo,0,Male,1,38,1.0
+N207,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,0.03532829433006118,early reinstatement CSR prototype,HC,Placebo,0,Male,1,38,1.0
+N207,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,0.01945804111041302,early reinstatement CSR prototype,HC,Placebo,0,Male,1,38,1.0
+N209,CSS,1,CSS_CSminus_TargetSimilarity,-0.030214781311046317,CS- extinction prototype,HC,Placebo,0,Female,0,37,1.0
+N209,CSS,2,CSS_CSminus_TargetSimilarity,-0.08276857818779033,CS- extinction prototype,HC,Placebo,0,Female,0,37,1.0
+N209,CSS,3,CSS_CSminus_TargetSimilarity,-0.1536686389436906,CS- extinction prototype,HC,Placebo,0,Female,0,37,1.0
+N209,CSS,4,CSS_CSminus_TargetSimilarity,-0.028070402614943698,CS- extinction prototype,HC,Placebo,0,Female,0,37,1.0
+N209,CSS,5,CSS_CSminus_TargetSimilarity,-0.03113512086223799,CS- extinction prototype,HC,Placebo,0,Female,0,37,1.0
+N209,CSS,6,CSS_CSminus_TargetSimilarity,-0.192291291920491,CS- extinction prototype,HC,Placebo,0,Female,0,37,1.0
+N209,CSS,7,CSS_CSminus_TargetSimilarity,-0.051100897384037704,CS- extinction prototype,HC,Placebo,0,Female,0,37,1.0
+N209,CSS,8,CSS_CSminus_TargetSimilarity,-0.1175834880412527,CS- extinction prototype,HC,Placebo,0,Female,0,37,1.0
+N209,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,-0.038155348351770396,early reinstatement CSR prototype,HC,Placebo,0,Female,0,37,1.0
+N209,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,-0.1002330181430133,early reinstatement CSR prototype,HC,Placebo,0,Female,0,37,1.0
+N209,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,0.1356382068626447,early reinstatement CSR prototype,HC,Placebo,0,Female,0,37,1.0
+N209,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,-0.057918648498370695,early reinstatement CSR prototype,HC,Placebo,0,Female,0,37,1.0
+N209,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.045148626310076705,early reinstatement CSR prototype,HC,Placebo,0,Female,0,37,1.0
+N209,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,0.09600794375183531,early reinstatement CSR prototype,HC,Placebo,0,Female,0,37,1.0
+N209,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,0.016961268504085664,early reinstatement CSR prototype,HC,Placebo,0,Female,0,37,1.0
+N209,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.05851269543290602,early reinstatement CSR prototype,HC,Placebo,0,Female,0,37,1.0
+N210,CSS,1,CSS_CSminus_TargetSimilarity,-0.30089880355777515,CS- extinction prototype,HC,Oxytocin,1,Male,1,22,0.0
+N210,CSS,2,CSS_CSminus_TargetSimilarity,-0.13965196181146072,CS- extinction prototype,HC,Oxytocin,1,Male,1,22,0.0
+N210,CSS,3,CSS_CSminus_TargetSimilarity,-0.34021763642909525,CS- extinction prototype,HC,Oxytocin,1,Male,1,22,0.0
+N210,CSS,4,CSS_CSminus_TargetSimilarity,-0.21802347998278704,CS- extinction prototype,HC,Oxytocin,1,Male,1,22,0.0
+N210,CSS,5,CSS_CSminus_TargetSimilarity,-0.15862940853294127,CS- extinction prototype,HC,Oxytocin,1,Male,1,22,0.0
+N210,CSS,6,CSS_CSminus_TargetSimilarity,-0.17301001733950422,CS- extinction prototype,HC,Oxytocin,1,Male,1,22,0.0
+N210,CSS,7,CSS_CSminus_TargetSimilarity,-0.15716352748395587,CS- extinction prototype,HC,Oxytocin,1,Male,1,22,0.0
+N210,CSS,8,CSS_CSminus_TargetSimilarity,-0.1681394917427118,CS- extinction prototype,HC,Oxytocin,1,Male,1,22,0.0
+N210,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,-0.030647359782499824,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,22,0.0
+N210,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,0.00792556233493245,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,22,0.0
+N210,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,-0.0016369281777664038,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,22,0.0
+N210,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,0.0051116485593544455,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,22,0.0
+N210,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.025531825872266472,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,22,0.0
+N210,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,-0.01189016402159867,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,22,0.0
+N210,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,0.021725674384747224,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,22,0.0
+N210,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.03330551942296147,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,22,0.0
+N211,CSS,1,CSS_CSminus_TargetSimilarity,-0.12166660476800381,CS- extinction prototype,HC,Placebo,0,Male,1,35,0.0
+N211,CSS,2,CSS_CSminus_TargetSimilarity,-0.17991741031717612,CS- extinction prototype,HC,Placebo,0,Male,1,35,0.0
+N211,CSS,3,CSS_CSminus_TargetSimilarity,-0.2589443230146379,CS- extinction prototype,HC,Placebo,0,Male,1,35,0.0
+N211,CSS,4,CSS_CSminus_TargetSimilarity,-0.16605448704887082,CS- extinction prototype,HC,Placebo,0,Male,1,35,0.0
+N211,CSS,5,CSS_CSminus_TargetSimilarity,-0.04954256281577771,CS- extinction prototype,HC,Placebo,0,Male,1,35,0.0
+N211,CSS,6,CSS_CSminus_TargetSimilarity,-0.0017883387054434129,CS- extinction prototype,HC,Placebo,0,Male,1,35,0.0
+N211,CSS,7,CSS_CSminus_TargetSimilarity,-0.005642059612961533,CS- extinction prototype,HC,Placebo,0,Male,1,35,0.0
+N211,CSS,8,CSS_CSminus_TargetSimilarity,-0.09780933768029748,CS- extinction prototype,HC,Placebo,0,Male,1,35,0.0
+N211,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,-0.08501767398723267,early reinstatement CSR prototype,HC,Placebo,0,Male,1,35,0.0
+N211,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,0.2638206697475521,early reinstatement CSR prototype,HC,Placebo,0,Male,1,35,0.0
+N211,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,-0.21198915245052527,early reinstatement CSR prototype,HC,Placebo,0,Male,1,35,0.0
+N211,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,-0.13379843830759675,early reinstatement CSR prototype,HC,Placebo,0,Male,1,35,0.0
+N211,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.0022964663927061927,early reinstatement CSR prototype,HC,Placebo,0,Male,1,35,0.0
+N211,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,-0.10185499740533033,early reinstatement CSR prototype,HC,Placebo,0,Male,1,35,0.0
+N211,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,0.25075435017504655,early reinstatement CSR prototype,HC,Placebo,0,Male,1,35,0.0
+N211,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.24711536677143275,early reinstatement CSR prototype,HC,Placebo,0,Male,1,35,0.0
+N212,CSS,1,CSS_CSminus_TargetSimilarity,-0.3014243479309798,CS- extinction prototype,HC,Oxytocin,1,Female,0,25,0.0
+N212,CSS,2,CSS_CSminus_TargetSimilarity,-0.10358696930748698,CS- extinction prototype,HC,Oxytocin,1,Female,0,25,0.0
+N212,CSS,3,CSS_CSminus_TargetSimilarity,-0.10356452004860335,CS- extinction prototype,HC,Oxytocin,1,Female,0,25,0.0
+N212,CSS,4,CSS_CSminus_TargetSimilarity,-0.2969436694039553,CS- extinction prototype,HC,Oxytocin,1,Female,0,25,0.0
+N212,CSS,5,CSS_CSminus_TargetSimilarity,0.019743309773724377,CS- extinction prototype,HC,Oxytocin,1,Female,0,25,0.0
+N212,CSS,6,CSS_CSminus_TargetSimilarity,-0.010291093685360181,CS- extinction prototype,HC,Oxytocin,1,Female,0,25,0.0
+N212,CSS,7,CSS_CSminus_TargetSimilarity,-0.317004129400093,CS- extinction prototype,HC,Oxytocin,1,Female,0,25,0.0
+N212,CSS,8,CSS_CSminus_TargetSimilarity,-0.3587308713680389,CS- extinction prototype,HC,Oxytocin,1,Female,0,25,0.0
+N212,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,0.03733754447890072,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,25,0.0
+N212,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,-0.07051789744466659,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,25,0.0
+N212,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,0.1383476750317726,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,25,0.0
+N212,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,-0.10303612128979123,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,25,0.0
+N212,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.10354659733688713,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,25,0.0
+N212,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,-0.020060655807587112,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,25,0.0
+N212,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,-0.0529568852158847,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,25,0.0
+N212,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.059250885361196826,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,25,0.0
+N213,CSS,1,CSS_CSminus_TargetSimilarity,-0.06020571240996163,CS- extinction prototype,HC,Oxytocin,1,Male,1,20,0.0
+N213,CSS,2,CSS_CSminus_TargetSimilarity,-0.014577079518169304,CS- extinction prototype,HC,Oxytocin,1,Male,1,20,0.0
+N213,CSS,3,CSS_CSminus_TargetSimilarity,-0.09426279883762015,CS- extinction prototype,HC,Oxytocin,1,Male,1,20,0.0
+N213,CSS,4,CSS_CSminus_TargetSimilarity,-0.29120103470429404,CS- extinction prototype,HC,Oxytocin,1,Male,1,20,0.0
+N213,CSS,5,CSS_CSminus_TargetSimilarity,-0.1866504443542967,CS- extinction prototype,HC,Oxytocin,1,Male,1,20,0.0
+N213,CSS,6,CSS_CSminus_TargetSimilarity,-0.12362143245873598,CS- extinction prototype,HC,Oxytocin,1,Male,1,20,0.0
+N213,CSS,7,CSS_CSminus_TargetSimilarity,-0.14728986742693936,CS- extinction prototype,HC,Oxytocin,1,Male,1,20,0.0
+N213,CSS,8,CSS_CSminus_TargetSimilarity,-0.060764307074993376,CS- extinction prototype,HC,Oxytocin,1,Male,1,20,0.0
+N213,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,-0.018163942209849116,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,20,0.0
+N213,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,-0.007751102768514606,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,20,0.0
+N213,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,-0.023555738734556724,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,20,0.0
+N213,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,-0.008844145834013014,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,20,0.0
+N213,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.012510512393453195,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,20,0.0
+N213,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,0.002542247738206248,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,20,0.0
+N213,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,-0.011358184512656262,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,20,0.0
+N213,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.021414041374437025,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,20,0.0
+N214,CSS,1,CSS_CSminus_TargetSimilarity,0.22194840241190547,CS- extinction prototype,HC,Placebo,0,Male,1,19,0.0
+N214,CSS,2,CSS_CSminus_TargetSimilarity,0.17947441938830316,CS- extinction prototype,HC,Placebo,0,Male,1,19,0.0
+N214,CSS,3,CSS_CSminus_TargetSimilarity,-0.07963365460756255,CS- extinction prototype,HC,Placebo,0,Male,1,19,0.0
+N214,CSS,4,CSS_CSminus_TargetSimilarity,0.150953259102575,CS- extinction prototype,HC,Placebo,0,Male,1,19,0.0
+N214,CSS,5,CSS_CSminus_TargetSimilarity,0.033640518552486426,CS- extinction prototype,HC,Placebo,0,Male,1,19,0.0
+N214,CSS,6,CSS_CSminus_TargetSimilarity,-0.05276000570291967,CS- extinction prototype,HC,Placebo,0,Male,1,19,0.0
+N214,CSS,7,CSS_CSminus_TargetSimilarity,-0.038154542467949595,CS- extinction prototype,HC,Placebo,0,Male,1,19,0.0
+N214,CSS,8,CSS_CSminus_TargetSimilarity,0.07022103807731236,CS- extinction prototype,HC,Placebo,0,Male,1,19,0.0
+N214,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,-0.001918507016775614,early reinstatement CSR prototype,HC,Placebo,0,Male,1,19,0.0
+N214,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,0.006676111845084535,early reinstatement CSR prototype,HC,Placebo,0,Male,1,19,0.0
+N214,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,-0.00735638940632553,early reinstatement CSR prototype,HC,Placebo,0,Male,1,19,0.0
+N214,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,0.0056973268068568035,early reinstatement CSR prototype,HC,Placebo,0,Male,1,19,0.0
+N214,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.017081707203764583,early reinstatement CSR prototype,HC,Placebo,0,Male,1,19,0.0
+N214,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,0.008723189118624514,early reinstatement CSR prototype,HC,Placebo,0,Male,1,19,0.0
+N214,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,0.010574607930381015,early reinstatement CSR prototype,HC,Placebo,0,Male,1,19,0.0
+N214,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.00905503212841374,early reinstatement CSR prototype,HC,Placebo,0,Male,1,19,0.0
+N215,CSS,1,CSS_CSminus_TargetSimilarity,-0.07782028517555002,CS- extinction prototype,HC,Oxytocin,1,Male,1,25,0.0
+N215,CSS,2,CSS_CSminus_TargetSimilarity,-0.08948073854526899,CS- extinction prototype,HC,Oxytocin,1,Male,1,25,0.0
+N215,CSS,3,CSS_CSminus_TargetSimilarity,-0.0221844272039556,CS- extinction prototype,HC,Oxytocin,1,Male,1,25,0.0
+N215,CSS,4,CSS_CSminus_TargetSimilarity,-0.0396850543716357,CS- extinction prototype,HC,Oxytocin,1,Male,1,25,0.0
+N215,CSS,5,CSS_CSminus_TargetSimilarity,-0.0012454354977486414,CS- extinction prototype,HC,Oxytocin,1,Male,1,25,0.0
+N215,CSS,6,CSS_CSminus_TargetSimilarity,-0.1810918179093644,CS- extinction prototype,HC,Oxytocin,1,Male,1,25,0.0
+N215,CSS,7,CSS_CSminus_TargetSimilarity,-0.05563366797448437,CS- extinction prototype,HC,Oxytocin,1,Male,1,25,0.0
+N215,CSS,8,CSS_CSminus_TargetSimilarity,-0.08940933068929982,CS- extinction prototype,HC,Oxytocin,1,Male,1,25,0.0
+N215,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,-0.07440288029008253,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,25,0.0
+N215,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,-0.016224595625761038,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,25,0.0
+N215,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,0.09016359398904011,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,25,0.0
+N215,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,0.05917694185502521,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,25,0.0
+N215,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,-0.06667990757920918,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,25,0.0
+N215,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,0.04939038120744269,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,25,0.0
+N215,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,0.052960097899645675,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,25,0.0
+N215,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,0.08200409405763444,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,25,0.0
+N216,CSS,1,CSS_CSminus_TargetSimilarity,-0.22273667963905505,CS- extinction prototype,HC,Placebo,0,Male,1,20,0.0
+N216,CSS,2,CSS_CSminus_TargetSimilarity,0.04024432675197346,CS- extinction prototype,HC,Placebo,0,Male,1,20,0.0
+N216,CSS,3,CSS_CSminus_TargetSimilarity,0.05039589553059933,CS- extinction prototype,HC,Placebo,0,Male,1,20,0.0
+N216,CSS,4,CSS_CSminus_TargetSimilarity,0.057734843763514974,CS- extinction prototype,HC,Placebo,0,Male,1,20,0.0
+N216,CSS,5,CSS_CSminus_TargetSimilarity,0.20067118470705053,CS- extinction prototype,HC,Placebo,0,Male,1,20,0.0
+N216,CSS,6,CSS_CSminus_TargetSimilarity,-0.3282658168430121,CS- extinction prototype,HC,Placebo,0,Male,1,20,0.0
+N216,CSS,7,CSS_CSminus_TargetSimilarity,-0.3907817056262145,CS- extinction prototype,HC,Placebo,0,Male,1,20,0.0
+N216,CSS,8,CSS_CSminus_TargetSimilarity,-0.10809597089790207,CS- extinction prototype,HC,Placebo,0,Male,1,20,0.0
+N216,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,-0.04733428177184921,early reinstatement CSR prototype,HC,Placebo,0,Male,1,20,0.0
+N216,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,0.014689707008722356,early reinstatement CSR prototype,HC,Placebo,0,Male,1,20,0.0
+N216,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,0.0660653316827233,early reinstatement CSR prototype,HC,Placebo,0,Male,1,20,0.0
+N216,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,-0.1535267044216293,early reinstatement CSR prototype,HC,Placebo,0,Male,1,20,0.0
+N216,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.018995598163786095,early reinstatement CSR prototype,HC,Placebo,0,Male,1,20,0.0
+N216,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,-0.017036651785014855,early reinstatement CSR prototype,HC,Placebo,0,Male,1,20,0.0
+N216,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,0.04986213318182191,early reinstatement CSR prototype,HC,Placebo,0,Male,1,20,0.0
+N216,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.09086220061353921,early reinstatement CSR prototype,HC,Placebo,0,Male,1,20,0.0
+N217,CSS,1,CSS_CSminus_TargetSimilarity,-0.22991385113374277,CS- extinction prototype,HC,Placebo,0,Female,0,18,0.0
+N217,CSS,2,CSS_CSminus_TargetSimilarity,-0.197403224961704,CS- extinction prototype,HC,Placebo,0,Female,0,18,0.0
+N217,CSS,3,CSS_CSminus_TargetSimilarity,-0.33207542820601665,CS- extinction prototype,HC,Placebo,0,Female,0,18,0.0
+N217,CSS,4,CSS_CSminus_TargetSimilarity,-0.2154928916220762,CS- extinction prototype,HC,Placebo,0,Female,0,18,0.0
+N217,CSS,5,CSS_CSminus_TargetSimilarity,-0.1267075495897991,CS- extinction prototype,HC,Placebo,0,Female,0,18,0.0
+N217,CSS,6,CSS_CSminus_TargetSimilarity,-0.24001259653268844,CS- extinction prototype,HC,Placebo,0,Female,0,18,0.0
+N217,CSS,7,CSS_CSminus_TargetSimilarity,-0.0819544918055046,CS- extinction prototype,HC,Placebo,0,Female,0,18,0.0
+N217,CSS,8,CSS_CSminus_TargetSimilarity,-0.17947340544977813,CS- extinction prototype,HC,Placebo,0,Female,0,18,0.0
+N217,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,-0.12677731244126406,early reinstatement CSR prototype,HC,Placebo,0,Female,0,18,0.0
+N217,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,0.0975835264472131,early reinstatement CSR prototype,HC,Placebo,0,Female,0,18,0.0
+N217,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,-0.037950674527051274,early reinstatement CSR prototype,HC,Placebo,0,Female,0,18,0.0
+N217,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,-0.008401573861715812,early reinstatement CSR prototype,HC,Placebo,0,Female,0,18,0.0
+N217,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.058194977029856286,early reinstatement CSR prototype,HC,Placebo,0,Female,0,18,0.0
+N217,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,-0.01963384724665538,early reinstatement CSR prototype,HC,Placebo,0,Female,0,18,0.0
+N217,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,0.01400109404330946,early reinstatement CSR prototype,HC,Placebo,0,Female,0,18,0.0
+N217,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.19936941831420177,early reinstatement CSR prototype,HC,Placebo,0,Female,0,18,0.0
+N219,CSS,1,CSS_CSminus_TargetSimilarity,-0.18118652716480085,CS- extinction prototype,HC,Oxytocin,1,Male,1,19,1.0
+N219,CSS,2,CSS_CSminus_TargetSimilarity,0.1813825932988006,CS- extinction prototype,HC,Oxytocin,1,Male,1,19,1.0
+N219,CSS,3,CSS_CSminus_TargetSimilarity,-0.27092694601075834,CS- extinction prototype,HC,Oxytocin,1,Male,1,19,1.0
+N219,CSS,4,CSS_CSminus_TargetSimilarity,-0.005687630862139624,CS- extinction prototype,HC,Oxytocin,1,Male,1,19,1.0
+N219,CSS,5,CSS_CSminus_TargetSimilarity,-0.05350100953791537,CS- extinction prototype,HC,Oxytocin,1,Male,1,19,1.0
+N219,CSS,6,CSS_CSminus_TargetSimilarity,0.03817911868918095,CS- extinction prototype,HC,Oxytocin,1,Male,1,19,1.0
+N219,CSS,7,CSS_CSminus_TargetSimilarity,0.012589290676270484,CS- extinction prototype,HC,Oxytocin,1,Male,1,19,1.0
+N219,CSS,8,CSS_CSminus_TargetSimilarity,-0.21276217881558393,CS- extinction prototype,HC,Oxytocin,1,Male,1,19,1.0
+N219,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,-0.13888092921916126,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,19,1.0
+N219,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,-0.013557117252725895,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,19,1.0
+N219,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,0.035848965075078225,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,19,1.0
+N219,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,0.13561728879335724,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,19,1.0
+N219,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.023342115218775064,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,19,1.0
+N219,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,-0.007542007010225404,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,19,1.0
+N219,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,0.06356829890248501,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,19,1.0
+N219,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.015410427737897558,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,19,1.0
+N220,CSS,1,CSS_CSminus_TargetSimilarity,-0.042500472026289655,CS- extinction prototype,HC,Placebo,0,Female,0,20,0.0
+N220,CSS,2,CSS_CSminus_TargetSimilarity,-0.005293350928333195,CS- extinction prototype,HC,Placebo,0,Female,0,20,0.0
+N220,CSS,3,CSS_CSminus_TargetSimilarity,-0.307369862040063,CS- extinction prototype,HC,Placebo,0,Female,0,20,0.0
+N220,CSS,4,CSS_CSminus_TargetSimilarity,-0.24114367310012214,CS- extinction prototype,HC,Placebo,0,Female,0,20,0.0
+N220,CSS,5,CSS_CSminus_TargetSimilarity,-0.03838542455149105,CS- extinction prototype,HC,Placebo,0,Female,0,20,0.0
+N220,CSS,6,CSS_CSminus_TargetSimilarity,-0.4156869701615305,CS- extinction prototype,HC,Placebo,0,Female,0,20,0.0
+N220,CSS,7,CSS_CSminus_TargetSimilarity,-0.3618396584047486,CS- extinction prototype,HC,Placebo,0,Female,0,20,0.0
+N220,CSS,8,CSS_CSminus_TargetSimilarity,-0.26686314671298866,CS- extinction prototype,HC,Placebo,0,Female,0,20,0.0
+N220,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,0.019425599653732584,early reinstatement CSR prototype,HC,Placebo,0,Female,0,20,0.0
+N220,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,-0.010747812605508193,early reinstatement CSR prototype,HC,Placebo,0,Female,0,20,0.0
+N220,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,0.003411386407137435,early reinstatement CSR prototype,HC,Placebo,0,Female,0,20,0.0
+N220,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,0.013841354507635842,early reinstatement CSR prototype,HC,Placebo,0,Female,0,20,0.0
+N220,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.022408432458869535,early reinstatement CSR prototype,HC,Placebo,0,Female,0,20,0.0
+N220,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,-0.012660968610573316,early reinstatement CSR prototype,HC,Placebo,0,Female,0,20,0.0
+N220,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,0.05455240068975795,early reinstatement CSR prototype,HC,Placebo,0,Female,0,20,0.0
+N220,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,0.03159383564907423,early reinstatement CSR prototype,HC,Placebo,0,Female,0,20,0.0
+N221,CSS,1,CSS_CSminus_TargetSimilarity,-0.06700045870952066,CS- extinction prototype,HC,Placebo,0,Male,1,29,0.0
+N221,CSS,2,CSS_CSminus_TargetSimilarity,-0.18751406201900728,CS- extinction prototype,HC,Placebo,0,Male,1,29,0.0
+N221,CSS,3,CSS_CSminus_TargetSimilarity,-0.18646895040543218,CS- extinction prototype,HC,Placebo,0,Male,1,29,0.0
+N221,CSS,4,CSS_CSminus_TargetSimilarity,-0.12160853636412106,CS- extinction prototype,HC,Placebo,0,Male,1,29,0.0
+N221,CSS,5,CSS_CSminus_TargetSimilarity,-0.11769039189324892,CS- extinction prototype,HC,Placebo,0,Male,1,29,0.0
+N221,CSS,6,CSS_CSminus_TargetSimilarity,-0.07736412168555425,CS- extinction prototype,HC,Placebo,0,Male,1,29,0.0
+N221,CSS,7,CSS_CSminus_TargetSimilarity,-0.24578189055137817,CS- extinction prototype,HC,Placebo,0,Male,1,29,0.0
+N221,CSS,8,CSS_CSminus_TargetSimilarity,-0.09870063469979078,CS- extinction prototype,HC,Placebo,0,Male,1,29,0.0
+N221,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,0.061622300310160506,early reinstatement CSR prototype,HC,Placebo,0,Male,1,29,0.0
+N221,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,0.05302155426721742,early reinstatement CSR prototype,HC,Placebo,0,Male,1,29,0.0
+N221,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,0.015152087239799114,early reinstatement CSR prototype,HC,Placebo,0,Male,1,29,0.0
+N221,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,0.041607406435564605,early reinstatement CSR prototype,HC,Placebo,0,Male,1,29,0.0
+N221,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,-0.09348885164066845,early reinstatement CSR prototype,HC,Placebo,0,Male,1,29,0.0
+N221,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,-0.1233276906680153,early reinstatement CSR prototype,HC,Placebo,0,Male,1,29,0.0
+N221,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,-0.044085310469047095,early reinstatement CSR prototype,HC,Placebo,0,Male,1,29,0.0
+N221,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.014949840642952615,early reinstatement CSR prototype,HC,Placebo,0,Male,1,29,0.0
+N222,CSS,1,CSS_CSminus_TargetSimilarity,-0.02628378461861558,CS- extinction prototype,HC,Placebo,0,Male,1,26,1.0
+N222,CSS,2,CSS_CSminus_TargetSimilarity,-0.10214253498497532,CS- extinction prototype,HC,Placebo,0,Male,1,26,1.0
+N222,CSS,3,CSS_CSminus_TargetSimilarity,-0.041284524661375166,CS- extinction prototype,HC,Placebo,0,Male,1,26,1.0
+N222,CSS,4,CSS_CSminus_TargetSimilarity,-0.056883167535240864,CS- extinction prototype,HC,Placebo,0,Male,1,26,1.0
+N222,CSS,5,CSS_CSminus_TargetSimilarity,-0.08663334206454998,CS- extinction prototype,HC,Placebo,0,Male,1,26,1.0
+N222,CSS,6,CSS_CSminus_TargetSimilarity,-0.2943754902566937,CS- extinction prototype,HC,Placebo,0,Male,1,26,1.0
+N222,CSS,7,CSS_CSminus_TargetSimilarity,-0.08870102849472414,CS- extinction prototype,HC,Placebo,0,Male,1,26,1.0
+N222,CSS,8,CSS_CSminus_TargetSimilarity,-0.20018410395058864,CS- extinction prototype,HC,Placebo,0,Male,1,26,1.0
+N222,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,-0.24229736957903347,early reinstatement CSR prototype,HC,Placebo,0,Male,1,26,1.0
+N222,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,0.06297003772336537,early reinstatement CSR prototype,HC,Placebo,0,Male,1,26,1.0
+N222,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,-0.029404846444169307,early reinstatement CSR prototype,HC,Placebo,0,Male,1,26,1.0
+N222,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,0.09608289862556621,early reinstatement CSR prototype,HC,Placebo,0,Male,1,26,1.0
+N222,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.08650209987714733,early reinstatement CSR prototype,HC,Placebo,0,Male,1,26,1.0
+N222,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,0.0018947788701506804,early reinstatement CSR prototype,HC,Placebo,0,Male,1,26,1.0
+N222,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,0.20610363335456192,early reinstatement CSR prototype,HC,Placebo,0,Male,1,26,1.0
+N222,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.06066151591136418,early reinstatement CSR prototype,HC,Placebo,0,Male,1,26,1.0
+N224,CSS,1,CSS_CSminus_TargetSimilarity,-0.25359145082248435,CS- extinction prototype,HC,Oxytocin,1,Male,1,24,1.0
+N224,CSS,2,CSS_CSminus_TargetSimilarity,0.005720694531649312,CS- extinction prototype,HC,Oxytocin,1,Male,1,24,1.0
+N224,CSS,3,CSS_CSminus_TargetSimilarity,-0.30985438418870376,CS- extinction prototype,HC,Oxytocin,1,Male,1,24,1.0
+N224,CSS,4,CSS_CSminus_TargetSimilarity,-0.055857306751991596,CS- extinction prototype,HC,Oxytocin,1,Male,1,24,1.0
+N224,CSS,5,CSS_CSminus_TargetSimilarity,0.07972711068464897,CS- extinction prototype,HC,Oxytocin,1,Male,1,24,1.0
+N224,CSS,6,CSS_CSminus_TargetSimilarity,-0.2052640601082505,CS- extinction prototype,HC,Oxytocin,1,Male,1,24,1.0
+N224,CSS,7,CSS_CSminus_TargetSimilarity,-0.22514160620980336,CS- extinction prototype,HC,Oxytocin,1,Male,1,24,1.0
+N224,CSS,8,CSS_CSminus_TargetSimilarity,-0.12157255364586823,CS- extinction prototype,HC,Oxytocin,1,Male,1,24,1.0
+N224,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,0.00338384480224039,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,24,1.0
+N224,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,-0.019836618623040196,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,24,1.0
+N224,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,0.088741167974186,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,24,1.0
+N224,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,0.013583423234187127,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,24,1.0
+N224,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,-0.02168977850932865,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,24,1.0
+N224,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,0.07658159058343561,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,24,1.0
+N224,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,0.06182122220658761,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,24,1.0
+N224,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.1607549182172777,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,24,1.0
+N225,CSS,1,CSS_CSminus_TargetSimilarity,-0.08868591732234482,CS- extinction prototype,HC,Oxytocin,1,Male,1,41,0.0
+N225,CSS,2,CSS_CSminus_TargetSimilarity,-0.1696176151532585,CS- extinction prototype,HC,Oxytocin,1,Male,1,41,0.0
+N225,CSS,3,CSS_CSminus_TargetSimilarity,-0.24165914437970473,CS- extinction prototype,HC,Oxytocin,1,Male,1,41,0.0
+N225,CSS,4,CSS_CSminus_TargetSimilarity,-0.22787382768547698,CS- extinction prototype,HC,Oxytocin,1,Male,1,41,0.0
+N225,CSS,5,CSS_CSminus_TargetSimilarity,-0.30164736429265165,CS- extinction prototype,HC,Oxytocin,1,Male,1,41,0.0
+N225,CSS,6,CSS_CSminus_TargetSimilarity,-0.11398290139995651,CS- extinction prototype,HC,Oxytocin,1,Male,1,41,0.0
+N225,CSS,7,CSS_CSminus_TargetSimilarity,0.06764244669424502,CS- extinction prototype,HC,Oxytocin,1,Male,1,41,0.0
+N225,CSS,8,CSS_CSminus_TargetSimilarity,-0.15213453777262034,CS- extinction prototype,HC,Oxytocin,1,Male,1,41,0.0
+N225,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,-0.11837399960351926,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,41,0.0
+N225,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,0.17725363467721025,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,41,0.0
+N225,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,0.16925524640752085,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,41,0.0
+N225,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,0.05431663337993874,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,41,0.0
+N225,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,-0.024370445906106663,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,41,0.0
+N225,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,0.004965896396143079,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,41,0.0
+N225,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,0.2426157338250241,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,41,0.0
+N225,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.21637814390254265,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,41,0.0
+N226,CSS,1,CSS_CSminus_TargetSimilarity,-0.03339649774435411,CS- extinction prototype,HC,Oxytocin,1,Male,1,19,1.0
+N226,CSS,2,CSS_CSminus_TargetSimilarity,-0.24815046652478212,CS- extinction prototype,HC,Oxytocin,1,Male,1,19,1.0
+N226,CSS,3,CSS_CSminus_TargetSimilarity,-0.16522745056342,CS- extinction prototype,HC,Oxytocin,1,Male,1,19,1.0
+N226,CSS,4,CSS_CSminus_TargetSimilarity,-0.17176925813109678,CS- extinction prototype,HC,Oxytocin,1,Male,1,19,1.0
+N226,CSS,5,CSS_CSminus_TargetSimilarity,0.008659237952662638,CS- extinction prototype,HC,Oxytocin,1,Male,1,19,1.0
+N226,CSS,6,CSS_CSminus_TargetSimilarity,-0.199186259349655,CS- extinction prototype,HC,Oxytocin,1,Male,1,19,1.0
+N226,CSS,7,CSS_CSminus_TargetSimilarity,-0.061159911869728856,CS- extinction prototype,HC,Oxytocin,1,Male,1,19,1.0
+N226,CSS,8,CSS_CSminus_TargetSimilarity,-0.3201642739840752,CS- extinction prototype,HC,Oxytocin,1,Male,1,19,1.0
+N226,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,-0.0048378830858683275,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,19,1.0
+N226,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,0.05502076127385307,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,19,1.0
+N226,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,-0.004247654612449521,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,19,1.0
+N226,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,-0.03886754271922597,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,19,1.0
+N226,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.0038216547891798455,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,19,1.0
+N226,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,-0.04693679776227959,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,19,1.0
+N226,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,0.05569819401715457,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,19,1.0
+N226,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.03543972444295464,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,19,1.0
+N227,CSS,1,CSS_CSminus_TargetSimilarity,-0.30556664691128277,CS- extinction prototype,HC,Placebo,0,Male,1,38,1.0
+N227,CSS,2,CSS_CSminus_TargetSimilarity,-0.03591906800096712,CS- extinction prototype,HC,Placebo,0,Male,1,38,1.0
+N227,CSS,3,CSS_CSminus_TargetSimilarity,-0.25596681042181274,CS- extinction prototype,HC,Placebo,0,Male,1,38,1.0
+N227,CSS,4,CSS_CSminus_TargetSimilarity,-0.4033162585202119,CS- extinction prototype,HC,Placebo,0,Male,1,38,1.0
+N227,CSS,5,CSS_CSminus_TargetSimilarity,-0.08397255407892848,CS- extinction prototype,HC,Placebo,0,Male,1,38,1.0
+N227,CSS,6,CSS_CSminus_TargetSimilarity,-0.16773690732679067,CS- extinction prototype,HC,Placebo,0,Male,1,38,1.0
+N227,CSS,7,CSS_CSminus_TargetSimilarity,-0.3746803440958407,CS- extinction prototype,HC,Placebo,0,Male,1,38,1.0
+N227,CSS,8,CSS_CSminus_TargetSimilarity,0.025072170312552912,CS- extinction prototype,HC,Placebo,0,Male,1,38,1.0
+N227,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,0.15174689659934318,early reinstatement CSR prototype,HC,Placebo,0,Male,1,38,1.0
+N227,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,-0.0912044322441492,early reinstatement CSR prototype,HC,Placebo,0,Male,1,38,1.0
+N227,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,-0.13708944965838965,early reinstatement CSR prototype,HC,Placebo,0,Male,1,38,1.0
+N227,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,-0.005351715841745899,early reinstatement CSR prototype,HC,Placebo,0,Male,1,38,1.0
+N227,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,-0.070922328286577,early reinstatement CSR prototype,HC,Placebo,0,Male,1,38,1.0
+N227,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,0.09775017009807092,early reinstatement CSR prototype,HC,Placebo,0,Male,1,38,1.0
+N227,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,-0.07203050896348763,early reinstatement CSR prototype,HC,Placebo,0,Male,1,38,1.0
+N227,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.09721505252074178,early reinstatement CSR prototype,HC,Placebo,0,Male,1,38,1.0
+N228,CSS,1,CSS_CSminus_TargetSimilarity,0.07772128064914291,CS- extinction prototype,HC,Oxytocin,1,Male,1,27,0.0
+N228,CSS,2,CSS_CSminus_TargetSimilarity,-0.3013351462651025,CS- extinction prototype,HC,Oxytocin,1,Male,1,27,0.0
+N228,CSS,3,CSS_CSminus_TargetSimilarity,-0.28493225776293146,CS- extinction prototype,HC,Oxytocin,1,Male,1,27,0.0
+N228,CSS,4,CSS_CSminus_TargetSimilarity,-0.16722182229096177,CS- extinction prototype,HC,Oxytocin,1,Male,1,27,0.0
+N228,CSS,5,CSS_CSminus_TargetSimilarity,-0.29036015996913495,CS- extinction prototype,HC,Oxytocin,1,Male,1,27,0.0
+N228,CSS,6,CSS_CSminus_TargetSimilarity,0.04238332461527767,CS- extinction prototype,HC,Oxytocin,1,Male,1,27,0.0
+N228,CSS,7,CSS_CSminus_TargetSimilarity,-0.17172928773323295,CS- extinction prototype,HC,Oxytocin,1,Male,1,27,0.0
+N228,CSS,8,CSS_CSminus_TargetSimilarity,-0.34015981389339534,CS- extinction prototype,HC,Oxytocin,1,Male,1,27,0.0
+N228,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,0.04664939602139318,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,27,0.0
+N228,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,-0.03963488045049871,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,27,0.0
+N228,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,-0.053067939163026726,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,27,0.0
+N228,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,-0.01564013905028923,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,27,0.0
+N228,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.016043938909788315,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,27,0.0
+N228,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,-0.013958602454898,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,27,0.0
+N228,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,0.03693811478299766,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,27,0.0
+N228,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,0.04443970506176657,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,27,0.0
+N230,CSS,1,CSS_CSminus_TargetSimilarity,0.034496974786025585,CS- extinction prototype,HC,Oxytocin,1,Male,1,22,1.0
+N230,CSS,2,CSS_CSminus_TargetSimilarity,-0.17071654781229958,CS- extinction prototype,HC,Oxytocin,1,Male,1,22,1.0
+N230,CSS,3,CSS_CSminus_TargetSimilarity,-0.1960610534615371,CS- extinction prototype,HC,Oxytocin,1,Male,1,22,1.0
+N230,CSS,4,CSS_CSminus_TargetSimilarity,-0.3079510286618243,CS- extinction prototype,HC,Oxytocin,1,Male,1,22,1.0
+N230,CSS,5,CSS_CSminus_TargetSimilarity,-0.18738759508373048,CS- extinction prototype,HC,Oxytocin,1,Male,1,22,1.0
+N230,CSS,6,CSS_CSminus_TargetSimilarity,-0.17289316269241597,CS- extinction prototype,HC,Oxytocin,1,Male,1,22,1.0
+N230,CSS,7,CSS_CSminus_TargetSimilarity,0.03741119164398948,CS- extinction prototype,HC,Oxytocin,1,Male,1,22,1.0
+N230,CSS,8,CSS_CSminus_TargetSimilarity,-0.23461887947720567,CS- extinction prototype,HC,Oxytocin,1,Male,1,22,1.0
+N230,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,-0.1283297120505204,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,22,1.0
+N230,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,-0.09780504954132994,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,22,1.0
+N230,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,0.03556792272379195,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,22,1.0
+N230,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,0.10485486773873132,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,22,1.0
+N230,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.012072998882485786,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,22,1.0
+N230,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,-0.05881122015249254,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,22,1.0
+N230,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,0.06699256692565979,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,22,1.0
+N230,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,0.0905361826290679,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,22,1.0
+N231,CSS,1,CSS_CSminus_TargetSimilarity,-0.11298138627967898,CS- extinction prototype,HC,Placebo,0,Male,1,18,0.0
+N231,CSS,2,CSS_CSminus_TargetSimilarity,-0.2122975317897208,CS- extinction prototype,HC,Placebo,0,Male,1,18,0.0
+N231,CSS,3,CSS_CSminus_TargetSimilarity,-0.1776718280561223,CS- extinction prototype,HC,Placebo,0,Male,1,18,0.0
+N231,CSS,4,CSS_CSminus_TargetSimilarity,0.0113216450300216,CS- extinction prototype,HC,Placebo,0,Male,1,18,0.0
+N231,CSS,5,CSS_CSminus_TargetSimilarity,-0.0630369496785996,CS- extinction prototype,HC,Placebo,0,Male,1,18,0.0
+N231,CSS,6,CSS_CSminus_TargetSimilarity,-0.31788442053067245,CS- extinction prototype,HC,Placebo,0,Male,1,18,0.0
+N231,CSS,7,CSS_CSminus_TargetSimilarity,-0.040634365956721374,CS- extinction prototype,HC,Placebo,0,Male,1,18,0.0
+N231,CSS,8,CSS_CSminus_TargetSimilarity,-0.09939683835114516,CS- extinction prototype,HC,Placebo,0,Male,1,18,0.0
+N231,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,-0.019582830058957116,early reinstatement CSR prototype,HC,Placebo,0,Male,1,18,0.0
+N231,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,-0.020374140433229306,early reinstatement CSR prototype,HC,Placebo,0,Male,1,18,0.0
+N231,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,-0.0033534284539109634,early reinstatement CSR prototype,HC,Placebo,0,Male,1,18,0.0
+N231,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,-0.011429441431333927,early reinstatement CSR prototype,HC,Placebo,0,Male,1,18,0.0
+N231,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.01640685395692954,early reinstatement CSR prototype,HC,Placebo,0,Male,1,18,0.0
+N231,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,0.0015295110700626043,early reinstatement CSR prototype,HC,Placebo,0,Male,1,18,0.0
+N231,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,0.021214624708202953,early reinstatement CSR prototype,HC,Placebo,0,Male,1,18,0.0
+N231,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.007565554124507982,early reinstatement CSR prototype,HC,Placebo,0,Male,1,18,0.0
+N232,CSS,1,CSS_CSminus_TargetSimilarity,-0.33902426398517577,CS- extinction prototype,HC,Placebo,0,Male,1,28,0.0
+N232,CSS,2,CSS_CSminus_TargetSimilarity,-0.25987431030424774,CS- extinction prototype,HC,Placebo,0,Male,1,28,0.0
+N232,CSS,3,CSS_CSminus_TargetSimilarity,-0.052132244781294246,CS- extinction prototype,HC,Placebo,0,Male,1,28,0.0
+N232,CSS,4,CSS_CSminus_TargetSimilarity,0.054153838987243366,CS- extinction prototype,HC,Placebo,0,Male,1,28,0.0
+N232,CSS,5,CSS_CSminus_TargetSimilarity,-0.1140108005897702,CS- extinction prototype,HC,Placebo,0,Male,1,28,0.0
+N232,CSS,6,CSS_CSminus_TargetSimilarity,-0.1638649063780798,CS- extinction prototype,HC,Placebo,0,Male,1,28,0.0
+N232,CSS,7,CSS_CSminus_TargetSimilarity,-0.2091010641961152,CS- extinction prototype,HC,Placebo,0,Male,1,28,0.0
+N232,CSS,8,CSS_CSminus_TargetSimilarity,-0.18838683194781689,CS- extinction prototype,HC,Placebo,0,Male,1,28,0.0
+N232,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,-0.040893381205425836,early reinstatement CSR prototype,HC,Placebo,0,Male,1,28,0.0
+N232,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,-0.01805377409601721,early reinstatement CSR prototype,HC,Placebo,0,Male,1,28,0.0
+N232,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,-0.0007609323917290293,early reinstatement CSR prototype,HC,Placebo,0,Male,1,28,0.0
+N232,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,-0.04167039548196798,early reinstatement CSR prototype,HC,Placebo,0,Male,1,28,0.0
+N232,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.03741050696549962,early reinstatement CSR prototype,HC,Placebo,0,Male,1,28,0.0
+N232,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,-0.006108361255556937,early reinstatement CSR prototype,HC,Placebo,0,Male,1,28,0.0
+N232,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,-0.020820751762663188,early reinstatement CSR prototype,HC,Placebo,0,Male,1,28,0.0
+N232,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.014746896023389938,early reinstatement CSR prototype,HC,Placebo,0,Male,1,28,0.0
+N233,CSS,1,CSS_CSminus_TargetSimilarity,-0.10820923942958713,CS- extinction prototype,HC,Oxytocin,1,Male,1,19,1.0
+N233,CSS,2,CSS_CSminus_TargetSimilarity,-0.1253452594463205,CS- extinction prototype,HC,Oxytocin,1,Male,1,19,1.0
+N233,CSS,3,CSS_CSminus_TargetSimilarity,0.02093212351885005,CS- extinction prototype,HC,Oxytocin,1,Male,1,19,1.0
+N233,CSS,4,CSS_CSminus_TargetSimilarity,-0.0641487248274907,CS- extinction prototype,HC,Oxytocin,1,Male,1,19,1.0
+N233,CSS,5,CSS_CSminus_TargetSimilarity,-0.27545121424610824,CS- extinction prototype,HC,Oxytocin,1,Male,1,19,1.0
+N233,CSS,6,CSS_CSminus_TargetSimilarity,-0.1768765298472785,CS- extinction prototype,HC,Oxytocin,1,Male,1,19,1.0
+N233,CSS,7,CSS_CSminus_TargetSimilarity,-0.16247926163737614,CS- extinction prototype,HC,Oxytocin,1,Male,1,19,1.0
+N233,CSS,8,CSS_CSminus_TargetSimilarity,-0.14468465980669257,CS- extinction prototype,HC,Oxytocin,1,Male,1,19,1.0
+N233,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,0.007237337405982736,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,19,1.0
+N233,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,0.01363087678594518,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,19,1.0
+N233,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,0.003240307586062394,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,19,1.0
+N233,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,0.015561026405852144,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,19,1.0
+N233,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,-0.007196492393791637,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,19,1.0
+N233,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,0.0013255347415200842,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,19,1.0
+N233,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,-0.00447333220160557,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,19,1.0
+N233,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.021400093085072316,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,19,1.0
+N234,CSS,1,CSS_CSminus_TargetSimilarity,-0.08277211013141507,CS- extinction prototype,HC,Placebo,0,Male,1,18,0.0
+N234,CSS,2,CSS_CSminus_TargetSimilarity,0.034814399018435714,CS- extinction prototype,HC,Placebo,0,Male,1,18,0.0
+N234,CSS,3,CSS_CSminus_TargetSimilarity,-0.07585387996299367,CS- extinction prototype,HC,Placebo,0,Male,1,18,0.0
+N234,CSS,4,CSS_CSminus_TargetSimilarity,0.09750509439696439,CS- extinction prototype,HC,Placebo,0,Male,1,18,0.0
+N234,CSS,5,CSS_CSminus_TargetSimilarity,0.04150589360755665,CS- extinction prototype,HC,Placebo,0,Male,1,18,0.0
+N234,CSS,6,CSS_CSminus_TargetSimilarity,-0.0633722482704864,CS- extinction prototype,HC,Placebo,0,Male,1,18,0.0
+N234,CSS,7,CSS_CSminus_TargetSimilarity,-0.13574029545379218,CS- extinction prototype,HC,Placebo,0,Male,1,18,0.0
+N234,CSS,8,CSS_CSminus_TargetSimilarity,-0.19204755684191802,CS- extinction prototype,HC,Placebo,0,Male,1,18,0.0
+N234,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,-0.021754470939587017,early reinstatement CSR prototype,HC,Placebo,0,Male,1,18,0.0
+N234,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,-0.011519354790914144,early reinstatement CSR prototype,HC,Placebo,0,Male,1,18,0.0
+N234,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,0.01673415997101305,early reinstatement CSR prototype,HC,Placebo,0,Male,1,18,0.0
+N234,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,-0.013774916040512508,early reinstatement CSR prototype,HC,Placebo,0,Male,1,18,0.0
+N234,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,-0.028489565419824413,early reinstatement CSR prototype,HC,Placebo,0,Male,1,18,0.0
+N234,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,-0.04560799918036534,early reinstatement CSR prototype,HC,Placebo,0,Male,1,18,0.0
+N234,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,0.03541838795212871,early reinstatement CSR prototype,HC,Placebo,0,Male,1,18,0.0
+N234,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.020843528619716858,early reinstatement CSR prototype,HC,Placebo,0,Male,1,18,0.0
+N235,CSS,1,CSS_CSminus_TargetSimilarity,-0.15042740918333478,CS- extinction prototype,HC,Placebo,0,Male,1,19,0.0
+N235,CSS,2,CSS_CSminus_TargetSimilarity,-0.1620464960126206,CS- extinction prototype,HC,Placebo,0,Male,1,19,0.0
+N235,CSS,3,CSS_CSminus_TargetSimilarity,-0.26431955239139876,CS- extinction prototype,HC,Placebo,0,Male,1,19,0.0
+N235,CSS,4,CSS_CSminus_TargetSimilarity,0.025236678619147777,CS- extinction prototype,HC,Placebo,0,Male,1,19,0.0
+N235,CSS,5,CSS_CSminus_TargetSimilarity,-0.14586368385341122,CS- extinction prototype,HC,Placebo,0,Male,1,19,0.0
+N235,CSS,6,CSS_CSminus_TargetSimilarity,-0.2422827790988385,CS- extinction prototype,HC,Placebo,0,Male,1,19,0.0
+N235,CSS,7,CSS_CSminus_TargetSimilarity,-0.07537601092429658,CS- extinction prototype,HC,Placebo,0,Male,1,19,0.0
+N235,CSS,8,CSS_CSminus_TargetSimilarity,-0.13559597257059086,CS- extinction prototype,HC,Placebo,0,Male,1,19,0.0
+N235,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,-0.014240889833030526,early reinstatement CSR prototype,HC,Placebo,0,Male,1,19,0.0
+N235,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,0.025995582026880917,early reinstatement CSR prototype,HC,Placebo,0,Male,1,19,0.0
+N235,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,0.015025339355000356,early reinstatement CSR prototype,HC,Placebo,0,Male,1,19,0.0
+N235,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,0.03503342941871744,early reinstatement CSR prototype,HC,Placebo,0,Male,1,19,0.0
+N235,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,-0.02395045458604618,early reinstatement CSR prototype,HC,Placebo,0,Male,1,19,0.0
+N235,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,-0.014138585836441215,early reinstatement CSR prototype,HC,Placebo,0,Male,1,19,0.0
+N235,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,-0.0017468041620173702,early reinstatement CSR prototype,HC,Placebo,0,Male,1,19,0.0
+N235,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.0309678896998913,early reinstatement CSR prototype,HC,Placebo,0,Male,1,19,0.0
+N236,CSS,1,CSS_CSminus_TargetSimilarity,-0.2726225460723364,CS- extinction prototype,HC,Placebo,0,Female,0,20,1.0
+N236,CSS,2,CSS_CSminus_TargetSimilarity,-0.27629329799643637,CS- extinction prototype,HC,Placebo,0,Female,0,20,1.0
+N236,CSS,3,CSS_CSminus_TargetSimilarity,-0.15606372894944315,CS- extinction prototype,HC,Placebo,0,Female,0,20,1.0
+N236,CSS,4,CSS_CSminus_TargetSimilarity,0.07554882621288857,CS- extinction prototype,HC,Placebo,0,Female,0,20,1.0
+N236,CSS,5,CSS_CSminus_TargetSimilarity,-0.1969398277465649,CS- extinction prototype,HC,Placebo,0,Female,0,20,1.0
+N236,CSS,6,CSS_CSminus_TargetSimilarity,-0.25807264726336027,CS- extinction prototype,HC,Placebo,0,Female,0,20,1.0
+N236,CSS,7,CSS_CSminus_TargetSimilarity,-0.16508640508180367,CS- extinction prototype,HC,Placebo,0,Female,0,20,1.0
+N236,CSS,8,CSS_CSminus_TargetSimilarity,-0.1673510787704835,CS- extinction prototype,HC,Placebo,0,Female,0,20,1.0
+N236,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,0.059980806317809394,early reinstatement CSR prototype,HC,Placebo,0,Female,0,20,1.0
+N236,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,0.0358974027209297,early reinstatement CSR prototype,HC,Placebo,0,Female,0,20,1.0
+N236,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,-0.07139890406805884,early reinstatement CSR prototype,HC,Placebo,0,Female,0,20,1.0
+N236,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,0.011527785518682176,early reinstatement CSR prototype,HC,Placebo,0,Female,0,20,1.0
+N236,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.09327120317646845,early reinstatement CSR prototype,HC,Placebo,0,Female,0,20,1.0
+N236,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,0.07681973410699375,early reinstatement CSR prototype,HC,Placebo,0,Female,0,20,1.0
+N236,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,0.06576422312158241,early reinstatement CSR prototype,HC,Placebo,0,Female,0,20,1.0
+N236,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,0.016447559051649848,early reinstatement CSR prototype,HC,Placebo,0,Female,0,20,1.0
+N237,CSS,1,CSS_CSminus_TargetSimilarity,0.12733945281102413,CS- extinction prototype,HC,Placebo,0,Female,0,22,0.0
+N237,CSS,2,CSS_CSminus_TargetSimilarity,0.20426754480874854,CS- extinction prototype,HC,Placebo,0,Female,0,22,0.0
+N237,CSS,3,CSS_CSminus_TargetSimilarity,0.030726540123877082,CS- extinction prototype,HC,Placebo,0,Female,0,22,0.0
+N237,CSS,4,CSS_CSminus_TargetSimilarity,0.09147015467389713,CS- extinction prototype,HC,Placebo,0,Female,0,22,0.0
+N237,CSS,5,CSS_CSminus_TargetSimilarity,0.1854776025392153,CS- extinction prototype,HC,Placebo,0,Female,0,22,0.0
+N237,CSS,6,CSS_CSminus_TargetSimilarity,0.18104175961861738,CS- extinction prototype,HC,Placebo,0,Female,0,22,0.0
+N237,CSS,7,CSS_CSminus_TargetSimilarity,-0.1029437541706855,CS- extinction prototype,HC,Placebo,0,Female,0,22,0.0
+N237,CSS,8,CSS_CSminus_TargetSimilarity,0.13885281981764871,CS- extinction prototype,HC,Placebo,0,Female,0,22,0.0
+N237,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,-0.026071605903629506,early reinstatement CSR prototype,HC,Placebo,0,Female,0,22,0.0
+N237,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,-0.002960065462322558,early reinstatement CSR prototype,HC,Placebo,0,Female,0,22,0.0
+N237,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,0.022123323576632443,early reinstatement CSR prototype,HC,Placebo,0,Female,0,22,0.0
+N237,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,0.002122513776751115,early reinstatement CSR prototype,HC,Placebo,0,Female,0,22,0.0
+N237,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.0028717781862432085,early reinstatement CSR prototype,HC,Placebo,0,Female,0,22,0.0
+N237,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,-0.00860490834369072,early reinstatement CSR prototype,HC,Placebo,0,Female,0,22,0.0
+N237,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,0.026285504541303323,early reinstatement CSR prototype,HC,Placebo,0,Female,0,22,0.0
+N237,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.03183372412894953,early reinstatement CSR prototype,HC,Placebo,0,Female,0,22,0.0
+N238,CSS,1,CSS_CSminus_TargetSimilarity,-0.11799811932548658,CS- extinction prototype,HC,Oxytocin,1,Female,0,45,1.0
+N238,CSS,2,CSS_CSminus_TargetSimilarity,-0.09746771317716857,CS- extinction prototype,HC,Oxytocin,1,Female,0,45,1.0
+N238,CSS,3,CSS_CSminus_TargetSimilarity,-0.17756417720693393,CS- extinction prototype,HC,Oxytocin,1,Female,0,45,1.0
+N238,CSS,4,CSS_CSminus_TargetSimilarity,-0.14441981746433166,CS- extinction prototype,HC,Oxytocin,1,Female,0,45,1.0
+N238,CSS,5,CSS_CSminus_TargetSimilarity,-0.17227878686454162,CS- extinction prototype,HC,Oxytocin,1,Female,0,45,1.0
+N238,CSS,6,CSS_CSminus_TargetSimilarity,-0.23262506306025493,CS- extinction prototype,HC,Oxytocin,1,Female,0,45,1.0
+N238,CSS,7,CSS_CSminus_TargetSimilarity,-0.08563416783717692,CS- extinction prototype,HC,Oxytocin,1,Female,0,45,1.0
+N238,CSS,8,CSS_CSminus_TargetSimilarity,-0.14824982550482718,CS- extinction prototype,HC,Oxytocin,1,Female,0,45,1.0
+N238,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,-0.06682933341436631,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,45,1.0
+N238,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,0.001099916590343522,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,45,1.0
+N238,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,-0.010596543095800815,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,45,1.0
+N238,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,-0.07232994153212821,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,45,1.0
+N238,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.08221781708322409,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,45,1.0
+N238,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,-0.08586907202688615,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,45,1.0
+N238,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,0.2045957202551684,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,45,1.0
+N238,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.12286468709089576,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,45,1.0
+N240,CSS,1,CSS_CSminus_TargetSimilarity,-0.30578565430194815,CS- extinction prototype,HC,Placebo,0,Male,1,19,0.0
+N240,CSS,2,CSS_CSminus_TargetSimilarity,-0.20486532687479578,CS- extinction prototype,HC,Placebo,0,Male,1,19,0.0
+N240,CSS,3,CSS_CSminus_TargetSimilarity,0.17744347855812279,CS- extinction prototype,HC,Placebo,0,Male,1,19,0.0
+N240,CSS,4,CSS_CSminus_TargetSimilarity,-0.1515797343504677,CS- extinction prototype,HC,Placebo,0,Male,1,19,0.0
+N240,CSS,5,CSS_CSminus_TargetSimilarity,-0.017352511048540326,CS- extinction prototype,HC,Placebo,0,Male,1,19,0.0
+N240,CSS,6,CSS_CSminus_TargetSimilarity,-0.27097361304569556,CS- extinction prototype,HC,Placebo,0,Male,1,19,0.0
+N240,CSS,7,CSS_CSminus_TargetSimilarity,-0.07093306035910432,CS- extinction prototype,HC,Placebo,0,Male,1,19,0.0
+N240,CSS,8,CSS_CSminus_TargetSimilarity,-0.1313734249393131,CS- extinction prototype,HC,Placebo,0,Male,1,19,0.0
+N240,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,-0.058532323320752665,early reinstatement CSR prototype,HC,Placebo,0,Male,1,19,0.0
+N240,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,-0.16973547323551316,early reinstatement CSR prototype,HC,Placebo,0,Male,1,19,0.0
+N240,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,-0.11343512367633839,early reinstatement CSR prototype,HC,Placebo,0,Male,1,19,0.0
+N240,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,0.0611078653275835,early reinstatement CSR prototype,HC,Placebo,0,Male,1,19,0.0
+N240,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,-0.24677548095272187,early reinstatement CSR prototype,HC,Placebo,0,Male,1,19,0.0
+N240,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,-0.17599226479662108,early reinstatement CSR prototype,HC,Placebo,0,Male,1,19,0.0
+N240,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,0.24971190523124104,early reinstatement CSR prototype,HC,Placebo,0,Male,1,19,0.0
+N240,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.3819895442035764,early reinstatement CSR prototype,HC,Placebo,0,Male,1,19,0.0
+N241,CSS,1,CSS_CSminus_TargetSimilarity,-0.1630770415443482,CS- extinction prototype,HC,Oxytocin,1,Female,0,28,1.0
+N241,CSS,2,CSS_CSminus_TargetSimilarity,-0.27017925082950955,CS- extinction prototype,HC,Oxytocin,1,Female,0,28,1.0
+N241,CSS,3,CSS_CSminus_TargetSimilarity,0.030479075772337928,CS- extinction prototype,HC,Oxytocin,1,Female,0,28,1.0
+N241,CSS,4,CSS_CSminus_TargetSimilarity,-0.2720247197603037,CS- extinction prototype,HC,Oxytocin,1,Female,0,28,1.0
+N241,CSS,5,CSS_CSminus_TargetSimilarity,-0.15145854893395624,CS- extinction prototype,HC,Oxytocin,1,Female,0,28,1.0
+N241,CSS,6,CSS_CSminus_TargetSimilarity,-0.2753458591608128,CS- extinction prototype,HC,Oxytocin,1,Female,0,28,1.0
+N241,CSS,7,CSS_CSminus_TargetSimilarity,-0.030736040771764932,CS- extinction prototype,HC,Oxytocin,1,Female,0,28,1.0
+N241,CSS,8,CSS_CSminus_TargetSimilarity,-0.2140467130013863,CS- extinction prototype,HC,Oxytocin,1,Female,0,28,1.0
+N241,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,-0.12348761240783097,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,28,1.0
+N241,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,-0.0035922309652289663,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,28,1.0
+N241,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,-0.033249287867801576,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,28,1.0
+N241,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,-0.19063128292330941,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,28,1.0
+N241,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.08116500489423824,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,28,1.0
+N241,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,0.01682944958546414,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,28,1.0
+N241,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,-0.03785923960856844,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,28,1.0
+N241,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.00829207905311139,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,28,1.0
+N242,CSS,1,CSS_CSminus_TargetSimilarity,-0.3637165462974705,CS- extinction prototype,HC,Placebo,0,Female,0,19,0.0
+N242,CSS,2,CSS_CSminus_TargetSimilarity,-0.38776072431841535,CS- extinction prototype,HC,Placebo,0,Female,0,19,0.0
+N242,CSS,3,CSS_CSminus_TargetSimilarity,-0.2064099870085076,CS- extinction prototype,HC,Placebo,0,Female,0,19,0.0
+N242,CSS,4,CSS_CSminus_TargetSimilarity,-0.22474243604966515,CS- extinction prototype,HC,Placebo,0,Female,0,19,0.0
+N242,CSS,5,CSS_CSminus_TargetSimilarity,0.04342722950448796,CS- extinction prototype,HC,Placebo,0,Female,0,19,0.0
+N242,CSS,6,CSS_CSminus_TargetSimilarity,-0.16703656162142996,CS- extinction prototype,HC,Placebo,0,Female,0,19,0.0
+N242,CSS,7,CSS_CSminus_TargetSimilarity,-0.046652493394551596,CS- extinction prototype,HC,Placebo,0,Female,0,19,0.0
+N242,CSS,8,CSS_CSminus_TargetSimilarity,-0.2950322109522808,CS- extinction prototype,HC,Placebo,0,Female,0,19,0.0
+N242,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,-0.005213770768640871,early reinstatement CSR prototype,HC,Placebo,0,Female,0,19,0.0
+N242,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,0.000668742429413059,early reinstatement CSR prototype,HC,Placebo,0,Female,0,19,0.0
+N242,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,0.0018010167885485573,early reinstatement CSR prototype,HC,Placebo,0,Female,0,19,0.0
+N242,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,-0.011692656887184374,early reinstatement CSR prototype,HC,Placebo,0,Female,0,19,0.0
+N242,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,-0.009955298711491308,early reinstatement CSR prototype,HC,Placebo,0,Female,0,19,0.0
+N242,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,-0.03556908046657195,early reinstatement CSR prototype,HC,Placebo,0,Female,0,19,0.0
+N242,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,0.01595637937293413,early reinstatement CSR prototype,HC,Placebo,0,Female,0,19,0.0
+N242,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.020772802236140066,early reinstatement CSR prototype,HC,Placebo,0,Female,0,19,0.0
+N243,CSS,1,CSS_CSminus_TargetSimilarity,-0.2158481642610723,CS- extinction prototype,HC,Oxytocin,1,Female,0,18,0.0
+N243,CSS,2,CSS_CSminus_TargetSimilarity,-0.31474753378617965,CS- extinction prototype,HC,Oxytocin,1,Female,0,18,0.0
+N243,CSS,3,CSS_CSminus_TargetSimilarity,-0.1928436295360996,CS- extinction prototype,HC,Oxytocin,1,Female,0,18,0.0
+N243,CSS,4,CSS_CSminus_TargetSimilarity,-0.31553800413190203,CS- extinction prototype,HC,Oxytocin,1,Female,0,18,0.0
+N243,CSS,5,CSS_CSminus_TargetSimilarity,-0.10013205831552019,CS- extinction prototype,HC,Oxytocin,1,Female,0,18,0.0
+N243,CSS,6,CSS_CSminus_TargetSimilarity,-0.09395998620388137,CS- extinction prototype,HC,Oxytocin,1,Female,0,18,0.0
+N243,CSS,7,CSS_CSminus_TargetSimilarity,-0.1570699709312719,CS- extinction prototype,HC,Oxytocin,1,Female,0,18,0.0
+N243,CSS,8,CSS_CSminus_TargetSimilarity,-0.11555529035696578,CS- extinction prototype,HC,Oxytocin,1,Female,0,18,0.0
+N243,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,0.015405794570942726,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,18,0.0
+N243,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,0.013004448528537606,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,18,0.0
+N243,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,0.004693119889714922,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,18,0.0
+N243,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,0.011451010053209509,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,18,0.0
+N243,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.09747023596988609,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,18,0.0
+N243,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,0.018278308907529166,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,18,0.0
+N243,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,0.0003931543501866934,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,18,0.0
+N243,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.04709017424119805,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,18,0.0
+N244,CSS,1,CSS_CSminus_TargetSimilarity,-0.195735753195375,CS- extinction prototype,HC,Placebo,0,Female,0,25,0.0
+N244,CSS,2,CSS_CSminus_TargetSimilarity,-0.06646537566323826,CS- extinction prototype,HC,Placebo,0,Female,0,25,0.0
+N244,CSS,3,CSS_CSminus_TargetSimilarity,-0.31754220669454986,CS- extinction prototype,HC,Placebo,0,Female,0,25,0.0
+N244,CSS,4,CSS_CSminus_TargetSimilarity,-0.1300918810100364,CS- extinction prototype,HC,Placebo,0,Female,0,25,0.0
+N244,CSS,5,CSS_CSminus_TargetSimilarity,-0.11434946834910402,CS- extinction prototype,HC,Placebo,0,Female,0,25,0.0
+N244,CSS,6,CSS_CSminus_TargetSimilarity,-0.09990185657879162,CS- extinction prototype,HC,Placebo,0,Female,0,25,0.0
+N244,CSS,7,CSS_CSminus_TargetSimilarity,-0.14596758249569744,CS- extinction prototype,HC,Placebo,0,Female,0,25,0.0
+N244,CSS,8,CSS_CSminus_TargetSimilarity,-0.09721335275357323,CS- extinction prototype,HC,Placebo,0,Female,0,25,0.0
+N244,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,-0.08411203817888363,early reinstatement CSR prototype,HC,Placebo,0,Female,0,25,0.0
+N244,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,-0.10820383187509834,early reinstatement CSR prototype,HC,Placebo,0,Female,0,25,0.0
+N244,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,0.13481505265007207,early reinstatement CSR prototype,HC,Placebo,0,Female,0,25,0.0
+N244,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,-0.043221835034724036,early reinstatement CSR prototype,HC,Placebo,0,Female,0,25,0.0
+N244,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,-0.036636069670529105,early reinstatement CSR prototype,HC,Placebo,0,Female,0,25,0.0
+N244,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,-0.02172712696059243,early reinstatement CSR prototype,HC,Placebo,0,Female,0,25,0.0
+N244,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,0.11692862136892335,early reinstatement CSR prototype,HC,Placebo,0,Female,0,25,0.0
+N244,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.07861948831771712,early reinstatement CSR prototype,HC,Placebo,0,Female,0,25,0.0
+N246,CSS,1,CSS_CSminus_TargetSimilarity,-0.2159272419875998,CS- extinction prototype,HC,Oxytocin,1,Female,0,18,1.0
+N246,CSS,2,CSS_CSminus_TargetSimilarity,-0.19469327933497466,CS- extinction prototype,HC,Oxytocin,1,Female,0,18,1.0
+N246,CSS,3,CSS_CSminus_TargetSimilarity,-0.1623134374240207,CS- extinction prototype,HC,Oxytocin,1,Female,0,18,1.0
+N246,CSS,4,CSS_CSminus_TargetSimilarity,-0.04049912340137488,CS- extinction prototype,HC,Oxytocin,1,Female,0,18,1.0
+N246,CSS,5,CSS_CSminus_TargetSimilarity,-0.11150831684382165,CS- extinction prototype,HC,Oxytocin,1,Female,0,18,1.0
+N246,CSS,6,CSS_CSminus_TargetSimilarity,-0.08469729208139912,CS- extinction prototype,HC,Oxytocin,1,Female,0,18,1.0
+N246,CSS,7,CSS_CSminus_TargetSimilarity,-0.18922901622891403,CS- extinction prototype,HC,Oxytocin,1,Female,0,18,1.0
+N246,CSS,8,CSS_CSminus_TargetSimilarity,-0.012950818302018089,CS- extinction prototype,HC,Oxytocin,1,Female,0,18,1.0
+N246,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,0.006466018460792094,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,18,1.0
+N246,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,-0.12192706353678238,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,18,1.0
+N246,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,-0.05250129749067994,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,18,1.0
+N246,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,-0.03688893295266093,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,18,1.0
+N246,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.04285994116268126,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,18,1.0
+N246,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,0.02472033823685698,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,18,1.0
+N246,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,0.0916294675179153,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,18,1.0
+N246,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,0.035083921480267705,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,18,1.0
+N247,CSS,1,CSS_CSminus_TargetSimilarity,-0.14096361621580206,CS- extinction prototype,HC,Placebo,0,Female,0,21,0.0
+N247,CSS,2,CSS_CSminus_TargetSimilarity,-0.23443378539887755,CS- extinction prototype,HC,Placebo,0,Female,0,21,0.0
+N247,CSS,3,CSS_CSminus_TargetSimilarity,-0.0819694176036103,CS- extinction prototype,HC,Placebo,0,Female,0,21,0.0
+N247,CSS,4,CSS_CSminus_TargetSimilarity,0.021561844953683944,CS- extinction prototype,HC,Placebo,0,Female,0,21,0.0
+N247,CSS,5,CSS_CSminus_TargetSimilarity,-0.038278553019236966,CS- extinction prototype,HC,Placebo,0,Female,0,21,0.0
+N247,CSS,6,CSS_CSminus_TargetSimilarity,-0.20676890825075014,CS- extinction prototype,HC,Placebo,0,Female,0,21,0.0
+N247,CSS,7,CSS_CSminus_TargetSimilarity,-0.05793280670875885,CS- extinction prototype,HC,Placebo,0,Female,0,21,0.0
+N247,CSS,8,CSS_CSminus_TargetSimilarity,-0.005426338916092301,CS- extinction prototype,HC,Placebo,0,Female,0,21,0.0
+N247,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,-0.12538475222113743,early reinstatement CSR prototype,HC,Placebo,0,Female,0,21,0.0
+N247,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,-0.011119334258737845,early reinstatement CSR prototype,HC,Placebo,0,Female,0,21,0.0
+N247,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,0.039032588864146345,early reinstatement CSR prototype,HC,Placebo,0,Female,0,21,0.0
+N247,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,0.29580064743492623,early reinstatement CSR prototype,HC,Placebo,0,Female,0,21,0.0
+N247,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.25302018106531843,early reinstatement CSR prototype,HC,Placebo,0,Female,0,21,0.0
+N247,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,-0.18313592992909197,early reinstatement CSR prototype,HC,Placebo,0,Female,0,21,0.0
+N247,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,-0.13445009939294467,early reinstatement CSR prototype,HC,Placebo,0,Female,0,21,0.0
+N247,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.0741199388169247,early reinstatement CSR prototype,HC,Placebo,0,Female,0,21,0.0
+N248,CSS,1,CSS_CSminus_TargetSimilarity,-0.21977009237146278,CS- extinction prototype,HC,Oxytocin,1,Female,0,26,0.0
+N248,CSS,2,CSS_CSminus_TargetSimilarity,-0.1540336246718992,CS- extinction prototype,HC,Oxytocin,1,Female,0,26,0.0
+N248,CSS,3,CSS_CSminus_TargetSimilarity,-0.20551506680786547,CS- extinction prototype,HC,Oxytocin,1,Female,0,26,0.0
+N248,CSS,4,CSS_CSminus_TargetSimilarity,-0.2338486069099002,CS- extinction prototype,HC,Oxytocin,1,Female,0,26,0.0
+N248,CSS,5,CSS_CSminus_TargetSimilarity,-0.1370874179609798,CS- extinction prototype,HC,Oxytocin,1,Female,0,26,0.0
+N248,CSS,6,CSS_CSminus_TargetSimilarity,-0.21349935836865475,CS- extinction prototype,HC,Oxytocin,1,Female,0,26,0.0
+N248,CSS,7,CSS_CSminus_TargetSimilarity,-0.04237446902781183,CS- extinction prototype,HC,Oxytocin,1,Female,0,26,0.0
+N248,CSS,8,CSS_CSminus_TargetSimilarity,-0.2506859956093894,CS- extinction prototype,HC,Oxytocin,1,Female,0,26,0.0
+N248,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,-0.004966024761090435,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,26,0.0
+N248,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,0.08108752814903315,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,26,0.0
+N248,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,-0.08778342482114729,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,26,0.0
+N248,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,0.025204169865086466,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,26,0.0
+N248,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.02087886682140327,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,26,0.0
+N248,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,-0.057232314844250336,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,26,0.0
+N248,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,-0.01569812988659783,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,26,0.0
+N248,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.1612213491134119,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,26,0.0
+N249,CSS,1,CSS_CSminus_TargetSimilarity,-0.110423050901778,CS- extinction prototype,HC,Placebo,0,Female,0,20,0.0
+N249,CSS,2,CSS_CSminus_TargetSimilarity,-0.16367259189719577,CS- extinction prototype,HC,Placebo,0,Female,0,20,0.0
+N249,CSS,3,CSS_CSminus_TargetSimilarity,-0.1878945936000599,CS- extinction prototype,HC,Placebo,0,Female,0,20,0.0
+N249,CSS,4,CSS_CSminus_TargetSimilarity,-0.1125288538402919,CS- extinction prototype,HC,Placebo,0,Female,0,20,0.0
+N249,CSS,5,CSS_CSminus_TargetSimilarity,-0.1651128961911114,CS- extinction prototype,HC,Placebo,0,Female,0,20,0.0
+N249,CSS,6,CSS_CSminus_TargetSimilarity,-0.18166063577281022,CS- extinction prototype,HC,Placebo,0,Female,0,20,0.0
+N249,CSS,7,CSS_CSminus_TargetSimilarity,-0.3072339179028143,CS- extinction prototype,HC,Placebo,0,Female,0,20,0.0
+N249,CSS,8,CSS_CSminus_TargetSimilarity,-0.17243344836810723,CS- extinction prototype,HC,Placebo,0,Female,0,20,0.0
+N249,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,-0.07578949238219396,early reinstatement CSR prototype,HC,Placebo,0,Female,0,20,0.0
+N249,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,-0.0695845521133897,early reinstatement CSR prototype,HC,Placebo,0,Female,0,20,0.0
+N249,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,0.13003213656552914,early reinstatement CSR prototype,HC,Placebo,0,Female,0,20,0.0
+N249,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,-0.06486139618465957,early reinstatement CSR prototype,HC,Placebo,0,Female,0,20,0.0
+N249,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.008763346318092058,early reinstatement CSR prototype,HC,Placebo,0,Female,0,20,0.0
+N249,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,-0.04408575607477571,early reinstatement CSR prototype,HC,Placebo,0,Female,0,20,0.0
+N249,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,0.0019025232850479695,early reinstatement CSR prototype,HC,Placebo,0,Female,0,20,0.0
+N249,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.04807715524624279,early reinstatement CSR prototype,HC,Placebo,0,Female,0,20,0.0
+N250,CSS,1,CSS_CSminus_TargetSimilarity,-0.21129659133520962,CS- extinction prototype,HC,Oxytocin,1,Female,0,19,1.0
+N250,CSS,2,CSS_CSminus_TargetSimilarity,0.04445943522521737,CS- extinction prototype,HC,Oxytocin,1,Female,0,19,1.0
+N250,CSS,3,CSS_CSminus_TargetSimilarity,-0.142458039778154,CS- extinction prototype,HC,Oxytocin,1,Female,0,19,1.0
+N250,CSS,4,CSS_CSminus_TargetSimilarity,-0.2778118288140225,CS- extinction prototype,HC,Oxytocin,1,Female,0,19,1.0
+N250,CSS,5,CSS_CSminus_TargetSimilarity,-0.029931899148005446,CS- extinction prototype,HC,Oxytocin,1,Female,0,19,1.0
+N250,CSS,6,CSS_CSminus_TargetSimilarity,-0.11217709212312833,CS- extinction prototype,HC,Oxytocin,1,Female,0,19,1.0
+N250,CSS,7,CSS_CSminus_TargetSimilarity,0.012956359639574694,CS- extinction prototype,HC,Oxytocin,1,Female,0,19,1.0
+N250,CSS,8,CSS_CSminus_TargetSimilarity,-0.24250820174056248,CS- extinction prototype,HC,Oxytocin,1,Female,0,19,1.0
+N250,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,-0.010734755060376681,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,19,1.0
+N250,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,-0.008292217799584013,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,19,1.0
+N250,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,-0.03882307522004154,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,19,1.0
+N250,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,0.06538373348554744,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,19,1.0
+N250,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,-0.015903502324741695,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,19,1.0
+N250,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,0.02173659600486709,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,19,1.0
+N250,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,-0.031619612620464456,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,19,1.0
+N250,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.0672922830906084,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,19,1.0
+N251,CSS,1,CSS_CSminus_TargetSimilarity,-0.28234960178210067,CS- extinction prototype,HC,Oxytocin,1,Female,0,19,1.0
+N251,CSS,2,CSS_CSminus_TargetSimilarity,0.004335542907093567,CS- extinction prototype,HC,Oxytocin,1,Female,0,19,1.0
+N251,CSS,3,CSS_CSminus_TargetSimilarity,-0.11227837795926805,CS- extinction prototype,HC,Oxytocin,1,Female,0,19,1.0
+N251,CSS,4,CSS_CSminus_TargetSimilarity,-0.2352779151051405,CS- extinction prototype,HC,Oxytocin,1,Female,0,19,1.0
+N251,CSS,5,CSS_CSminus_TargetSimilarity,0.1923229685909671,CS- extinction prototype,HC,Oxytocin,1,Female,0,19,1.0
+N251,CSS,6,CSS_CSminus_TargetSimilarity,-0.22708854028144848,CS- extinction prototype,HC,Oxytocin,1,Female,0,19,1.0
+N251,CSS,7,CSS_CSminus_TargetSimilarity,-0.3019128813451349,CS- extinction prototype,HC,Oxytocin,1,Female,0,19,1.0
+N251,CSS,8,CSS_CSminus_TargetSimilarity,-0.23255938722539007,CS- extinction prototype,HC,Oxytocin,1,Female,0,19,1.0
+N251,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,0.030133700164926638,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,19,1.0
+N251,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,-0.006364600591550006,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,19,1.0
+N251,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,-0.014024300732706229,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,19,1.0
+N251,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,0.022605989546283484,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,19,1.0
+N251,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,-0.005388425764723299,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,19,1.0
+N251,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,-0.00956697309485596,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,19,1.0
+N251,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,-0.007834589868013315,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,19,1.0
+N251,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,0.011241420699315163,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,19,1.0
+N252,CSS,1,CSS_CSminus_TargetSimilarity,-0.30325854115993267,CS- extinction prototype,HC,Placebo,0,Female,0,30,0.0
+N252,CSS,2,CSS_CSminus_TargetSimilarity,-0.17968276189977628,CS- extinction prototype,HC,Placebo,0,Female,0,30,0.0
+N252,CSS,3,CSS_CSminus_TargetSimilarity,-0.22135187165324477,CS- extinction prototype,HC,Placebo,0,Female,0,30,0.0
+N252,CSS,4,CSS_CSminus_TargetSimilarity,-0.12336524446274597,CS- extinction prototype,HC,Placebo,0,Female,0,30,0.0
+N252,CSS,5,CSS_CSminus_TargetSimilarity,0.1430979649037152,CS- extinction prototype,HC,Placebo,0,Female,0,30,0.0
+N252,CSS,6,CSS_CSminus_TargetSimilarity,-0.043143852912065205,CS- extinction prototype,HC,Placebo,0,Female,0,30,0.0
+N252,CSS,7,CSS_CSminus_TargetSimilarity,-0.05690869177067596,CS- extinction prototype,HC,Placebo,0,Female,0,30,0.0
+N252,CSS,8,CSS_CSminus_TargetSimilarity,-0.10502158354123195,CS- extinction prototype,HC,Placebo,0,Female,0,30,0.0
+N252,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,0.17185501045710683,early reinstatement CSR prototype,HC,Placebo,0,Female,0,30,0.0
+N252,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,0.08608959651869004,early reinstatement CSR prototype,HC,Placebo,0,Female,0,30,0.0
+N252,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,0.06755633024891958,early reinstatement CSR prototype,HC,Placebo,0,Female,0,30,0.0
+N252,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,0.119633145835447,early reinstatement CSR prototype,HC,Placebo,0,Female,0,30,0.0
+N252,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.00872353903801098,early reinstatement CSR prototype,HC,Placebo,0,Female,0,30,0.0
+N252,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,0.15596524038760953,early reinstatement CSR prototype,HC,Placebo,0,Female,0,30,0.0
+N252,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,-0.22448808277846313,early reinstatement CSR prototype,HC,Placebo,0,Female,0,30,0.0
+N252,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,0.16898795874178632,early reinstatement CSR prototype,HC,Placebo,0,Female,0,30,0.0
+N253,CSS,1,CSS_CSminus_TargetSimilarity,-0.26309589457159643,CS- extinction prototype,HC,Oxytocin,1,Male,1,26,0.0
+N253,CSS,2,CSS_CSminus_TargetSimilarity,-0.05891168464966883,CS- extinction prototype,HC,Oxytocin,1,Male,1,26,0.0
+N253,CSS,3,CSS_CSminus_TargetSimilarity,-0.1877693619686605,CS- extinction prototype,HC,Oxytocin,1,Male,1,26,0.0
+N253,CSS,4,CSS_CSminus_TargetSimilarity,-0.1587670695062906,CS- extinction prototype,HC,Oxytocin,1,Male,1,26,0.0
+N253,CSS,5,CSS_CSminus_TargetSimilarity,-0.002725088119363736,CS- extinction prototype,HC,Oxytocin,1,Male,1,26,0.0
+N253,CSS,6,CSS_CSminus_TargetSimilarity,-0.05699427338924825,CS- extinction prototype,HC,Oxytocin,1,Male,1,26,0.0
+N253,CSS,7,CSS_CSminus_TargetSimilarity,0.025840612069808963,CS- extinction prototype,HC,Oxytocin,1,Male,1,26,0.0
+N253,CSS,8,CSS_CSminus_TargetSimilarity,-0.42710675568200707,CS- extinction prototype,HC,Oxytocin,1,Male,1,26,0.0
+N253,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,-0.057556392479002245,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,26,0.0
+N253,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,0.033584820012533774,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,26,0.0
+N253,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,0.059798473030618436,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,26,0.0
+N253,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,0.010850102850915444,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,26,0.0
+N253,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.06625787916008405,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,26,0.0
+N253,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,0.0331395736956633,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,26,0.0
+N253,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,0.02879456860553571,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,26,0.0
+N253,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.022656388190342772,early reinstatement CSR prototype,HC,Oxytocin,1,Male,1,26,0.0
+N254,CSS,1,CSS_CSminus_TargetSimilarity,-0.2686760291627847,CS- extinction prototype,HC,Oxytocin,1,Female,0,37,1.0
+N254,CSS,2,CSS_CSminus_TargetSimilarity,-0.15113677971239023,CS- extinction prototype,HC,Oxytocin,1,Female,0,37,1.0
+N254,CSS,3,CSS_CSminus_TargetSimilarity,0.17011890557651668,CS- extinction prototype,HC,Oxytocin,1,Female,0,37,1.0
+N254,CSS,4,CSS_CSminus_TargetSimilarity,0.10676909921510143,CS- extinction prototype,HC,Oxytocin,1,Female,0,37,1.0
+N254,CSS,5,CSS_CSminus_TargetSimilarity,-0.3471828149633219,CS- extinction prototype,HC,Oxytocin,1,Female,0,37,1.0
+N254,CSS,6,CSS_CSminus_TargetSimilarity,-0.09736587679844472,CS- extinction prototype,HC,Oxytocin,1,Female,0,37,1.0
+N254,CSS,7,CSS_CSminus_TargetSimilarity,0.13314265663989247,CS- extinction prototype,HC,Oxytocin,1,Female,0,37,1.0
+N254,CSS,8,CSS_CSminus_TargetSimilarity,-0.11162772667472977,CS- extinction prototype,HC,Oxytocin,1,Female,0,37,1.0
+N254,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,-0.06091381962862719,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,37,1.0
+N254,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,0.051822101666594636,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,37,1.0
+N254,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,0.011294899954554453,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,37,1.0
+N254,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,0.03708439107037124,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,37,1.0
+N254,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,-0.012093870180438202,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,37,1.0
+N254,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,-0.0036163292028422774,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,37,1.0
+N254,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,-0.05591117232703301,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,37,1.0
+N254,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.019313269284005778,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,37,1.0
+N255,CSS,1,CSS_CSminus_TargetSimilarity,-0.2513522928497243,CS- extinction prototype,HC,Oxytocin,1,Female,0,29,1.0
+N255,CSS,2,CSS_CSminus_TargetSimilarity,-0.023468461995783046,CS- extinction prototype,HC,Oxytocin,1,Female,0,29,1.0
+N255,CSS,3,CSS_CSminus_TargetSimilarity,-0.22288839507164598,CS- extinction prototype,HC,Oxytocin,1,Female,0,29,1.0
+N255,CSS,4,CSS_CSminus_TargetSimilarity,-0.09903324818097173,CS- extinction prototype,HC,Oxytocin,1,Female,0,29,1.0
+N255,CSS,5,CSS_CSminus_TargetSimilarity,0.05049062767936884,CS- extinction prototype,HC,Oxytocin,1,Female,0,29,1.0
+N255,CSS,6,CSS_CSminus_TargetSimilarity,-0.18064487697935547,CS- extinction prototype,HC,Oxytocin,1,Female,0,29,1.0
+N255,CSS,7,CSS_CSminus_TargetSimilarity,-0.22953071928933916,CS- extinction prototype,HC,Oxytocin,1,Female,0,29,1.0
+N255,CSS,8,CSS_CSminus_TargetSimilarity,-0.260326964966882,CS- extinction prototype,HC,Oxytocin,1,Female,0,29,1.0
+N255,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,-0.08166072034834862,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,29,1.0
+N255,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,-0.1071282275071145,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,29,1.0
+N255,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,-0.024538826096154376,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,29,1.0
+N255,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,0.02486186516675054,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,29,1.0
+N255,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,-0.004580336677671119,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,29,1.0
+N255,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,-0.00883174553035394,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,29,1.0
+N255,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,0.05703197900665531,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,29,1.0
+N255,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.002383279680456904,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,29,1.0
+N257,CSS,1,CSS_CSminus_TargetSimilarity,-0.18602269944412558,CS- extinction prototype,HC,Placebo,0,Female,0,18,0.0
+N257,CSS,2,CSS_CSminus_TargetSimilarity,-0.21865449159924216,CS- extinction prototype,HC,Placebo,0,Female,0,18,0.0
+N257,CSS,3,CSS_CSminus_TargetSimilarity,-0.33967431760418204,CS- extinction prototype,HC,Placebo,0,Female,0,18,0.0
+N257,CSS,4,CSS_CSminus_TargetSimilarity,-0.031520362750991536,CS- extinction prototype,HC,Placebo,0,Female,0,18,0.0
+N257,CSS,5,CSS_CSminus_TargetSimilarity,-0.024628487902474214,CS- extinction prototype,HC,Placebo,0,Female,0,18,0.0
+N257,CSS,6,CSS_CSminus_TargetSimilarity,0.022409043621296577,CS- extinction prototype,HC,Placebo,0,Female,0,18,0.0
+N257,CSS,7,CSS_CSminus_TargetSimilarity,-0.16037773223675003,CS- extinction prototype,HC,Placebo,0,Female,0,18,0.0
+N257,CSS,8,CSS_CSminus_TargetSimilarity,0.009026529860100375,CS- extinction prototype,HC,Placebo,0,Female,0,18,0.0
+N257,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,0.03716272970736234,early reinstatement CSR prototype,HC,Placebo,0,Female,0,18,0.0
+N257,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,-0.009659903565327916,early reinstatement CSR prototype,HC,Placebo,0,Female,0,18,0.0
+N257,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,0.10921804374559846,early reinstatement CSR prototype,HC,Placebo,0,Female,0,18,0.0
+N257,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,0.05923245430969027,early reinstatement CSR prototype,HC,Placebo,0,Female,0,18,0.0
+N257,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.06613267103703191,early reinstatement CSR prototype,HC,Placebo,0,Female,0,18,0.0
+N257,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,0.09573862473642139,early reinstatement CSR prototype,HC,Placebo,0,Female,0,18,0.0
+N257,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,-0.061603845279121994,early reinstatement CSR prototype,HC,Placebo,0,Female,0,18,0.0
+N257,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.12286178537818268,early reinstatement CSR prototype,HC,Placebo,0,Female,0,18,0.0
+N258,CSS,1,CSS_CSminus_TargetSimilarity,-0.3371925869178627,CS- extinction prototype,HC,Placebo,0,Female,0,19,1.0
+N258,CSS,2,CSS_CSminus_TargetSimilarity,0.09975380350534013,CS- extinction prototype,HC,Placebo,0,Female,0,19,1.0
+N258,CSS,3,CSS_CSminus_TargetSimilarity,0.2108959521060712,CS- extinction prototype,HC,Placebo,0,Female,0,19,1.0
+N258,CSS,4,CSS_CSminus_TargetSimilarity,-0.12576516336166663,CS- extinction prototype,HC,Placebo,0,Female,0,19,1.0
+N258,CSS,5,CSS_CSminus_TargetSimilarity,-0.32698080085265036,CS- extinction prototype,HC,Placebo,0,Female,0,19,1.0
+N258,CSS,6,CSS_CSminus_TargetSimilarity,0.08739811240510145,CS- extinction prototype,HC,Placebo,0,Female,0,19,1.0
+N258,CSS,7,CSS_CSminus_TargetSimilarity,-0.12047430675707199,CS- extinction prototype,HC,Placebo,0,Female,0,19,1.0
+N258,CSS,8,CSS_CSminus_TargetSimilarity,-0.043417302984465514,CS- extinction prototype,HC,Placebo,0,Female,0,19,1.0
+N258,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,-0.10169241745718002,early reinstatement CSR prototype,HC,Placebo,0,Female,0,19,1.0
+N258,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,-0.04893127801468766,early reinstatement CSR prototype,HC,Placebo,0,Female,0,19,1.0
+N258,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,0.10467722789682914,early reinstatement CSR prototype,HC,Placebo,0,Female,0,19,1.0
+N258,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,0.009384671047039017,early reinstatement CSR prototype,HC,Placebo,0,Female,0,19,1.0
+N258,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,-0.002917497983720771,early reinstatement CSR prototype,HC,Placebo,0,Female,0,19,1.0
+N258,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,0.001666928482461937,early reinstatement CSR prototype,HC,Placebo,0,Female,0,19,1.0
+N258,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,0.0786300601876914,early reinstatement CSR prototype,HC,Placebo,0,Female,0,19,1.0
+N258,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.2211383819718192,early reinstatement CSR prototype,HC,Placebo,0,Female,0,19,1.0
+N259,CSS,1,CSS_CSminus_TargetSimilarity,-0.04001532588778936,CS- extinction prototype,HC,Oxytocin,1,Female,0,23,1.0
+N259,CSS,2,CSS_CSminus_TargetSimilarity,-0.1997327601470271,CS- extinction prototype,HC,Oxytocin,1,Female,0,23,1.0
+N259,CSS,3,CSS_CSminus_TargetSimilarity,-0.22430218129060434,CS- extinction prototype,HC,Oxytocin,1,Female,0,23,1.0
+N259,CSS,4,CSS_CSminus_TargetSimilarity,0.09453287461441806,CS- extinction prototype,HC,Oxytocin,1,Female,0,23,1.0
+N259,CSS,5,CSS_CSminus_TargetSimilarity,-0.08269068471926597,CS- extinction prototype,HC,Oxytocin,1,Female,0,23,1.0
+N259,CSS,6,CSS_CSminus_TargetSimilarity,0.08973556671753528,CS- extinction prototype,HC,Oxytocin,1,Female,0,23,1.0
+N259,CSS,7,CSS_CSminus_TargetSimilarity,-0.06967579231915991,CS- extinction prototype,HC,Oxytocin,1,Female,0,23,1.0
+N259,CSS,8,CSS_CSminus_TargetSimilarity,-0.00654868020901,CS- extinction prototype,HC,Oxytocin,1,Female,0,23,1.0
+N259,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,-0.1088863127712334,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,23,1.0
+N259,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,-0.12687727510652133,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,23,1.0
+N259,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,-0.11832491014537243,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,23,1.0
+N259,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,0.10281367946806955,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,23,1.0
+N259,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,0.07285769556895284,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,23,1.0
+N259,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,-0.12190113711801796,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,23,1.0
+N259,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,0.2557153908462565,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,23,1.0
+N259,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.20948043524406817,early reinstatement CSR prototype,HC,Oxytocin,1,Female,0,23,1.0
+N260,CSS,1,CSS_CSminus_TargetSimilarity,0.004612823974596598,CS- extinction prototype,HC,Placebo,0,Female,0,32,0.0
+N260,CSS,2,CSS_CSminus_TargetSimilarity,-0.020983133771725532,CS- extinction prototype,HC,Placebo,0,Female,0,32,0.0
+N260,CSS,3,CSS_CSminus_TargetSimilarity,0.038655750187436944,CS- extinction prototype,HC,Placebo,0,Female,0,32,0.0
+N260,CSS,4,CSS_CSminus_TargetSimilarity,0.04985499825277247,CS- extinction prototype,HC,Placebo,0,Female,0,32,0.0
+N260,CSS,5,CSS_CSminus_TargetSimilarity,-0.03180733822638575,CS- extinction prototype,HC,Placebo,0,Female,0,32,0.0
+N260,CSS,6,CSS_CSminus_TargetSimilarity,-0.19179921587007143,CS- extinction prototype,HC,Placebo,0,Female,0,32,0.0
+N260,CSS,7,CSS_CSminus_TargetSimilarity,-0.23209807725018314,CS- extinction prototype,HC,Placebo,0,Female,0,32,0.0
+N260,CSS,8,CSS_CSminus_TargetSimilarity,-0.06162128519849114,CS- extinction prototype,HC,Placebo,0,Female,0,32,0.0
+N260,CSR,1,CSR_EarlyReinstCSR_TargetSimilarity,0.04664520713591065,early reinstatement CSR prototype,HC,Placebo,0,Female,0,32,0.0
+N260,CSR,2,CSR_EarlyReinstCSR_TargetSimilarity,0.040733429231300494,early reinstatement CSR prototype,HC,Placebo,0,Female,0,32,0.0
+N260,CSR,3,CSR_EarlyReinstCSR_TargetSimilarity,0.06576998063372776,early reinstatement CSR prototype,HC,Placebo,0,Female,0,32,0.0
+N260,CSR,4,CSR_EarlyReinstCSR_TargetSimilarity,0.07678207398501384,early reinstatement CSR prototype,HC,Placebo,0,Female,0,32,0.0
+N260,CSR,5,CSR_EarlyReinstCSR_TargetSimilarity,-0.043060468126020934,early reinstatement CSR prototype,HC,Placebo,0,Female,0,32,0.0
+N260,CSR,6,CSR_EarlyReinstCSR_TargetSimilarity,-0.16074969338810177,early reinstatement CSR prototype,HC,Placebo,0,Female,0,32,0.0
+N260,CSR,7,CSR_EarlyReinstCSR_TargetSimilarity,0.05663942604685841,early reinstatement CSR prototype,HC,Placebo,0,Female,0,32,0.0
+N260,CSR,8,CSR_EarlyReinstCSR_TargetSimilarity,-0.06015703500377966,early reinstatement CSR prototype,HC,Placebo,0,Female,0,32,0.0

@@ -11,7 +11,6 @@ from mvpa_l2_common import (
     ALL_CLINICAL_SCORES,
     ALL_SCR_INDICES,
     CLINICAL_SCORE_HIERARCHY,
-    COMPANION_NEURAL_METRICS,
     CORE_NEURAL_METRICS,
     NEURAL_METRIC_HIERARCHY,
     PRIMARY_SCR_INDICES,
@@ -53,9 +52,14 @@ AIM2_QUESTION_LABELS = {
     "Q3_learning_dynamics": "How do safety and threat representations change over learning?",
 }
 
-AIM2_SECONDARY_METRICS = set(COMPANION_NEURAL_METRICS)
-
-AIM2_PRIMARY_METRICS = set(CORE_NEURAL_METRICS)
+AIM2_PRIMARY_METRICS = list(CORE_NEURAL_METRICS)
+AIM2_SECONDARY_METRICS = [
+    metric
+    for metrics in AIM2_QUESTION_METRICS.values()
+    for metric in metrics
+    if metric not in AIM2_PRIMARY_METRICS
+]
+AIM2_METRICS = AIM2_PRIMARY_METRICS + AIM2_SECONDARY_METRICS
 AIM2_METRIC_TO_QUESTION = {
     metric: question
     for question, metrics in AIM2_QUESTION_METRICS.items()
@@ -162,7 +166,7 @@ def run_aim2(df: pd.DataFrame, feature_space: str, covariates: List[str]) -> pd.
                     "aim2_question_order": question_order,
                     "aim2_question_label": AIM2_QUESTION_LABELS[question_key],
                     "metric": metric,
-                    "metric_role": "secondary" if metric in AIM2_SECONDARY_METRICS else "primary",
+                    "metric_role": "primary" if metric in AIM2_PRIMARY_METRICS else "secondary",
                     "feature_space": feature_space,
                 }
             )
@@ -426,6 +430,21 @@ def run_aim5(df: pd.DataFrame, feature_space: str, covariates: List[str]) -> pd.
     return pd.DataFrame(rows)
 
 
+def apply_aim_metric_role_fdr(table: pd.DataFrame, aim_label: str) -> pd.DataFrame:
+    """Apply Aim-level FDR within primary and secondary PROJECT_CONTEXT metrics."""
+    out = table.copy()
+    if "metric" in out.columns:
+        metric = out["metric"].astype("string")
+        out = out[metric.isna() | metric.isin(AIM2_METRICS)].copy()
+    if "metric_role" not in out.columns:
+        return add_fdr(out, family_cols=["analysis"])
+    out = add_fdr(out, family_cols=["analysis", "metric_role"])
+    out = out.rename(columns={"q": "q_within_aim_metric_role"})
+    out["q"] = out["q_within_aim_metric_role"]
+    out["correction_family"] = aim_label + " " + out["metric_role"].astype(str)
+    return out
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -452,32 +471,20 @@ def main() -> None:
 
     all_rows = []
     for name, table in results.items():
-        if name == "aim2_group_difference" and "aim2_question" in table.columns:
-            table = add_fdr(table, family_cols=["analysis", "aim2_question"])
-            table = table.rename(columns={"q": "q_within_question"})
-            table["q"] = table["q_within_question"]
-            table["correction_family"] = table["aim2_question"].astype(str)
-        elif name == "aim3_clinical_relevance" and {"Group", "aim2_question"}.issubset(table.columns):
-            table = add_fdr(table, family_cols=["analysis", "Group", "aim2_question"])
-            table = table.rename(columns={"q": "q_within_question"})
-            table["q"] = table["q_within_question"]
-            table["correction_family"] = table["Group"].astype(str) + " | " + table["aim2_question"].astype(str)
+        if name == "aim2_group_difference" and {"metric", "metric_role"}.issubset(table.columns):
+            table = apply_aim_metric_role_fdr(table, "Aim2")
+        elif name == "aim3_clinical_relevance" and {"metric", "metric_role"}.issubset(table.columns):
+            table = apply_aim_metric_role_fdr(table, "Aim3")
             if "clinical_score" in table.columns:
                 clinical_table = add_fdr(table.copy(), family_cols=["analysis", "Group", "clinical_score"])
                 table["q_within_group_clinical_score"] = clinical_table["q"]
                 table["aim3_clinical_score_family"] = (
                     table["Group"].astype(str) + " | " + table["clinical_score"].astype(str)
                 )
-        elif name == "aim4_scr_convergence" and {"Group", "aim2_question"}.issubset(table.columns):
-            table = add_fdr(table, family_cols=["analysis", "Group", "aim2_question"])
-            table = table.rename(columns={"q": "q_within_question"})
-            table["q"] = table["q_within_question"]
-            table["correction_family"] = table["Group"].astype(str) + " | " + table["aim2_question"].astype(str)
-        elif name == "aim5_oxytocin_modulation" and {"metric_role", "aim2_question"}.issubset(table.columns):
-            table = add_fdr(table, family_cols=["analysis", "metric_role", "aim2_question"])
-            table = table.rename(columns={"q": "q_within_question"})
-            table["q"] = table["q_within_question"]
-            table["correction_family"] = table["metric_role"].astype(str) + " | " + table["aim2_question"].astype(str)
+        elif name == "aim4_scr_convergence" and {"metric", "metric_role"}.issubset(table.columns):
+            table = apply_aim_metric_role_fdr(table, "Aim4")
+        elif name == "aim5_oxytocin_modulation" and {"metric", "metric_role"}.issubset(table.columns):
+            table = apply_aim_metric_role_fdr(table, "Aim5")
         else:
             table = add_fdr(table, family_cols=["analysis"])
         write_csv(table, args.out_dir / f"{name}.csv")

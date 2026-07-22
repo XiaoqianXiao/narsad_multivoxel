@@ -1,0 +1,7 @@
+index,time_form,r2,aic,n_subjects,n_trials,"C(Group, Treatment(reference='HC'))[T.SAD]:trial_c_beta","C(Group, Treatment(reference='HC'))[T.SAD]:trial_c_p",min_group_time_p,"C(Group, Treatment(reference='HC'))[T.SAD]:trial_c2_beta","C(Group, Treatment(reference='HC'))[T.SAD]:trial_c2_p","C(Group, Treatment(reference='HC'))[T.SAD]:C(late, Treatment(reference='early'))[T.late]_beta","C(Group, Treatment(reference='HC'))[T.SAD]:C(late, Treatment(reference='early'))[T.late]_p"
+CSR_ext_earlyReinstCSR_distance_inverted,linear,0.005890994312674036,-789.1148725689673,50,400,-0.0017846949264768983,0.8339153078812875,0.8339153078812875,,,,
+CSR_ext_earlyReinstCSR_distance_inverted,quadratic,0.05001607286598064,-803.2755920362188,50,400,-0.0017846949264769428,0.8343291491193998,0.7141418484918013,0.0036046355143733574,0.7141418484918013,,
+CSR_ext_earlyReinstCSR_distance_inverted,early_late_bin,0.004991305708473726,-788.7530282535454,50,400,,,0.9802582347586403,,,-0.00039846642073745604,0.9802582347586403
+CSR_ext_earlyReinstCSR_proximity,linear,0.0009373483572145958,-319.8071587664225,50,400,0.004366162270153142,0.8184924607390169,0.8184924607390169,,,,
+CSR_ext_earlyReinstCSR_proximity,quadratic,0.006656254422156449,-318.10344602141583,50,400,0.004366162270153124,0.8189434234621135,0.8189434234621135,-0.003343758424133393,0.8316583748191066,,
+CSR_ext_earlyReinstCSR_proximity,early_late_bin,0.0029032903803952737,-320.5950488304951,50,400,,,0.8080505580168116,,,0.008177708264629506,0.8080505580168116

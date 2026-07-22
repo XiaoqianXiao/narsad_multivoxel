@@ -21,7 +21,14 @@ from mvpa_l2_common import (
     harmonize_group_drug,
     write_csv,
 )
-from run_mvpa_l2_primary_models import apply_stage29_zscore, zscore_numeric_covariates
+from run_mvpa_l2_primary_models import (
+    AIM2_PRIMARY_METRICS,
+    AIM2_SECONDARY_METRICS,
+    metric_hierarchy_fields,
+    neural_question_fields,
+    apply_stage29_zscore,
+    zscore_numeric_covariates,
+)
 
 
 GROUP_TERM = "C(Group, Treatment(reference='HC'))[T.SAD]"
@@ -46,7 +53,7 @@ def run_group_model(
     elif sub["Drug"].dropna().nunique() > 1:
         predictor_terms.append(DRUG_TERM)
 
-    for metric in PRESPECIFIED_NEURAL_METRICS:
+    for metric in AIM2_SECONDARY_METRICS:
         row = fit_lm(
             sub,
             outcome=metric,
@@ -64,6 +71,8 @@ def run_group_model(
                 "session": session,
             }
         )
+        row.update(neural_question_fields(metric))
+        row.update(metric_hierarchy_fields(metric))
         rows.append(row)
     return rows
 
@@ -341,7 +350,31 @@ def main() -> None:
 
     out = pd.DataFrame(rows)
     if not out.empty:
-        out = add_fdr(out, family_cols=["analysis", "sensitivity"])
+        if "metric" in out.columns:
+            metric = out["metric"].astype("string")
+            out = out[metric.isna() | metric.isin(AIM2_PRIMARY_METRICS + AIM2_SECONDARY_METRICS)].copy()
+            metric_fields = out["metric"].map(metric_hierarchy_fields).apply(pd.Series)
+            for col in metric_fields.columns:
+                if col not in out.columns:
+                    out[col] = metric_fields[col]
+                else:
+                    out[col] = out[col].combine_first(metric_fields[col])
+        out = add_fdr(out, family_cols=["analysis", "sensitivity", "metric_role"])
+        aim2 = out["analysis"].astype(str).eq("Sensitivity_Aim2_Group")
+        out.loc[aim2, "correction_family"] = (
+            out.loc[aim2, "analysis"].astype(str)
+            + " | "
+            + out.loc[aim2, "sensitivity"].astype(str)
+            + " | Aim2 secondary 7-metric family"
+        )
+        other_aims = ~aim2
+        out.loc[other_aims, "correction_family"] = (
+            out.loc[other_aims, "analysis"].astype(str)
+            + " | "
+            + out.loc[other_aims, "sensitivity"].astype(str)
+            + " | "
+            + out.loc[other_aims, "metric_role"].astype(str)
+        )
     write_csv(out, args.out)
     print(f"Wrote {len(out)} sensitivity rows -> {args.out}")
 

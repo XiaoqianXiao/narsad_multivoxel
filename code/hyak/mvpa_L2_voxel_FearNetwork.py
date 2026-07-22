@@ -2171,6 +2171,7 @@ def prepare_group_drug_plot(frames, name):
 def get_significant_mask(scores): return scores > 0
 
 
+EPS = 1e-8
 PROTOTYPE_EPS = 1e-8
 
 

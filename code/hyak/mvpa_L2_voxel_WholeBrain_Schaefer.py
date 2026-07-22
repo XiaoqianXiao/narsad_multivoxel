@@ -1261,6 +1261,7 @@ def get_default_c_for_sub(sub_id, meta_map, best_c_sad=None, best_c_hc=None):
     return 1.0
 
 
+EPS = 1e-8
 PROTOTYPE_EPS = 1e-8
 
 
@@ -4774,6 +4775,7 @@ if stage_active(18):
     COND_SAFE_LRN = "CSS"
     COND_THREAT_LRN = "CSR"
     PERCENTILE_THRESH = None  # Uses empirical permutation masks, with all-positive fallback if needed.
+    SHOCK_TARGET_DOMAIN = "Threat Shock Target"
     
     # =============================================================================
     # 0. Setup: Masks & Data Loading
@@ -4859,6 +4861,24 @@ if stage_active(18):
                     res_threat = calc_drift_metrics(X_e, y_e, X_r, y_r, COND_THREAT_LRN, COND_THREAT_LRN, curr_mask, sub)
                     if res_threat:
                         data_rows.append({"Subject": sub, "Group": group, "Drug": drug, "Domain": "Threat", **res_threat})
+
+            # 3. Threat Shock Target: CSR(Ext) -> Shock/US target pattern
+            X_shock, y_shock, sub_shock = get_shock_target_data(key)
+            if X_shock is not None:
+                m_shock = (sub_shock == sub)
+                if np.sum(m_shock) > 0:
+                    res_threat_shock = calc_drift_metrics(
+                        X_e,
+                        y_e,
+                        X_shock[m_shock],
+                        y_shock[m_shock],
+                        COND_THREAT_LRN,
+                        SHOCK_TARGET_LABELS,
+                        curr_mask,
+                        sub,
+                    )
+                    if res_threat_shock:
+                        data_rows.append({"Subject": sub, "Group": group, "Drug": drug, "Domain": SHOCK_TARGET_DOMAIN, **res_threat_shock})
     
     df_drift = pd.DataFrame(data_rows, columns=["Subject", "Group", "Drug", "Domain", "Cosine", "Projection"])
     if not df_drift.empty:
