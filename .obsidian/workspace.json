@@ -8,13 +8,17 @@
         "type": "tabs",
         "children": [
           {
-            "id": "b81108a91f20bffc",
+            "id": "1aca9b68d520de81",
             "type": "leaf",
             "state": {
-              "type": "empty",
-              "state": {},
+              "type": "markdown",
+              "state": {
+                "file": "PROJECT_CONTEXT.md",
+                "mode": "source",
+                "source": false
+              },
               "icon": "lucide-file",
-              "title": "New tab"
+              "title": "PROJECT_CONTEXT"
             }
           }
         ]
@@ -179,36 +183,37 @@
       "bases:Create new base": false
     }
   },
-  "active": "3d742366a438beb9",
+  "active": "1aca9b68d520de81",
   "lastOpenFiles": [
+    "results/representative_neural_index_fresh_skip_roi/fear_network_neural_profile_report.md",
+    "results/representative_neural_index_fresh_skip_roi/fear_network_profile_top_metrics.csv",
+    "results/representative_neural_index_fresh_skip_roi/fear_network_representative_neural_index_rankings.csv",
+    "results/representative_neural_index_fresh_skip_roi/representative_neural_index_consensus.csv",
+    "results/representative_neural_index_fresh_skip_roi/representative_neural_index_rankings.csv",
+    "results/representative_neural_index_fresh_skip_roi/derived_subject_neural_indices.csv",
+    "results/representative_neural_index_fresh_skip_roi",
+    "results/fear_network_geometry_candidates_effect_sizes.csv",
+    "results",
+    "code/Figure_Aim2_Sensitivity.svg",
+    "code/Figure_Aim2_Sensitivity.png",
+    "code/Table_Aim2_Sensitivity_Stats.csv",
+    "task_Visualization-Aim2-sensitivity.md",
+    "PROJECT_CONTEXT.md",
+    "task_Visualization-Aim2-secondary.md",
     "code/figure_aim2_secondary.png",
     "code/figure_aim2_secondary.pdf",
     "code/figure_aim2_secondary.svg",
-    "code/Table_aim2_secondary.xlsx",
-    "code/Table_aim2_secondary.csv",
-    "task_Visualization-Aim2-secondary.md",
     "task_Visualization-Aim2-secondary_revised.md",
-    "PROJECT_CONTEXT.md",
     "task_Visualization-Aim2-primary.md",
     "task_Visualization-Aim1-secondary.md",
     "code/figure2_aim2_panelC_no_means.png",
     "code/figure2_aim2_panelC_round_means.png",
     "figure2_aim2.png",
-    "figure2_aim2.pdf",
     "figure2_aim2.svg",
     "task_Visualization-Aim2-primary 1.md",
     "task_Visualization-Aim2.md",
-    "results/representative_neural_index/fear_network_css_sim_to_csminus_plot.pdf",
     "results/representative_neural_index/fear_network_css_sim_to_csminus_plot.png",
-    "results/representative_neural_index/fear_network_css_sim_to_csminus_summary.csv",
-    "results/representative_neural_index/fear_network_safety_to_threat_axis_plot.pdf",
     "results/representative_neural_index/fear_network_safety_to_threat_axis_plot.png",
-    "results/representative_neural_index/fear_network_safety_to_threat_axis_effects.csv",
-    "results/representative_neural_index/fear_network_safety_to_threat_axis_summary.csv",
-    "results/representative_neural_index/fear_network_safety_to_threat_axis_trialwise.csv",
-    "results/representative_neural_index/fear_network_two_target_forced_choice_safety_minus_threat_plot.png",
-    "results/representative_neural_index/fear_network_two_target_forced_choice_congruent_plot.png",
-    "results/representative_neural_index/fear_network_css_csr_learning_progress_t_exact_plot_all_trials.png",
     "results/representative_neural_index/fear_network_neural_profile_report.md",
     "task_Visualization-Aim5-primary.md",
     "task_Visualization-Aim5.md",
@@ -225,7 +230,6 @@
     "code/hyak/scripts/README_mvpa_l2_pipeline.md",
     "task_Visualization-Aim3.md",
     "task_Visualization-Aim5-sensitivity.md",
-    "task_Visualization-Aim5-secondary.md",
-    "task_Visualization-Aim4-sensitivity.md"
+    "task_Visualization-Aim5-secondary.md"
   ]
 }
