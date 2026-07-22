@@ -65,6 +65,7 @@ fi
 PYTHON_BIN="${PYTHON_BIN:-python3}"
 SCR_FLAGS="${SCR_FLAGS:-}"
 SCR_FLAGS_OUT="$OUT_ROOT/harmonized/scr_sensitivity_groups.csv"
+DERIVED_NEURAL_INDEX_PATH="${DERIVED_NEURAL_INDEX_PATH:-$OUT_ROOT/representative_neural_index/derived_subject_neural_indices.csv}"
 CLINICAL_OUTLIER_Z="${CLINICAL_OUTLIER_Z:-3.0}"
 RUN_AIM1_SCR="${RUN_AIM1_SCR:-1}"
 REUSE_EXISTING_STATS="${REUSE_EXISTING_STATS:-0}"
@@ -263,7 +264,13 @@ for required_dir in "$FEAR_DIR" "$MEMORY_DIR"; do
 done
 
 if [[ "$feature_roots_available" == "1" ]]; then
-  "$PYTHON_BIN" scripts/export_mvpa_l2_metrics.py \
+  "$PYTHON_BIN" scripts/explore_representative_neural_index.py \
+    --input-dir "$PROJECT_ROOT/MRI/derivatives/fMRI_analysis/LSS/firstLevel/all_subjects/group_level" \
+    --metadata "$PROJECT_ROOT/MRI/source_data/behav/drug_order.csv" \
+    --output-dir "$OUT_ROOT/representative_neural_index" \
+    --skip-roi
+
+  DERIVED_NEURAL_INDEX_PATH="$DERIVED_NEURAL_INDEX_PATH" "$PYTHON_BIN" scripts/export_mvpa_l2_metrics.py \
     "${FEATURE_ARGS[@]}" \
     --scr-flags "$SCR_FLAGS_OUT" \
     --out "$SUBJECT_METRICS" \
@@ -325,12 +332,12 @@ elif [[ "$RUN_AIM1_SCR" == "1" && "$REUSE_EXISTING_STATS" == "auto" && -s "$OUT_
   echo "FearNetwork feature root is missing, so reusing existing Aim 1 SCR sensitivity export -> $OUT_ROOT/stats/aim1_scr_sensitivity.csv"
 fi
 
-"$PYTHON_BIN" scripts/run_mvpa_l2_primary_models.py \
+DERIVED_NEURAL_INDEX_PATH="$DERIVED_NEURAL_INDEX_PATH" "$PYTHON_BIN" scripts/run_mvpa_l2_primary_models.py \
   --input "$SUBJECT_METRICS" \
   --clinical-outlier-z "$CLINICAL_OUTLIER_Z" \
   --out-dir "$OUT_ROOT/stats"
 
-"$PYTHON_BIN" scripts/run_mvpa_l2_sensitivity_models.py \
+DERIVED_NEURAL_INDEX_PATH="$DERIVED_NEURAL_INDEX_PATH" "$PYTHON_BIN" scripts/run_mvpa_l2_sensitivity_models.py \
   --input "$SUBJECT_METRICS" \
   --out "$OUT_ROOT/stats/sensitivity_models_all.csv"
 
@@ -339,7 +346,7 @@ fi
   --figure-dir "$OUT_ROOT/stats/figures" \
   --table-dir "$OUT_ROOT/stats"
 
-"$PYTHON_BIN" scripts/export_mvpa_l2_manuscript_artifacts.py \
+DERIVED_NEURAL_INDEX_PATH="$DERIVED_NEURAL_INDEX_PATH" "$PYTHON_BIN" scripts/export_mvpa_l2_manuscript_artifacts.py \
   --input "$SUBJECT_METRICS" \
   --stats-dir "$OUT_ROOT/stats" \
   --repo-root "."

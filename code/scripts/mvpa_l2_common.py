@@ -343,12 +343,16 @@ def merge_derived_primary_neural_metrics(df: pd.DataFrame, phase: str = "phase2_
         col
         for col in [
             "Neural_Threat_Safety_Distance",
+            "Neural_Dist_Safety_Background",
+            "Neural_Dist_Threat_Safety",
+            "Neural_Dist_Threat_Background",
             "Prototype_Certainty",
             "Neural_Certainty_CSS",
             "Neural_Certainty_CSR",
             "Neural_SafetyEvidence",
             "Neural_ThreatEvidence",
             "Neural_ThreatTriangleOpenness",
+            "Neural_ThreatTriangleOpenness_Normalized",
             "Neural_DynamicDiscrimination_Volatility",
         ]
         if col in derived.columns
@@ -387,7 +391,16 @@ def merge_derived_primary_neural_metrics(df: pd.DataFrame, phase: str = "phase2_
         if derived_col not in merged.columns:
             continue
         values = pd.to_numeric(merged[derived_col], errors="coerce")
-        if col in CORE_NEURAL_METRICS or col == "Neural_ThreatTriangleOpenness":
+        if (
+            col in CORE_NEURAL_METRICS
+            or col in {
+                "Neural_Dist_Safety_Background",
+                "Neural_Dist_Threat_Safety",
+                "Neural_Dist_Threat_Background",
+                "Neural_ThreatTriangleOpenness",
+                "Neural_ThreatTriangleOpenness_Normalized",
+            }
+        ):
             merged[col] = values.combine_first(pd.to_numeric(merged[col], errors="coerce")) if col in merged.columns else values
         elif col in out.columns:
             merged[col] = pd.to_numeric(merged[col], errors="coerce").fillna(values)

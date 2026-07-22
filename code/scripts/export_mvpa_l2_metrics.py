@@ -35,6 +35,14 @@ DEFAULT_FEATURE_DIRS = {
 
 AIM2_TRAJECTORY_METRIC = "early_to_target_normalized_projection"
 
+CROSSNOBIS_TOPOLOGY_RENAME = {
+    "Neural_Dist_Safety_Background": "Neural_CrossnobisPV_Dist_Safety_Background",
+    "Neural_Dist_Threat_Safety": "Neural_CrossnobisPV_Dist_Threat_Safety",
+    "Neural_Dist_Threat_Background": "Neural_CrossnobisPV_Dist_Threat_Background",
+    "Neural_ThreatTriangleOpenness": "Neural_CrossnobisPV_ThreatTriangleOpenness",
+    "Neural_Threat_Safety_Distance": "Neural_CrossnobisPV_Threat_Safety_Distance",
+}
+
 
 def parse_feature_dir(values: Optional[List[str]]) -> Dict[str, Path]:
     if not values:
@@ -88,6 +96,15 @@ def load_stage24_core_metrics(base_dir: Path) -> Optional[pd.DataFrame]:
     if isinstance(df, pd.DataFrame) and not df.empty:
         return derive_final_metrics(ensure_subject_column(df))
     return None
+
+
+def label_crossnobis_topology_metrics(df: Optional[pd.DataFrame]) -> Optional[pd.DataFrame]:
+    """Keep crossnobis/RDM topology as sensitivity metrics, not primary geometry."""
+    if df is None or df.empty:
+        return df
+    out = df.copy()
+    rename = {old: new for old, new in CROSSNOBIS_TOPOLOGY_RENAME.items() if old in out.columns}
+    return out.rename(columns=rename)
 
 
 def topology_from_results12(payload) -> Optional[pd.DataFrame]:
@@ -159,7 +176,7 @@ def load_topology(base_dir: Path) -> Optional[pd.DataFrame]:
             out = merge_on_subject(out, from_rdm)
             out = coalesce_duplicate_columns(out)
             out = derive_final_metrics(out)
-        return out
+        return label_crossnobis_topology_metrics(out)
 
     payload12 = load_payload(
         base_dir,
@@ -172,7 +189,7 @@ def load_topology(base_dir: Path) -> Optional[pd.DataFrame]:
             "results_12.joblib",
         ],
     )
-    return topology_from_results12(payload12)
+    return label_crossnobis_topology_metrics(topology_from_results12(payload12))
 
 
 def load_decision(base_dir: Path) -> Optional[pd.DataFrame]:
