@@ -4,7 +4,7 @@ set -euo pipefail
 # Submit the lightweight post-Hyak MVPA L2 harmonization and statistics job.
 #
 # This runs inside /gscratch/fang/images/jupyter.sif and does not require the
-# whole-brain/Schaefer sensitivity output unless SCHAEFER_DIR is explicitly set.
+# whole-brain Schaefer + Tian sensitivity output unless SCHAEFER_DIR is explicitly set.
 #
 # Usage:
 #   hyak/submit_mvpa_L2_posthyak.sh
@@ -138,4 +138,4 @@ job_id=$(
 echo "Submitted MVPA L2 post-Hyak job: ${job_id}"
 echo "Container: ${CONTAINER_SIF}"
 echo "Output root: ${OUT_ROOT}"
-echo "Whole-brain/Schaefer sensitivity: ${SCHAEFER_DIR:-skipped}"
+echo "Whole-brain Schaefer+Tian sensitivity: ${SCHAEFER_DIR:-skipped}"

@@ -6,7 +6,7 @@ This folder contains the lightweight project layer for executing the analysis pl
 
 - Primary feature space: output cache from `hyak/mvpa_L2_voxel_FearNetwork.py`.
 - Mask sensitivity feature space: output cache from `hyak/mvpa_L2_voxel_MemoryFearNetwork.py`.
-- Optional whole-brain/parcellation sensitivity feature space: output cache from `hyak/mvpa_L2_voxel_WholeBrain_Schaefer.py`.
+- Optional whole-brain/parcellation sensitivity feature space: Schaefer + Tian output cache from `hyak/mvpa_L2_voxel_WholeBrain_Schaefer.py`.
 - SCR sensitivity groups: derived from `scr_analysis_outputs`, originally produced from `analysis_scr.ipynb` and `identify_fear_learning_subjects_scr.ipynb`.
 
 ## One-Command Workflow
@@ -82,7 +82,7 @@ If the outputs are already in `outputs/mvpa_l2/FearNetwork` and `outputs/mvpa_l2
 bash scripts/run_mvpa_l2_posthyak.sh
 ```
 
-To include the whole-brain/parcellation sensitivity check later, add `SCHAEFER_DIR`:
+To include the whole-brain/parcellation sensitivity check later, add `SCHAEFER_DIR`; the post-Hyak tables label this feature space as `Schaefer_Tian` and Figure S2 displays it as `Schaefer + Tian`:
 
 ```bash
 SCHAEFER_DIR=/path/to/Schaefer/output \
@@ -131,15 +131,15 @@ python3 scripts/export_aim1_scr_sensitivity.py \
 - `outputs/mvpa_l2/harmonized/scr_sensitivity_groups.csv`: SCR responder/learner flags.
 - `outputs/mvpa_l2/harmonized/mvpa_l2_subject_metrics.csv`: harmonized subject-level neural, clinical, drug, and SCR variables.
 - `outputs/mvpa_l2/stats/aim2_group_difference.csv`: placebo SAD vs HC models for the three primary neural metrics plus prespecified secondary geometry, certainty, and trajectory metrics.
-- `outputs/mvpa_l2/stats/aim1_mask_feature_sensitivity.csv`: Aim 1 feature-space sensitivity rows for FearNetwork, MemoryFearNetwork, and optional Schaefer/whole-brain.
+- `outputs/mvpa_l2/stats/aim1_mask_feature_sensitivity.csv`: Aim 1 feature-space sensitivity rows for FearNetwork, MemoryFearNetwork, and optional Schaefer + Tian whole-brain/parcellation output.
 - `outputs/mvpa_l2/stats/aim1_mask_feature_sensitivity_functional_drop_tests.csv`: paired self-minus-cross sign-flip tests for Aim 1 feature-space sensitivity.
 - `outputs/mvpa_l2/stats/aim1_mask_feature_sensitivity_functional_drop_nulls.csv`: paired self-minus-cross sign-flip null distributions for Aim 1 feature-space sensitivity; this is used by Figure S1 Panel B null histograms.
 - `outputs/mvpa_l2/stats/aim3_clinical_relevance.csv`: placebo groupwise anxiety-symptom association models for primary and secondary clinical scores crossed with prespecified neural metrics.
 - `outputs/mvpa_l2/stats/aim4_scr_convergence.csv`: placebo groupwise neural-SCR convergence models for primary and secondary SCR indices crossed with prespecified neural metrics.
 - `outputs/mvpa_l2/stats/aim5_oxytocin_modulation.csv`: `Group * Drug` modulation models for prespecified neural metrics.
-- `outputs/mvpa_l2/stats/sensitivity_models_all.csv`: Aim 2 primary and secondary metric sensitivity rows for the FearNetwork placebo baseline, all-placebo baseline, full-sample Drug-adjusted baseline, alternative feature spaces, SCR-cohort subsets, plus Aim 3-4 sensitivity models and available `Group * Drug` sensitivity models. Without `SCHAEFER_DIR`, feature-space sensitivity includes FearNetwork and MemoryFearNetwork only.
-- `outputs/mvpa_l2/stats/TableS2_Aim2_Sensitivity_Stats.csv`: Figure S2 source table derived only from `sensitivity_models_all.csv`.
-- `outputs/mvpa_l2/stats/figures/FigureS2_Aim2_Sensitivity_RobustnessHeatmap.png/.svg`: Aim 2 sensitivity heatmap derived only from `sensitivity_models_all.csv`.
+- `outputs/mvpa_l2/stats/sensitivity_models_all.csv`: Aim 2 primary and secondary metric sensitivity rows for the FearNetwork placebo baseline, all-placebo baseline, full-sample Drug-adjusted baseline, alternative feature spaces, SCR-cohort subsets, plus Aim 3-4 sensitivity models and available `Group * Drug` sensitivity models. Aim 2 rows include signed SAD-HC Cohen's d in `effect_size` for Figure S2 display, while model coefficients remain in `estimate`. Without `SCHAEFER_DIR`, feature-space sensitivity includes FearNetwork and MemoryFearNetwork only.
+- `outputs/mvpa_l2/stats/TableS2_Aim2_Sensitivity_Stats.csv`: Figure S2 source table derived only from `sensitivity_models_all.csv`, using `effect_size` values.
+- `outputs/mvpa_l2/stats/figures/FigureS2_Aim2_Sensitivity_RobustnessHeatmap.png/.svg`: Aim 2 sensitivity heatmap derived only from `sensitivity_models_all.csv`, using signed SAD-HC Cohen's d values.
 - `outputs/mvpa_l2/stats/manuscript_primary_results.csv`: single manuscript-ready primary results table spanning Aim 2-5.
 - `outputs/mvpa_l2/stats/manuscript_primary_results.md`: compact Markdown version of the primary results table.
 - `outputs/mvpa_l2/stats/aim4_convergence_matrix.csv`: long-form primary neural metric by primary SCR index convergence table.

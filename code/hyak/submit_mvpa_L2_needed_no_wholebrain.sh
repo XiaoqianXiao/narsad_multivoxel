@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Submit the executable MVPA L2 workflow without the whole-brain/Schaefer
+# Submit the executable MVPA L2 workflow without the whole-brain Schaefer + Tian
 # sensitivity analysis:
 #   1. FearNetwork primary feature space.
 #   2. MemoryFearNetwork mask-sensitivity feature space.
@@ -70,7 +70,7 @@ Environment overrides:
   SUBMIT_MEMORY=0 to skip MemoryFearNetwork submission
   SUBMIT_POSTHYAK=0 to skip post-Hyak submission
 
-Whole-brain/Schaefer is intentionally not submitted here.
+Whole-brain Schaefer + Tian is intentionally not submitted here.
 EOF
 }
 
@@ -132,7 +132,7 @@ fi
 
 cat <<EOF
 
-Submitted MVPA L2 workflow without whole-brain/Schaefer sensitivity.
+Submitted MVPA L2 workflow without whole-brain Schaefer + Tian sensitivity.
 Stage 11 mask mode: ${STAGE11_MASK_MODE}
 Container: ${CONTAINER_SIF}
 Feature outputs expected under: ${OUT_BASE}/${FEAR_DEFAULT_NAME} and ${OUT_BASE}/${MEMORY_DEFAULT_NAME}

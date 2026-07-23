@@ -25,8 +25,8 @@ set -euo pipefail
 #   FEAR_MEMORY_MODE=all  submit full Fear/Memory dependency chains so Stage 11 masks exist (default)
 #   FEAR_MEMORY_MODE=selected  run only selected late stages; requires completed Stage 11 masks
 #   RUN_OPTIONAL_CORR=1   include Hyak stages 27 and 28
-#   RUN_SCHAEFER=1        include WholeBrain/Schaefer stages
-#   SCHAEFER_MODE=all     submit Schaefer's dependency chain with its native "all" mode (default)
+#   RUN_SCHAEFER=1        include whole-brain Schaefer + Tian stages
+#   SCHAEFER_MODE=all     submit the Schaefer + Tian dependency chain with its native "all" mode (default)
 #   RUN_AIM1_SCR=0        skip Aim 1 SCR sensitivity table export
 #   RUN_HAUFE_SCR=1       export Aim 2 Haufe/SCR sensitivity tables
 #
@@ -95,10 +95,10 @@ if [[ "$RUN_HYAK" == "1" ]]; then
   fi
   if [[ "$RUN_SCHAEFER" == "1" ]]; then
     if [[ "$SCHAEFER_MODE" == "all" ]]; then
-      echo "Submitting Schaefer with its native all-stage dependency chain."
+      echo "Submitting Schaefer + Tian with its native all-stage dependency chain."
       run_cmd bash hyak/submit_mvpa_L2_schaefer_stage.sh all
     else
-      echo "Schaefer does not accept comma-separated stage selections; run these selected stages after their prerequisites finish:"
+      echo "Schaefer + Tian does not accept comma-separated stage selections; run these selected stages after their prerequisites finish:"
       for stage in ${SCHAEFER_STAGE_SPEC//,/ }; do
         print_cmd bash hyak/submit_mvpa_L2_schaefer_stage.sh "$stage" --resume
       done

@@ -202,7 +202,7 @@ print(f"Using Python: {sys.executable} ({sys.version.split()[0]})")
 PY
 
 echo "Stage 11 mask mode: $STAGE11_MASK_MODE"
-echo "Feature roots: Fear=$FEAR_DIR | Memory=$MEMORY_DIR | Schaefer=${SCHAEFER_DIR:-skipped}"
+echo "Feature roots: Fear=$FEAR_DIR | Memory=$MEMORY_DIR | Schaefer+Tian=${SCHAEFER_DIR:-skipped}"
 echo "Post-Hyak output root: $OUT_ROOT"
 
 validate_scr_flags() {
@@ -250,7 +250,7 @@ FEATURE_ARGS=(
 )
 
 if [[ -n "$SCHAEFER_DIR" ]]; then
-  FEATURE_ARGS+=(--feature-dir "Schaefer=$SCHAEFER_DIR")
+  FEATURE_ARGS+=(--feature-dir "Schaefer_Tian=$SCHAEFER_DIR")
 fi
 
 SUBJECT_METRICS="$OUT_ROOT/harmonized/mvpa_l2_subject_metrics.csv"
@@ -294,7 +294,7 @@ FEATURE_AIM1_ARGS=(
 )
 
 if [[ -n "$SCHAEFER_DIR" ]]; then
-  FEATURE_AIM1_ARGS+=(--feature-dir "Schaefer=$SCHAEFER_DIR")
+  FEATURE_AIM1_ARGS+=(--feature-dir "Schaefer_Tian=$SCHAEFER_DIR")
 fi
 
 if [[ "$feature_roots_available" == "1" ]]; then
@@ -344,10 +344,38 @@ if not path.exists() or path.stat().st_size == 0:
     raise SystemExit(f"ERROR: Missing sensitivity model output: {path}")
 
 data = pd.read_csv(path)
-required_columns = {"analysis", "sensitivity", "metric", "metric_role", "estimate", "ci_low", "ci_high", "p", "q"}
+required_columns = {
+    "analysis",
+    "sensitivity",
+    "metric",
+    "metric_role",
+    "estimate",
+    "effect_size",
+    "effect_size_scale",
+    "n_sad",
+    "n_hc",
+    "ci_low",
+    "ci_high",
+    "p",
+    "q",
+}
 missing_columns = sorted(required_columns - set(data.columns))
 if missing_columns:
     raise SystemExit(f"ERROR: {path} is missing required sensitivity columns: {missing_columns}")
+
+ambiguous_wholebrain_labels = {
+    "FeatureSpace:Schaefer",
+    "FeatureSpace:Tian",
+    "FeatureSpace:WholeBrain",
+    "FeatureSpace:WholeBrain_Schaefer",
+    "FeatureSpace:WholeBrain_Parcellation",
+}
+bad_labels = sorted(ambiguous_wholebrain_labels & set(data["sensitivity"].astype(str)))
+if bad_labels:
+    raise SystemExit(
+        "ERROR: Whole-brain/parcellation sensitivity rows must be labeled "
+        f"FeatureSpace:Schaefer_Tian, not {bad_labels}"
+    )
 
 aim2_primary = data[
     data["analysis"].astype(str).eq("Sensitivity_Aim2_Group")
@@ -367,7 +395,25 @@ missing_metrics = sorted(required_metrics - set(aim2_primary["metric"].astype(st
 if missing_metrics:
     raise SystemExit(f"ERROR: {path} is missing Aim 2 primary sensitivity metrics: {missing_metrics}")
 
-print(f"Validated Aim 2 primary sensitivity rows in {path}")
+required_primary = aim2_primary[
+    aim2_primary["sensitivity"].astype(str).isin(required_sensitivities)
+    & aim2_primary["metric"].astype(str).isin(required_metrics)
+].copy()
+required_pairs = {(sensitivity, metric) for sensitivity in required_sensitivities for metric in required_metrics}
+observed_pairs = set(zip(required_primary["sensitivity"].astype(str), required_primary["metric"].astype(str)))
+missing_pairs = sorted(required_pairs - observed_pairs)
+if missing_pairs:
+    raise SystemExit(f"ERROR: {path} is missing Aim 2 primary sensitivity cells: {missing_pairs}")
+
+finite_effect = pd.to_numeric(required_primary["effect_size"], errors="coerce").notna()
+if not finite_effect.all():
+    bad = required_primary.loc[~finite_effect, ["sensitivity", "metric"]].drop_duplicates()
+    raise SystemExit(
+        "ERROR: Aim 2 primary sensitivity rows must include finite effect_size values: "
+        f"{bad.to_dict(orient='records')}"
+    )
+
+print(f"Validated Aim 2 primary sensitivity effect-size rows in {path}")
 PY
 
 "$PYTHON_BIN" scripts/plot_figure_s2_aim2_sensitivity.py \

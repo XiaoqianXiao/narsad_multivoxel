@@ -30,7 +30,17 @@ from mvpa_l2_common import (
 DEFAULT_FEATURE_DIRS = {
     "FearNetwork": Path("outputs/mvpa_l2/FearNetwork"),
     "MemoryFearNetwork": Path("outputs/mvpa_l2/MemoryFearNetwork"),
-    "WholeBrain_Schaefer": Path("outputs/mvpa_l2/WholeBrain_Schaefer"),
+    "Schaefer_Tian": Path("outputs/mvpa_l2/WholeBrain_Schaefer"),
+}
+
+FEATURE_SPACE_ALIASES = {
+    "Schaefer": "Schaefer_Tian",
+    "Schaefer+Tian": "Schaefer_Tian",
+    "Schaefer_Tian": "Schaefer_Tian",
+    "Tian": "Schaefer_Tian",
+    "WholeBrain": "Schaefer_Tian",
+    "WholeBrain_Schaefer": "Schaefer_Tian",
+    "WholeBrain_Parcellation": "Schaefer_Tian",
 }
 
 AIM2_TRAJECTORY_METRIC = "early_to_target_normalized_projection"
@@ -52,7 +62,7 @@ def parse_feature_dir(values: Optional[List[str]]) -> Dict[str, Path]:
         if "=" not in value:
             raise ValueError("--feature-dir must be FeatureSpace=/path")
         name, path = value.split("=", 1)
-        out[name] = Path(path)
+        out[FEATURE_SPACE_ALIASES.get(name, name)] = Path(path)
     return out
 
 

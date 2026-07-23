@@ -33,7 +33,7 @@ METRIC_ORDER = [
     for metric in CORE_NEURAL_METRICS
 ]
 
-MASK_ORDER = ["FearNetwork", "MemoryFearNetwork", "Schaefer", "Tian", "WholeBrain"]
+MASK_ORDER = ["FearNetwork", "MemoryFearNetwork", "Schaefer + Tian"]
 SUBGROUP_ORDER = [
     "AllPlacebo",
     "FullSample:DrugAdjusted",
@@ -44,6 +44,7 @@ SUBGROUP_ORDER = [
 ]
 
 DISPLAY_LABELS = {
+    "Schaefer + Tian": "Schaefer + Tian",
     "AllPlacebo": "All placebo",
     "FullSample:DrugAdjusted": "Entire dataset\nDrug factor",
     "SCR_Physiological_Responder": "Physiological\nresponder",
@@ -52,8 +53,22 @@ DISPLAY_LABELS = {
     "SCR_Late_Phase_Sensitivity_Learner": "Late-phase sensitivity\nlearner",
 }
 
+FEATURE_SPACE_ALIASES = {
+    "Schaefer": "Schaefer + Tian",
+    "Schaefer_Tian": "Schaefer + Tian",
+    "Tian": "Schaefer + Tian",
+    "WholeBrain": "Schaefer + Tian",
+    "WholeBrain_Schaefer": "Schaefer + Tian",
+    "WholeBrain_Parcellation": "Schaefer + Tian",
+}
+
 
 METRIC_FAMILY = {metric: family for family, metric in METRIC_ORDER}
+
+
+def normalize_specification(value: object) -> str:
+    text = str(value).strip()
+    return FEATURE_SPACE_ALIASES.get(text, text)
 
 
 def is_summary_format(data: pd.DataFrame) -> bool:
@@ -61,14 +76,14 @@ def is_summary_format(data: pd.DataFrame) -> bool:
 
 
 def is_pipeline_sensitivity_format(data: pd.DataFrame) -> bool:
-    required = {"analysis", "sensitivity", "metric", "estimate", "ci_low", "ci_high", "p", "q"}
+    required = {"analysis", "sensitivity", "metric", "effect_size", "ci_low", "ci_high", "p", "q"}
     return required.issubset(data.columns)
 
 
 def convert_pipeline_sensitivity(data: pd.DataFrame, source: Path) -> pd.DataFrame:
     """Convert stats/sensitivity_models_all.csv rows into Figure S2 input rows."""
     if not is_pipeline_sensitivity_format(data):
-        missing = sorted({"analysis", "sensitivity", "metric", "estimate", "ci_low", "ci_high", "p", "q"} - set(data.columns))
+        missing = sorted({"analysis", "sensitivity", "metric", "effect_size", "ci_low", "ci_high", "p", "q"} - set(data.columns))
         raise ValueError(f"{source} is missing pipeline sensitivity columns: {', '.join(missing)}")
 
     aim2 = data[data["analysis"].astype(str).eq("Sensitivity_Aim2_Group")].copy()
@@ -85,7 +100,7 @@ def convert_pipeline_sensitivity(data: pd.DataFrame, source: Path) -> pd.DataFra
         ["Mask", "Subgroup", "Subgroup"],
         default=None,
     )
-    aim2["specification"] = sensitivity.str.replace(r"^(FeatureSpace|SCRCohort):", "", regex=True)
+    aim2["specification"] = sensitivity.str.replace(r"^(FeatureSpace|SCRCohort):", "", regex=True).map(normalize_specification)
     aim2 = aim2[aim2["sensitivity_type"].notna()].copy()
     if aim2.empty:
         raise ValueError(f"{source} has Aim 2 rows, but none use FeatureSpace: or SCRCohort: sensitivity labels")
@@ -96,9 +111,9 @@ def convert_pipeline_sensitivity(data: pd.DataFrame, source: Path) -> pd.DataFra
             "metric_name": aim2["metric"],
             "sensitivity_type": aim2["sensitivity_type"],
             "specification": aim2["specification"],
-            "n_sad": np.nan,
-            "n_hc": np.nan,
-            "effect_size": aim2["estimate"],
+            "n_sad": aim2["n_sad"] if "n_sad" in aim2.columns else np.nan,
+            "n_hc": aim2["n_hc"] if "n_hc" in aim2.columns else np.nan,
+            "effect_size": aim2["effect_size"],
             "ci_low": aim2["ci_low"],
             "ci_high": aim2["ci_high"],
             "p_value": aim2["model_family_p"] if "model_family_p" in aim2.columns else aim2["p"],
@@ -111,6 +126,7 @@ def convert_pipeline_sensitivity(data: pd.DataFrame, source: Path) -> pd.DataFra
 def normalize_input_data(data: pd.DataFrame, source: Path) -> pd.DataFrame:
     if is_summary_format(data):
         out = data[REQUIRED_COLUMNS].copy()
+        out["specification"] = out["specification"].map(normalize_specification)
         if "model_family_p" in data.columns:
             out["p_value"] = pd.to_numeric(data["model_family_p"], errors="coerce")
         return out
