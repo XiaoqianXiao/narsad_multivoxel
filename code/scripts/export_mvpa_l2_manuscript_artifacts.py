@@ -10,6 +10,7 @@ import pandas as pd
 
 from mvpa_l2_common import (
     CLINICAL_SCORE_HIERARCHY,
+    CONTEXTUAL_NEURAL_METRICS,
     CORE_NEURAL_METRICS,
     NEURAL_METRIC_HIERARCHY,
     PRIMARY_CLINICAL_SCORES,
@@ -116,10 +117,10 @@ def add_missing_columns(df: pd.DataFrame, columns: Iterable[str]) -> pd.DataFram
 
 
 def primary_rows(stats_dir: Path) -> pd.DataFrame:
-    aim2 = ensure_hierarchy_columns(read_csv_if_exists(stats_dir / "aim2_group_difference.csv"))
-    aim3 = ensure_hierarchy_columns(read_csv_if_exists(stats_dir / "aim3_clinical_relevance.csv"))
-    aim4 = ensure_hierarchy_columns(read_csv_if_exists(stats_dir / "aim4_scr_convergence.csv"))
-    aim5 = ensure_hierarchy_columns(read_csv_if_exists(stats_dir / "aim5_oxytocin_modulation.csv"))
+    aim2 = ensure_hierarchy_columns(read_csv_if_exists(stats_dir / "aim2_primary_group_difference.csv"))
+    aim3 = ensure_hierarchy_columns(read_csv_if_exists(stats_dir / "aim3_primary_clinical_relevance.csv"))
+    aim4 = ensure_hierarchy_columns(read_csv_if_exists(stats_dir / "aim4_primary_scr_convergence.csv"))
+    aim5 = ensure_hierarchy_columns(read_csv_if_exists(stats_dir / "aim5_primary_oxytocin_modulation.csv"))
 
     rows = []
     if not aim2.empty:
@@ -207,7 +208,7 @@ def write_primary_table(stats_dir: Path) -> None:
 
 
 def convergence_matrix(stats_dir: Path) -> None:
-    aim4 = ensure_hierarchy_columns(read_csv_if_exists(stats_dir / "aim4_scr_convergence.csv"))
+    aim4 = ensure_hierarchy_columns(read_csv_if_exists(stats_dir / "aim4_primary_scr_convergence.csv"))
     if aim4.empty:
         write_csv(pd.DataFrame(), stats_dir / "aim4_convergence_matrix.csv")
         (stats_dir / "aim4_convergence_matrix.md").write_text("# Aim 4 Convergence Matrix\n\nNo Aim 4 table found.\n")
@@ -276,7 +277,11 @@ def model_status_counts(stats_dir: Path) -> pd.DataFrame:
 
 
 def missingness_table(df: pd.DataFrame) -> pd.DataFrame:
-    variables = [c for c in PRESPECIFIED_NEURAL_METRICS + PRIMARY_CLINICAL_SCORES + PRIMARY_SCR_INDICES if c in df.columns]
+    variables = [
+        c
+        for c in PRESPECIFIED_NEURAL_METRICS + CONTEXTUAL_NEURAL_METRICS + PRIMARY_CLINICAL_SCORES + PRIMARY_SCR_INDICES
+        if c in df.columns
+    ]
     rows = []
     for feature_space, sub in df.groupby("FeatureSpace", dropna=False):
         for variable in variables:
@@ -291,6 +296,49 @@ def missingness_table(df: pd.DataFrame) -> pd.DataFrame:
                 }
             )
     return pd.DataFrame(rows)
+
+
+def write_artifact_manifest(stats_dir: Path) -> None:
+    """Write an explicit inventory of notebook-facing post-Hyak artifacts."""
+    expected = [
+        ("harmonized", "../harmonized/mvpa_l2_subject_metrics.csv", "Subject-level neural, clinical, SCR, group, drug, and sensitivity flags."),
+        ("registry", "neural_metric_registry.csv", "Primary, secondary, and contextual neural metric roles."),
+        ("aim1_primary", "aim1_primary_decoding.csv", "Aim 1 placebo CSR-vs-CSS decoding primary outputs."),
+        ("aim1_sensitivity_feature_space", "aim1_sensitivity_feature_space.csv", "Aim 1 feature-space sensitivity outputs."),
+        ("aim1_sensitivity_scr_cohort", "aim1_sensitivity_scr_cohort.csv", "Aim 1 SCR-cohort sensitivity outputs."),
+        ("aim2_primary", "aim2_primary_group_difference.csv", "Aim 2 placebo SAD-HC tests for PROJECT_CONTEXT primary neural metrics."),
+        ("aim2_secondary", "aim2_secondary_group_difference.csv", "Aim 2 placebo SAD-HC tests for PROJECT_CONTEXT secondary neural metrics."),
+        ("aim2_secondary_subjects", "aim2_secondary_subject_metrics.csv", "Subject-level PROJECT_CONTEXT secondary neural metrics."),
+        ("aim2_sensitivity", "aim2_sensitivity_group_difference.csv", "Aim 2 sensitivity group tests."),
+        ("aim2_sensitivity_secondary", "aim2_sensitivity_secondary_group_difference.csv", "Aim 2 secondary metric sensitivity group tests."),
+        ("aim3_primary", "aim3_primary_clinical_relevance.csv", "Aim 3 primary clinical relevance models."),
+        ("aim3_secondary", "aim3_secondary_clinical_relevance.csv", "Aim 3 secondary clinical relevance models."),
+        ("aim4_primary", "aim4_primary_scr_convergence.csv", "Aim 4 primary SCR convergence models."),
+        ("aim4_secondary", "aim4_secondary_scr_convergence.csv", "Aim 4 secondary SCR convergence models."),
+        ("aim5_primary", "aim5_primary_oxytocin_modulation.csv", "Aim 5 primary Group x Drug models."),
+        ("aim5_secondary", "aim5_secondary_oxytocin_modulation.csv", "Aim 5 secondary Group x Drug models."),
+        ("aims_primary_all", "aims_primary_models_all.csv", "Combined primary model rows."),
+        ("aims_secondary_all", "aims_secondary_models_all.csv", "Combined secondary model rows."),
+        ("aims_sensitivity_all", "aims_sensitivity_models_all.csv", "All feature-space, full-sample, and SCR-cohort sensitivity rows."),
+        ("primary_summary", "manuscript_primary_results.csv", "Filtered manuscript-facing primary result table."),
+        ("aim4_matrix", "aim4_convergence_matrix.csv", "Primary Aim 4 convergence matrix."),
+        ("qc_counts", "qc_subject_counts.csv", "Subject row counts by feature space, group, and drug."),
+        ("qc_missingness", "qc_missingness.csv", "Missingness for planned and contextual notebook variables."),
+        ("qc_status", "qc_model_status_counts.csv", "Model status counts by output table."),
+    ]
+    rows = []
+    for artifact, rel_path, description in expected:
+        path = (stats_dir / rel_path).resolve()
+        rows.append(
+            {
+                "artifact": artifact,
+                "relative_path": rel_path,
+                "exists": path.exists(),
+                "nonempty": path.exists() and path.stat().st_size > 0,
+                "description": description,
+            }
+        )
+    write_csv(pd.DataFrame(rows), stats_dir / "notebook_artifact_manifest.csv")
 
 
 def write_aim2_panel_inputs(input_path: Path, stats_dir: Path) -> None:
@@ -487,6 +535,7 @@ def main() -> None:
     write_primary_table(args.stats_dir)
     convergence_matrix(args.stats_dir)
     write_qc_dashboard(args.input, args.stats_dir, args.repo_root)
+    write_artifact_manifest(args.stats_dir)
     print(f"Wrote manuscript artifacts and QC dashboard -> {args.stats_dir}")
 
 

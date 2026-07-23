@@ -11,8 +11,8 @@ from mvpa_l2_common import (
     ALL_CLINICAL_SCORES,
     ALL_SCR_INDICES,
     CLINICAL_SCORE_HIERARCHY,
+    CORE_NEURAL_METRICS,
     PRIMARY_SCR_INDICES,
-    PRESPECIFIED_NEURAL_METRICS,
     SCR_SENSITIVITY_FLAGS,
     add_fdr,
     available_covariates,
@@ -53,7 +53,7 @@ def run_group_model(
     elif sub["Drug"].dropna().nunique() > 1:
         predictor_terms.append(DRUG_TERM)
 
-    for metric in AIM2_SECONDARY_METRICS:
+    for metric in AIM2_PRIMARY_METRICS + AIM2_SECONDARY_METRICS:
         row = fit_lm(
             sub,
             outcome=metric,
@@ -130,7 +130,7 @@ def run_clinical_model(
                 row.update(clinical_hierarchy_fields(clinical))
                 rows.append(row)
                 continue
-            for metric in PRESPECIFIED_NEURAL_METRICS:
+            for metric in CORE_NEURAL_METRICS:
                 if metric not in clinical_df.columns:
                     continue
                 model_df, metric_z, n_metric_outliers, metric_method = apply_stage29_zscore(clinical_df, metric, outlier_z)
@@ -196,7 +196,7 @@ def run_scr_model(df: pd.DataFrame, label: str, feature_space: str, covariates: 
     for scr in ALL_SCR_INDICES:
         scr_df, scr_z, n_scr_outliers, scr_method = apply_stage29_zscore(sub, scr, outlier_z)
         if scr_z is None:
-            for metric in PRESPECIFIED_NEURAL_METRICS:
+            for metric in CORE_NEURAL_METRICS:
                 rows.append(
                     {
                         "analysis": "Sensitivity_Aim4_SCR",
@@ -216,7 +216,7 @@ def run_scr_model(df: pd.DataFrame, label: str, feature_space: str, covariates: 
                     }
                 )
             continue
-        for metric in PRESPECIFIED_NEURAL_METRICS:
+        for metric in CORE_NEURAL_METRICS:
             if metric not in scr_df.columns:
                 continue
             model_df, metric_z, n_metric_outliers, metric_method = apply_stage29_zscore(scr_df, metric, outlier_z)
@@ -271,7 +271,7 @@ def run_scr_model(df: pd.DataFrame, label: str, feature_space: str, covariates: 
 def run_drug_model(df: pd.DataFrame, label: str, feature_space: str, covariates: List[str]) -> List[Dict]:
     rows = []
     sub = df[df["FeatureSpace"] == feature_space].copy()
-    for metric in PRESPECIFIED_NEURAL_METRICS:
+    for metric in CORE_NEURAL_METRICS:
         row = fit_lm(
             sub,
             outcome=metric,
@@ -310,7 +310,7 @@ def main() -> None:
     parser.add_argument("--covariates", nargs="*", default=None)
     parser.add_argument("--min-cell-n", type=int, default=6)
     parser.add_argument("--outlier-z", type=float, default=3.0)
-    parser.add_argument("--out", type=Path, default=Path("outputs/mvpa_l2/stats/sensitivity_models_all.csv"))
+    parser.add_argument("--out", type=Path, default=Path("outputs/mvpa_l2/stats/aims_sensitivity_models_all.csv"))
     args = parser.parse_args()
 
     df = derive_final_metrics(harmonize_group_drug(pd.read_csv(args.input)))
@@ -365,7 +365,9 @@ def main() -> None:
             out.loc[aim2, "analysis"].astype(str)
             + " | "
             + out.loc[aim2, "sensitivity"].astype(str)
-            + " | Aim2 secondary 7-metric family"
+            + " | Aim2 "
+            + out.loc[aim2, "metric_role"].astype(str)
+            + " metric family"
         )
         other_aims = ~aim2
         out.loc[other_aims, "correction_family"] = (
@@ -376,6 +378,34 @@ def main() -> None:
             + out.loc[other_aims, "metric_role"].astype(str)
         )
     write_csv(out, args.out)
+    if not out.empty:
+        per_aim_exports = {
+            "aim2_sensitivity_group_difference.csv": out["analysis"].astype(str).eq("Sensitivity_Aim2_Group"),
+            "aim3_sensitivity_clinical_relevance.csv": out["analysis"].astype(str).eq("Sensitivity_Aim3_Clinical"),
+            "aim4_sensitivity_scr_convergence.csv": out["analysis"].astype(str).eq("Sensitivity_Aim4_SCR"),
+            "aim5_sensitivity_oxytocin_modulation.csv": out["analysis"].astype(str).eq("Sensitivity_Aim5_Group_x_Drug"),
+        }
+        for filename, mask in per_aim_exports.items():
+            table = out[mask].copy()
+            path = args.out.parent / filename
+            write_csv(table, path)
+            print(f"Wrote {len(table)} sensitivity rows -> {path}")
+
+        primary = out[
+            out["analysis"].astype(str).eq("Sensitivity_Aim2_Group")
+            & out["metric"].astype("string").isin(AIM2_PRIMARY_METRICS)
+        ].copy()
+        primary_out = args.out.parent / "aim2_sensitivity_primary_group_difference.csv"
+        write_csv(primary, primary_out)
+        print(f"Wrote {len(primary)} Aim 2 primary sensitivity group-difference rows -> {primary_out}")
+
+        secondary = out[
+            out["analysis"].astype(str).eq("Sensitivity_Aim2_Group")
+            & out["metric"].astype("string").isin(AIM2_SECONDARY_METRICS)
+        ].copy()
+        secondary_out = args.out.parent / "aim2_sensitivity_secondary_group_difference.csv"
+        write_csv(secondary, secondary_out)
+        print(f"Wrote {len(secondary)} Aim 2 secondary group-difference rows -> {secondary_out}")
     print(f"Wrote {len(out)} sensitivity rows -> {args.out}")
 
 

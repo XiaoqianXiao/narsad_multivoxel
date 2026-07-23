@@ -16,7 +16,7 @@ REPO_ROOT="${REPO_ROOT:-/gscratch/scrubbed/fanglab/xiaoqian/repo/narsad_multivox
 OUT_BASE="${OUT_BASE:-/gscratch/fang/NARSAD/MRI/derivatives/fMRI_analysis/LSS/results}"
 
 FEATURE_DIR="${FEATURE_DIR:-/output_dir/FearNetwork}"
-OUT_CSV="${OUT_CSV:-/output_dir/mvpa_l2/stats/aim1_scr_sensitivity.csv}"
+OUT_CSV="${OUT_CSV:-/output_dir/mvpa_l2/stats/aim1_sensitivity_scr_cohort.csv}"
 FEATURE_SPACE="${FEATURE_SPACE:-FearNetwork}"
 
 LOG_DIR="${LOG_DIR:-${PROJECT_ROOT}/logs/mvpa_l2_aim1_scr_export}"
@@ -39,7 +39,7 @@ Environment overrides:
 
 Defaults:
   FEATURE_DIR=/output_dir/FearNetwork
-  OUT_CSV=/output_dir/mvpa_l2/stats/aim1_scr_sensitivity.csv
+  OUT_CSV=/output_dir/mvpa_l2/stats/aim1_sensitivity_scr_cohort.csv
   CONTAINER_SIF=/gscratch/fang/images/jupyter.sif
 EOF
 }

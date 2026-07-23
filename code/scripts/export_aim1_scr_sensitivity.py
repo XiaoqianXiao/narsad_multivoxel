@@ -571,7 +571,7 @@ def export(feature_dir, out_csv, feature_space, scr_groups_csv=None, raincloud_o
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--feature-dir", default="outputs/mvpa_l2/FearNetwork")
-    parser.add_argument("--out", default="outputs/mvpa_l2/stats/aim1_scr_sensitivity.csv")
+    parser.add_argument("--out", default="outputs/mvpa_l2/stats/aim1_sensitivity_scr_cohort.csv")
     parser.add_argument("--feature-space", default="FearNetwork")
     parser.add_argument("--scr-groups-csv", default=None)
     parser.add_argument("--raincloud-out", default=None)

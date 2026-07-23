@@ -65,7 +65,7 @@ bash scripts/run_mvpa_l2_posthyak.sh
 
 You can still override `FEAR_DIR`, `MEMORY_DIR`, or `OUT_ROOT` explicitly, but `STAGE11_MASK_MODE=original_notebook` now defaults them to `/output_dir/FearNetwork_originalMask`, `/output_dir/MemoryFearNetwork_originalMask`, and `/output_dir/mvpa_l2_originalMask`.
 
-After each post-Hyak run, check the generated files under `OUT_ROOT/stats/`, especially `aim2_trajectory_panel.csv`, `aim2_group_difference.csv`, and `manuscript_primary_results.csv`. For the original-notebook mask run, the upstream Stage 11 joblib diagnostics should report `stage11_mask_mode = original_notebook` and `importance_scoring = forced_choice_scorer`.
+After each post-Hyak run, check the generated files under `OUT_ROOT/stats/`, especially `aim2_trajectory_panel.csv`, `aim2_primary_group_difference.csv`, and `manuscript_primary_results.csv`. For the original-notebook mask run, the upstream Stage 11 joblib diagnostics should report `stage11_mask_mode = original_notebook` and `importance_scoring = forced_choice_scorer`.
 
 Run this after the Hyak jobs are complete:
 
@@ -123,27 +123,44 @@ The primary `cell_06.joblib` is not overwritten. After the subgroup jobs finish,
 ```bash
 python3 scripts/export_aim1_scr_sensitivity.py \
   --feature-dir /gscratch/fang/NARSAD/MRI/derivatives/fMRI_analysis/LSS/results/FearNetwork \
-  --out /gscratch/fang/NARSAD/MRI/derivatives/fMRI_analysis/LSS/results/mvpa_l2/stats/aim1_scr_sensitivity.csv
+  --out /gscratch/fang/NARSAD/MRI/derivatives/fMRI_analysis/LSS/results/mvpa_l2/stats/aim1_sensitivity_scr_cohort.csv
 ```
 
 ## Outputs
 
 - `outputs/mvpa_l2/harmonized/scr_sensitivity_groups.csv`: SCR responder/learner flags.
 - `outputs/mvpa_l2/harmonized/mvpa_l2_subject_metrics.csv`: harmonized subject-level neural, clinical, drug, and SCR variables.
-- `outputs/mvpa_l2/stats/aim2_group_difference.csv`: placebo SAD vs HC models for the three primary neural metrics plus prespecified secondary geometry, certainty, and trajectory metrics.
-- `outputs/mvpa_l2/stats/aim1_mask_feature_sensitivity.csv`: Aim 1 feature-space sensitivity rows for FearNetwork, MemoryFearNetwork, and optional Schaefer/whole-brain.
-- `outputs/mvpa_l2/stats/aim1_mask_feature_sensitivity_functional_drop_tests.csv`: paired self-minus-cross sign-flip tests for Aim 1 feature-space sensitivity.
-- `outputs/mvpa_l2/stats/aim1_mask_feature_sensitivity_functional_drop_nulls.csv`: paired self-minus-cross sign-flip null distributions for Aim 1 feature-space sensitivity; this is used by Figure S1 Panel B null histograms.
-- `outputs/mvpa_l2/stats/aim3_clinical_relevance.csv`: placebo groupwise anxiety-symptom association models for primary and secondary clinical scores crossed with prespecified neural metrics.
-- `outputs/mvpa_l2/stats/aim4_scr_convergence.csv`: placebo groupwise neural-SCR convergence models for primary and secondary SCR indices crossed with prespecified neural metrics.
-- `outputs/mvpa_l2/stats/aim5_oxytocin_modulation.csv`: `Group * Drug` modulation models for prespecified neural metrics.
-- `outputs/mvpa_l2/stats/sensitivity_models_all.csv`: full-sample Drug-adjusted Aim 2-4 sensitivity models, alternative feature-space sensitivity models, SCR-cohort sensitivity models, and available `Group * Drug` sensitivity models. Without `SCHAEFER_DIR`, this includes MemoryFearNetwork and SCR-cohort sensitivities only.
+- `outputs/mvpa_l2/stats/aim1_primary_decoding.csv`: Aim 1 placebo CSR-vs-CSS primary decoding outputs.
+- `outputs/mvpa_l2/stats/aim1_sensitivity_feature_space.csv`: Aim 1 feature-space sensitivity rows for FearNetwork, MemoryFearNetwork, and optional Schaefer/whole-brain.
+- `outputs/mvpa_l2/stats/aim1_sensitivity_feature_space_functional_drop_tests.csv`: paired self-minus-cross sign-flip tests for Aim 1 feature-space sensitivity.
+- `outputs/mvpa_l2/stats/aim1_sensitivity_feature_space_functional_drop_nulls.csv`: paired self-minus-cross sign-flip null distributions for Aim 1 feature-space sensitivity; this is used by Figure S1 Panel B null histograms.
+- `outputs/mvpa_l2/stats/aim1_sensitivity_scr_cohort.csv`: Aim 1 SCR-cohort sensitivity outputs.
+- `outputs/mvpa_l2/stats/aim2_primary_group_difference.csv`: placebo SAD vs HC models for the three primary neural metrics.
+- `outputs/mvpa_l2/stats/aim2_secondary_subject_metrics.csv`: notebook-facing subject-level export of the seven PROJECT_CONTEXT secondary neural metrics.
+- `outputs/mvpa_l2/stats/aim2_secondary_group_difference.csv`: placebo SAD vs HC models for the seven PROJECT_CONTEXT secondary neural metrics.
+- `outputs/mvpa_l2/stats/neural_metric_registry.csv`: notebook-facing registry that labels neural metrics as PROJECT_CONTEXT primary, PROJECT_CONTEXT secondary, or contextual/support diagnostics.
+- `outputs/mvpa_l2/stats/aim3_primary_clinical_relevance.csv`: placebo groupwise primary anxiety-symptom association models crossed with the three primary neural metrics.
+- `outputs/mvpa_l2/stats/aim3_secondary_clinical_relevance.csv`: placebo groupwise secondary clinical-score association models crossed with the three primary neural metrics.
+- `outputs/mvpa_l2/stats/aim4_primary_scr_convergence.csv`: placebo groupwise neural-SCR convergence models crossed with the two primary SCR indices.
+- `outputs/mvpa_l2/stats/aim4_secondary_scr_convergence.csv`: placebo groupwise neural-SCR convergence models crossed with the two secondary SCR indices.
+- `outputs/mvpa_l2/stats/aim5_primary_oxytocin_modulation.csv`: `Group * Drug` modulation models for the three primary neural metrics.
+- `outputs/mvpa_l2/stats/aim5_secondary_oxytocin_modulation.csv`: `Group * Drug` modulation models for the seven PROJECT_CONTEXT secondary neural metrics.
+- `outputs/mvpa_l2/stats/aims_primary_models_all.csv`: combined primary model table.
+- `outputs/mvpa_l2/stats/aims_secondary_models_all.csv`: combined secondary model table.
+- `outputs/mvpa_l2/stats/aims_sensitivity_models_all.csv`: all notebook-facing sensitivity rows. Aim 2 includes the three primary metrics plus seven PROJECT_CONTEXT secondary metrics; Aim 3-5 sensitivity rows use the three primary neural metrics.
+- `outputs/mvpa_l2/stats/aim2_sensitivity_group_difference.csv`: direct Aim 2 sensitivity export for primary plus secondary metrics.
+- `outputs/mvpa_l2/stats/aim2_sensitivity_primary_group_difference.csv`: direct Aim 2 sensitivity export for the three primary metrics.
+- `outputs/mvpa_l2/stats/aim2_sensitivity_secondary_group_difference.csv`: direct Aim 2 sensitivity export for the seven PROJECT_CONTEXT secondary metrics.
+- `outputs/mvpa_l2/stats/aim3_sensitivity_clinical_relevance.csv`: direct Aim 3 sensitivity export using the three primary neural metrics.
+- `outputs/mvpa_l2/stats/aim4_sensitivity_scr_convergence.csv`: direct Aim 4 sensitivity export using the three primary neural metrics.
+- `outputs/mvpa_l2/stats/aim5_sensitivity_oxytocin_modulation.csv`: direct Aim 5 sensitivity export using the three primary neural metrics.
 - `outputs/mvpa_l2/stats/manuscript_primary_results.csv`: single manuscript-ready primary results table spanning Aim 2-5.
 - `outputs/mvpa_l2/stats/manuscript_primary_results.md`: compact Markdown version of the primary results table.
 - `outputs/mvpa_l2/stats/aim4_convergence_matrix.csv`: long-form primary neural metric by primary SCR index convergence table.
 - `outputs/mvpa_l2/stats/aim4_convergence_matrix_wide.csv`: matrix-form convergence table for manuscript review.
 - `outputs/mvpa_l2/stats/aim4_convergence_matrix.md`: Markdown convergence matrix that emphasizes estimates and confidence intervals.
 - `outputs/mvpa_l2/stats/mvpa_l2_qc_dashboard.md`: reproducibility/QC dashboard with subject counts, missingness, model status counts, and leakage-audit reminders.
+- `outputs/mvpa_l2/stats/notebook_artifact_manifest.csv`: machine-readable inventory of notebook-facing post-Hyak outputs.
 - `outputs/mvpa_l2/stats/mvpa_l2_results_summary.md`: compact report sorted by p-value within each result table.
 
 ## Design Logic

@@ -14,6 +14,12 @@ import numpy as np
 import pandas as pd
 
 from mvpa_l2_common import (
+    CONTEXTUAL_NEURAL_METRICS,
+    CORE_NEURAL_METRICS,
+    NEURAL_METRIC_FAMILIES,
+    NEURAL_METRIC_HIERARCHY,
+    PROJECT_CONTEXT_SECONDARY_NEURAL_METRICS,
+    PROJECT_CONTEXT_SECONDARY_NEURAL_METRIC_ALIASES,
     coalesce_duplicate_columns,
     derive_final_metrics,
     ensure_subject_column,
@@ -104,7 +110,25 @@ def load_stage24_core_metrics(base_dir: Path) -> Optional[pd.DataFrame]:
     )
     df = payload_value(payload, "df_core_representative")
     if isinstance(df, pd.DataFrame) and not df.empty:
-        return derive_final_metrics(ensure_subject_column(df))
+        missing = [metric for metric in CORE_NEURAL_METRICS if metric not in df.columns]
+        if missing:
+            raise RuntimeError(
+                "Hyak stage24_NeuralClinicalIndices df_core_representative is missing "
+                f"required Aim 2 metric columns: {missing}. Regenerate the Hyak feature-space "
+                "workflow so stage 24 emits the notebook-facing metrics directly."
+            )
+        out = ensure_subject_column(df)
+        empty = [
+            metric
+            for metric in CORE_NEURAL_METRICS
+            if pd.to_numeric(out[metric], errors="coerce").notna().sum() == 0
+        ]
+        if empty:
+            raise RuntimeError(
+                "Hyak stage24_NeuralClinicalIndices df_core_representative contains no finite "
+                f"values for required Aim 2 metric columns: {empty}."
+            )
+        return derive_final_metrics(out)
     return None
 
 
@@ -539,6 +563,61 @@ def export_aim2_panel_inputs(subject_df: pd.DataFrame, feature_dirs: Dict[str, P
     print(f"Wrote Aim 2 panel inputs -> {stats_dir / 'aim2_geometry_panel.csv'} and {stats_dir / 'aim2_trajectory_panel.csv'}")
 
 
+def export_aim2_secondary_subject_metrics(subject_df: pd.DataFrame, stats_dir: Path) -> None:
+    """Write notebook-facing subject rows for PROJECT_CONTEXT secondary neural metrics."""
+    stats_dir.mkdir(parents=True, exist_ok=True)
+    out = subject_df.copy()
+    for context_metric, source_metric in PROJECT_CONTEXT_SECONDARY_NEURAL_METRIC_ALIASES.items():
+        if context_metric not in out.columns and source_metric in out.columns:
+            out[context_metric] = out[source_metric]
+    id_cols = [col for col in ["sub_ID", "Subject", "subject_id", "FeatureSpace", "Group", "Drug"] if col in out.columns]
+    metric_cols = []
+    for metric in PROJECT_CONTEXT_SECONDARY_NEURAL_METRICS:
+        if metric not in out.columns:
+            out[metric] = pd.NA
+        out[metric] = pd.to_numeric(out[metric], errors="coerce")
+        metric_cols.append(metric)
+    export = out[id_cols + metric_cols].copy()
+    if "sub_ID" in export.columns and "subject_id" not in export.columns:
+        export.insert(0, "subject_id", export["sub_ID"].astype(str))
+    export = export.drop_duplicates()
+    write_csv(export, stats_dir / "aim2_secondary_subject_metrics.csv")
+    print(f"Wrote Aim 2 secondary subject metrics -> {stats_dir / 'aim2_secondary_subject_metrics.csv'}")
+
+
+def export_neural_metric_registry(subject_df: pd.DataFrame, stats_dir: Path) -> None:
+    """Write a notebook-facing registry separating planned metrics from contextual diagnostics."""
+    stats_dir.mkdir(parents=True, exist_ok=True)
+    subject_df = derive_final_metrics(subject_df.copy())
+    for context_metric, source_metric in PROJECT_CONTEXT_SECONDARY_NEURAL_METRIC_ALIASES.items():
+        if source_metric not in subject_df.columns and context_metric in subject_df.columns:
+            subject_df[source_metric] = subject_df[context_metric]
+    metrics = CORE_NEURAL_METRICS + PROJECT_CONTEXT_SECONDARY_NEURAL_METRICS + CONTEXTUAL_NEURAL_METRICS
+    rows = []
+    for order, metric in enumerate(dict.fromkeys(metrics), start=1):
+        hierarchy = NEURAL_METRIC_HIERARCHY.get(metric, {})
+        values = pd.to_numeric(subject_df[metric], errors="coerce") if metric in subject_df.columns else pd.Series(dtype=float)
+        rows.append(
+            {
+                "metric": metric,
+                "metric_role": hierarchy.get("role", "contextual"),
+                "metric_order": hierarchy.get("order", order),
+                "metric_family": NEURAL_METRIC_FAMILIES.get(metric, "contextual"),
+                "in_project_context_primary": metric in CORE_NEURAL_METRICS,
+                "in_project_context_secondary": metric in PROJECT_CONTEXT_SECONDARY_NEURAL_METRICS,
+                "contextual_not_confirmatory": metric in CONTEXTUAL_NEURAL_METRICS and metric not in PROJECT_CONTEXT_SECONDARY_NEURAL_METRICS,
+                "available_in_subject_metrics": metric in subject_df.columns,
+                "nonmissing_n": int(values.notna().sum()),
+            }
+        )
+    registry = pd.DataFrame(rows)
+    role_order = {"primary": 1, "secondary": 2, "contextual": 3}
+    registry["_role_order"] = registry["metric_role"].map(role_order).fillna(99)
+    registry = registry.sort_values(["_role_order", "metric_order", "metric"]).drop(columns=["_role_order"])
+    write_csv(registry, stats_dir / "neural_metric_registry.csv")
+    print(f"Wrote neural metric registry -> {stats_dir / 'neural_metric_registry.csv'}")
+
+
 def load_clinical(base_dir: Path) -> Optional[pd.DataFrame]:
     # This table can include clinical/SCR subjects outside the analyzed neural
     # sample and usually does not carry Group/Drug. The later outer merge keeps
@@ -605,6 +684,61 @@ def export_feature_space(feature_space: str, base_dir: Path) -> pd.DataFrame:
     return merged
 
 
+def validate_primary_feature_metrics(df: pd.DataFrame, feature_space: str = "FearNetwork") -> None:
+    """Require Hyak-exported core Aim 2 metrics before downstream stats/notebooks run."""
+    if df.empty:
+        raise RuntimeError("Harmonized MVPA table is empty after feature-space export.")
+    sub = df[df["FeatureSpace"].astype(str).eq(feature_space)].copy() if "FeatureSpace" in df.columns else df.copy()
+    if sub.empty:
+        raise RuntimeError(f"No rows found for primary feature space {feature_space!r}.")
+    missing = [metric for metric in CORE_NEURAL_METRICS if metric not in sub.columns]
+    if missing:
+        raise RuntimeError(
+            f"Primary feature space {feature_space!r} is missing required Aim 2 columns: {missing}."
+        )
+    placebo = sub[sub["Drug"].astype(str).eq("Placebo")].copy() if "Drug" in sub.columns else sub
+    problems = []
+    for metric in CORE_NEURAL_METRICS:
+        values = pd.to_numeric(placebo[metric], errors="coerce")
+        n_sad = int(values[placebo["Group"].astype(str).eq("SAD")].notna().sum()) if "Group" in placebo.columns else 0
+        n_hc = int(values[placebo["Group"].astype(str).eq("HC")].notna().sum()) if "Group" in placebo.columns else 0
+        if n_sad == 0 or n_hc == 0:
+            problems.append(f"{metric}: SAD n={n_sad}, HC n={n_hc}")
+    if problems:
+        raise RuntimeError(
+            "Hyak-exported primary Aim 2 metrics are not usable for placebo SAD-HC tests: "
+            + "; ".join(problems)
+        )
+
+
+def validate_secondary_feature_metrics(df: pd.DataFrame, feature_space: str = "FearNetwork") -> None:
+    """Require PROJECT_CONTEXT secondary metrics for notebook-facing exports."""
+    sub = df[df["FeatureSpace"].astype(str).eq(feature_space)].copy() if "FeatureSpace" in df.columns else df.copy()
+    if sub.empty:
+        raise RuntimeError(f"No rows found for primary feature space {feature_space!r}.")
+    for context_metric, source_metric in PROJECT_CONTEXT_SECONDARY_NEURAL_METRIC_ALIASES.items():
+        if context_metric not in sub.columns and source_metric in sub.columns:
+            sub[context_metric] = sub[source_metric]
+    missing = [metric for metric in PROJECT_CONTEXT_SECONDARY_NEURAL_METRICS if metric not in sub.columns]
+    if missing:
+        raise RuntimeError(
+            f"Primary feature space {feature_space!r} is missing required secondary Aim 2 columns: {missing}."
+        )
+    placebo = sub[sub["Drug"].astype(str).eq("Placebo")].copy() if "Drug" in sub.columns else sub
+    problems = []
+    for metric in PROJECT_CONTEXT_SECONDARY_NEURAL_METRICS:
+        values = pd.to_numeric(placebo[metric], errors="coerce")
+        n_sad = int(values[placebo["Group"].astype(str).eq("SAD")].notna().sum()) if "Group" in placebo.columns else 0
+        n_hc = int(values[placebo["Group"].astype(str).eq("HC")].notna().sum()) if "Group" in placebo.columns else 0
+        if n_sad == 0 or n_hc == 0:
+            problems.append(f"{metric}: SAD n={n_sad}, HC n={n_hc}")
+    if problems:
+        raise RuntimeError(
+            "Hyak-exported secondary Aim 2 metrics are not usable for placebo SAD-HC tests: "
+            + "; ".join(problems)
+        )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--feature-dir", action="append", help="FeatureSpace=/path/to/output_dir")
@@ -643,10 +777,14 @@ def main() -> None:
         flags = ensure_subject_column(pd.read_csv(args.scr_flags))
         out = out.merge(flags, on="sub_ID", how="left")
     out = coalesce_duplicate_columns(out)
+    validate_primary_feature_metrics(out)
+    validate_secondary_feature_metrics(out)
     out = out.sort_values(["FeatureSpace", "Group", "Drug", "sub_ID"], na_position="last")
     write_csv(out, args.out)
     stats_out_dir = args.stats_out_dir or args.out.parent.parent / "stats"
     export_aim2_panel_inputs(out, feature_dirs, stats_out_dir)
+    export_aim2_secondary_subject_metrics(out, stats_out_dir)
+    export_neural_metric_registry(out, stats_out_dir)
     print(f"Wrote {len(out)} rows x {len(out.columns)} columns -> {args.out}")
     print(out.groupby(["FeatureSpace", "Group", "Drug"], dropna=False).size())
 

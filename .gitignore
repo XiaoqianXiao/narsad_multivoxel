@@ -5,5 +5,10 @@ __pycache__/
 .nbconvert_out/
 /data
 /outputs
-task*.md
 /results
+/code/*pdf
+/code/*svg
+/code/*png
+/code/*csv
+/code/*xlsx
+.obsidian

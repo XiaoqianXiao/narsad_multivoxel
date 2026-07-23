@@ -116,7 +116,7 @@ def concat_csv(paths: List[Path], out: Path) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--feature-dir", action="append", required=True, help="Feature label and directory as LABEL=PATH. May be repeated.")
-    parser.add_argument("--out", type=Path, default=Path("outputs/mvpa_l2/stats/aim1_mask_feature_sensitivity.csv"))
+    parser.add_argument("--out", type=Path, default=Path("outputs/mvpa_l2/stats/aim1_sensitivity_feature_space.csv"))
     parser.add_argument("--wide-out", type=Path, default=None)
     parser.add_argument("--raincloud-out", type=Path, default=None)
     parser.add_argument("--drop-tests-out", type=Path, default=None)

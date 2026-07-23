@@ -434,11 +434,15 @@ Expected output families include:
 Post-Hyak outputs described by `code/scripts/README_mvpa_l2_pipeline.md` include:
 - `outputs/mvpa_l2/harmonized/scr_sensitivity_groups.csv`.
 - `outputs/mvpa_l2/harmonized/mvpa_l2_subject_metrics.csv`.
-- `outputs/mvpa_l2/stats/aim2_group_difference.csv`.
-- `outputs/mvpa_l2/stats/aim3_clinical_relevance.csv`.
-- `outputs/mvpa_l2/stats/aim4_scr_convergence.csv`.
-- `outputs/mvpa_l2/stats/aim5_oxytocin_modulation.csv`.
-- `outputs/mvpa_l2/stats/sensitivity_models_all.csv`.
+- `outputs/mvpa_l2/stats/aim2_primary_group_difference.csv`.
+- `outputs/mvpa_l2/stats/aim2_secondary_group_difference.csv`.
+- `outputs/mvpa_l2/stats/aim3_primary_clinical_relevance.csv`.
+- `outputs/mvpa_l2/stats/aim3_secondary_clinical_relevance.csv`.
+- `outputs/mvpa_l2/stats/aim4_primary_scr_convergence.csv`.
+- `outputs/mvpa_l2/stats/aim4_secondary_scr_convergence.csv`.
+- `outputs/mvpa_l2/stats/aim5_primary_oxytocin_modulation.csv`.
+- `outputs/mvpa_l2/stats/aim5_secondary_oxytocin_modulation.csv`.
+- `outputs/mvpa_l2/stats/aims_sensitivity_models_all.csv`.
 - `outputs/mvpa_l2/stats/mvpa_l2_results_summary.md`.
 
 ## Statistical Guardrails

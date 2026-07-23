@@ -126,5 +126,5 @@ Outputs will be labeled checkpoints in:
 After jobs finish, summarize with:
   python3 scripts/export_aim1_scr_sensitivity.py \\
     --feature-dir ${OUT_BASE}/FearNetwork \\
-    --out ${OUT_BASE}/mvpa_l2/stats/aim1_scr_sensitivity.csv
+    --out ${OUT_BASE}/mvpa_l2/stats/aim1_sensitivity_scr_cohort.csv
 EOF

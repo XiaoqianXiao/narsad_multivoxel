@@ -560,7 +560,7 @@ def export(
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--feature-dir", type=Path, default=Path("outputs/mvpa_l2/FearNetwork"))
-    parser.add_argument("--out", type=Path, default=Path("outputs/mvpa_l2/stats/aim1_decoding_primary.csv"))
+    parser.add_argument("--out", type=Path, default=Path("outputs/mvpa_l2/stats/aim1_primary_decoding.csv"))
     parser.add_argument("--feature-space", default="FearNetwork")
     parser.add_argument("--raincloud-out", type=Path, default=None)
     parser.add_argument("--drop-tests-out", type=Path, default=None)

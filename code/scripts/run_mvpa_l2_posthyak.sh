@@ -65,7 +65,6 @@ fi
 PYTHON_BIN="${PYTHON_BIN:-python3}"
 SCR_FLAGS="${SCR_FLAGS:-}"
 SCR_FLAGS_OUT="$OUT_ROOT/harmonized/scr_sensitivity_groups.csv"
-DERIVED_NEURAL_INDEX_PATH="${DERIVED_NEURAL_INDEX_PATH:-$OUT_ROOT/representative_neural_index/derived_subject_neural_indices.csv}"
 CLINICAL_OUTLIER_Z="${CLINICAL_OUTLIER_Z:-3.0}"
 RUN_AIM1_SCR="${RUN_AIM1_SCR:-1}"
 REUSE_EXISTING_STATS="${REUSE_EXISTING_STATS:-0}"
@@ -176,7 +175,6 @@ EOF
       SCR_DIR="$CONTAINER_SCR_DIR" \
       OUT_ROOT="$CONTAINER_OUT_ROOT" \
       SCR_FLAGS="$CONTAINER_SCR_FLAGS" \
-      DERIVED_NEURAL_INDEX_PATH="$CONTAINER_OUT_ROOT/representative_neural_index/derived_subject_neural_indices.csv" \
       CLINICAL_OUTLIER_Z="$CLINICAL_OUTLIER_Z" \
       RUN_AIM1_SCR="$RUN_AIM1_SCR" \
       PROJECT_ROOT="$PROJECT_ROOT" \
@@ -264,12 +262,11 @@ for required_dir in "$FEAR_DIR" "$MEMORY_DIR"; do
 done
 
 if [[ "$feature_roots_available" == "1" ]]; then
-  DERIVED_NEURAL_INDEX_PATH="$DERIVED_NEURAL_INDEX_PATH" "$PYTHON_BIN" scripts/export_mvpa_l2_metrics.py \
+  "$PYTHON_BIN" scripts/export_mvpa_l2_metrics.py \
     "${FEATURE_ARGS[@]}" \
     --scr-flags "$SCR_FLAGS_OUT" \
     --out "$SUBJECT_METRICS" \
-    --stats-out-dir "$OUT_ROOT/stats" \
-    --derived-neural-index-out "$DERIVED_NEURAL_INDEX_PATH"
+    --stats-out-dir "$OUT_ROOT/stats"
 elif [[ "$REUSE_EXISTING_STATS" == "auto" && -s "$SUBJECT_METRICS" ]]; then
   echo "Feature roots are missing, so reusing existing harmonized metrics -> $SUBJECT_METRICS"
 else
@@ -282,10 +279,10 @@ fi
 if [[ -d "$FEAR_DIR" ]]; then
   "$PYTHON_BIN" scripts/export_aim1_decoding_primary.py \
     --feature-dir "$FEAR_DIR" \
-    --out "$OUT_ROOT/stats/aim1_decoding_primary.csv" \
+    --out "$OUT_ROOT/stats/aim1_primary_decoding.csv" \
     --feature-space "FearNetwork"
-elif [[ "$REUSE_EXISTING_STATS" == "auto" && -s "$OUT_ROOT/stats/aim1_decoding_primary.csv" ]]; then
-  echo "FearNetwork feature root is missing, so reusing existing Aim 1 primary export -> $OUT_ROOT/stats/aim1_decoding_primary.csv"
+elif [[ "$REUSE_EXISTING_STATS" == "auto" && -s "$OUT_ROOT/stats/aim1_primary_decoding.csv" ]]; then
+  echo "FearNetwork feature root is missing, so reusing existing Aim 1 primary export -> $OUT_ROOT/stats/aim1_primary_decoding.csv"
 else
   echo "ERROR: FearNetwork feature root is missing and Aim 1 primary export cannot be rebuilt." >&2
   exit 1
@@ -303,12 +300,12 @@ fi
 if [[ "$feature_roots_available" == "1" ]]; then
   "$PYTHON_BIN" scripts/export_aim1_feature_sensitivity.py \
     "${FEATURE_AIM1_ARGS[@]}" \
-    --out "$OUT_ROOT/stats/aim1_mask_feature_sensitivity.csv" \
-    --wide-out "$OUT_ROOT/stats/aim1_mask_feature_sensitivity_wide.csv" \
-    --raincloud-out "$OUT_ROOT/stats/aim1_mask_feature_sensitivity_raincloud.csv" \
-    --drop-tests-out "$OUT_ROOT/stats/aim1_mask_feature_sensitivity_functional_drop_tests.csv" \
-    --drop-nulls-out "$OUT_ROOT/stats/aim1_mask_feature_sensitivity_functional_drop_nulls.csv"
-elif [[ "$REUSE_EXISTING_STATS" == "auto" && -s "$OUT_ROOT/stats/aim1_mask_feature_sensitivity.csv" ]]; then
+    --out "$OUT_ROOT/stats/aim1_sensitivity_feature_space.csv" \
+    --wide-out "$OUT_ROOT/stats/aim1_sensitivity_feature_space_wide.csv" \
+    --raincloud-out "$OUT_ROOT/stats/aim1_sensitivity_feature_space_raincloud.csv" \
+    --drop-tests-out "$OUT_ROOT/stats/aim1_sensitivity_feature_space_functional_drop_tests.csv" \
+    --drop-nulls-out "$OUT_ROOT/stats/aim1_sensitivity_feature_space_functional_drop_nulls.csv"
+elif [[ "$REUSE_EXISTING_STATS" == "auto" && -s "$OUT_ROOT/stats/aim1_sensitivity_feature_space.csv" ]]; then
   echo "Feature roots are missing, so reusing existing Aim 1 feature-sensitivity exports in $OUT_ROOT/stats"
 else
   echo "ERROR: Feature roots are missing and Aim 1 feature-sensitivity exports cannot be rebuilt." >&2
@@ -318,30 +315,30 @@ fi
 if [[ "$RUN_AIM1_SCR" == "1" && -d "$FEAR_DIR" ]]; then
   "$PYTHON_BIN" scripts/export_aim1_scr_sensitivity.py \
     --feature-dir "$FEAR_DIR" \
-    --out "$OUT_ROOT/stats/aim1_scr_sensitivity.csv" \
+    --out "$OUT_ROOT/stats/aim1_sensitivity_scr_cohort.csv" \
     --feature-space "FearNetwork" \
-    --raincloud-out "$OUT_ROOT/stats/aim1_scr_sensitivity_raincloud.csv" \
-    --drop-tests-out "$OUT_ROOT/stats/aim1_scr_sensitivity_functional_drop_tests.csv" \
-    --drop-nulls-out "$OUT_ROOT/stats/aim1_scr_sensitivity_functional_drop_nulls.csv"
-elif [[ "$RUN_AIM1_SCR" == "1" && "$REUSE_EXISTING_STATS" == "auto" && -s "$OUT_ROOT/stats/aim1_scr_sensitivity.csv" ]]; then
-  echo "FearNetwork feature root is missing, so reusing existing Aim 1 SCR sensitivity export -> $OUT_ROOT/stats/aim1_scr_sensitivity.csv"
+    --raincloud-out "$OUT_ROOT/stats/aim1_sensitivity_scr_cohort_raincloud.csv" \
+    --drop-tests-out "$OUT_ROOT/stats/aim1_sensitivity_scr_cohort_functional_drop_tests.csv" \
+    --drop-nulls-out "$OUT_ROOT/stats/aim1_sensitivity_scr_cohort_functional_drop_nulls.csv"
+elif [[ "$RUN_AIM1_SCR" == "1" && "$REUSE_EXISTING_STATS" == "auto" && -s "$OUT_ROOT/stats/aim1_sensitivity_scr_cohort.csv" ]]; then
+  echo "FearNetwork feature root is missing, so reusing existing Aim 1 SCR sensitivity export -> $OUT_ROOT/stats/aim1_sensitivity_scr_cohort.csv"
 fi
 
-DERIVED_NEURAL_INDEX_PATH="$DERIVED_NEURAL_INDEX_PATH" "$PYTHON_BIN" scripts/run_mvpa_l2_primary_models.py \
+"$PYTHON_BIN" scripts/run_mvpa_l2_primary_models.py \
   --input "$SUBJECT_METRICS" \
   --clinical-outlier-z "$CLINICAL_OUTLIER_Z" \
   --out-dir "$OUT_ROOT/stats"
 
-DERIVED_NEURAL_INDEX_PATH="$DERIVED_NEURAL_INDEX_PATH" "$PYTHON_BIN" scripts/run_mvpa_l2_sensitivity_models.py \
+"$PYTHON_BIN" scripts/run_mvpa_l2_secondary_models.py \
   --input "$SUBJECT_METRICS" \
-  --out "$OUT_ROOT/stats/sensitivity_models_all.csv"
+  --clinical-outlier-z "$CLINICAL_OUTLIER_Z" \
+  --out-dir "$OUT_ROOT/stats"
 
-"$PYTHON_BIN" scripts/plot_figure_s2_aim2_sensitivity.py \
-  --input "$OUT_ROOT/stats/sensitivity_models_all.csv" \
-  --figure-dir "$OUT_ROOT/stats/figures" \
-  --table-dir "$OUT_ROOT/stats"
+"$PYTHON_BIN" scripts/run_mvpa_l2_sensitivity_models.py \
+  --input "$SUBJECT_METRICS" \
+  --out "$OUT_ROOT/stats/aims_sensitivity_models_all.csv"
 
-DERIVED_NEURAL_INDEX_PATH="$DERIVED_NEURAL_INDEX_PATH" "$PYTHON_BIN" scripts/export_mvpa_l2_manuscript_artifacts.py \
+"$PYTHON_BIN" scripts/export_mvpa_l2_manuscript_artifacts.py \
   --input "$SUBJECT_METRICS" \
   --stats-dir "$OUT_ROOT/stats" \
   --repo-root "."

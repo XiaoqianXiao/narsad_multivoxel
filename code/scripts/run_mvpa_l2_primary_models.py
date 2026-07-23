@@ -8,13 +8,11 @@ from typing import Dict, List, Optional, Tuple
 import pandas as pd
 
 from mvpa_l2_common import (
-    ALL_CLINICAL_SCORES,
-    ALL_SCR_INDICES,
     CLINICAL_SCORE_HIERARCHY,
     CORE_NEURAL_METRICS,
     NEURAL_METRIC_HIERARCHY,
+    PRIMARY_CLINICAL_SCORES,
     PRIMARY_SCR_INDICES,
-    PRESPECIFIED_NEURAL_METRICS,
     add_fdr,
     available_covariates,
     derive_final_metrics,
@@ -30,17 +28,26 @@ DRUG_INTERACTION_TERM = "C(Group, Treatment(reference='HC'))[T.SAD]:C(Drug, Trea
 AIM2_QUESTION_METRICS = {
     "Q1_geometry": [
         "Neural_Threat_Safety_Distance",
-        "Neural_Dist_Safety_Background",
-        "Neural_Dist_Threat_Background",
-        "Neural_Dist_Threat_Safety",
     ],
     "Q2_decision_certainty": [
         "Prototype_Certainty",
+    ],
+    "Q3_learning_dynamics": [
+        "Neural_DynamicDiscrimination_Volatility",
+    ],
+}
+
+AIM2_SECONDARY_QUESTION_METRICS = {
+    "Q1_geometry": [
+        "Neural_Dist_Safety_Background",
+        "Neural_Dist_Threat_Background",
+        "Neural_Dist_Threat_Safe",
+    ],
+    "Q2_decision_certainty": [
         "Neural_Certainty_CSS",
         "Neural_Certainty_CSR",
     ],
     "Q3_learning_dynamics": [
-        "Neural_DynamicDiscrimination_Volatility",
         "Neural_Safety_Trajectory_Slope",
         "Neural_Threat_Trajectory_Slope",
     ],
@@ -55,14 +62,17 @@ AIM2_QUESTION_LABELS = {
 AIM2_PRIMARY_METRICS = list(CORE_NEURAL_METRICS)
 AIM2_SECONDARY_METRICS = [
     metric
-    for metrics in AIM2_QUESTION_METRICS.values()
+    for metrics in AIM2_SECONDARY_QUESTION_METRICS.values()
     for metric in metrics
-    if metric not in AIM2_PRIMARY_METRICS
 ]
 AIM2_METRICS = AIM2_PRIMARY_METRICS + AIM2_SECONDARY_METRICS
+AIM2_ALL_QUESTION_METRICS = {
+    question: AIM2_QUESTION_METRICS.get(question, []) + AIM2_SECONDARY_QUESTION_METRICS.get(question, [])
+    for question in AIM2_QUESTION_METRICS
+}
 AIM2_METRIC_TO_QUESTION = {
     metric: question
-    for question, metrics in AIM2_QUESTION_METRICS.items()
+    for question, metrics in AIM2_ALL_QUESTION_METRICS.items()
     for metric in metrics
 }
 
@@ -145,23 +155,31 @@ def zscore_numeric_covariates(df: pd.DataFrame, covariates: List[str], threshold
     return out, model_covariates, removed
 
 
-def run_aim2(df: pd.DataFrame, feature_space: str, covariates: List[str]) -> pd.DataFrame:
+def run_aim2(
+    df: pd.DataFrame,
+    feature_space: str,
+    covariates: List[str],
+    metric_groups: Dict[str, List[str]],
+    analysis_label: str,
+) -> pd.DataFrame:
     rows = []
     sub = df[(df["FeatureSpace"] == feature_space) & (df["Drug"] == "Placebo")].copy()
-    for question_order, (question_key, metrics) in enumerate(AIM2_QUESTION_METRICS.items(), start=1):
+    for question_order, (question_key, metrics) in enumerate(metric_groups.items(), start=1):
         for metric in metrics:
             if metric not in sub.columns:
-                continue
-            row = fit_lm(
-                sub,
-                outcome=metric,
-                predictor_terms=["C(Group, Treatment(reference='HC'))"],
-                covariates=covariates,
-                term_of_interest=GROUP_TERM,
-            )
+                row = {"status": "missing_outcome", "n": 0, "outcome": metric}
+            else:
+                row = fit_lm(
+                    sub,
+                    outcome=metric,
+                    predictor_terms=["C(Group, Treatment(reference='HC'))"],
+                    covariates=covariates,
+                    term_of_interest=GROUP_TERM,
+                )
             row.update(
                 {
-                    "analysis": "Aim2_SAD_HC_Placebo",
+                    "analysis": analysis_label,
+                    "session": "Placebo",
                     "aim2_question": question_key,
                     "aim2_question_order": question_order,
                     "aim2_question_label": AIM2_QUESTION_LABELS[question_key],
@@ -175,20 +193,27 @@ def run_aim2(df: pd.DataFrame, feature_space: str, covariates: List[str]) -> pd.
     return pd.DataFrame(rows)
 
 
-def run_aim3(df: pd.DataFrame, feature_space: str, covariates: List[str], clinical_outlier_z: float) -> pd.DataFrame:
+def run_aim3(
+    df: pd.DataFrame,
+    feature_space: str,
+    covariates: List[str],
+    clinical_outlier_z: float,
+    clinical_scores: List[str],
+    analysis_label: str,
+) -> pd.DataFrame:
     rows = []
     sub = df[(df["FeatureSpace"] == feature_space) & (df["Drug"] == "Placebo")].copy()
     groups = [g for g in ["SAD", "HC"] if g in set(sub["Group"].dropna())]
     for group in groups:
         group_df = sub[sub["Group"] == group].copy()
         group_df, model_covariates, covariate_outliers = zscore_numeric_covariates(group_df, covariates, clinical_outlier_z)
-        for clinical in ALL_CLINICAL_SCORES:
+        for clinical in clinical_scores:
             clinical_df, clinical_z, n_clinical_outliers, clinical_method = apply_stage29_zscore(group_df, clinical, clinical_outlier_z)
             if clinical_z is None:
                 row = {"status": "missing_or_constant_clinical_score", "n": 0, "outcome": clinical}
                 row.update(
                     {
-                        "analysis": "Aim3_Clinical_Relevance_Groupwise_Placebo_ZOLS",
+                        "analysis": analysis_label,
                         "session": "Placebo",
                         "Group": group,
                         "clinical_score": clinical,
@@ -202,7 +227,7 @@ def run_aim3(df: pd.DataFrame, feature_space: str, covariates: List[str], clinic
                 row.update(clinical_hierarchy_fields(clinical))
                 rows.append(row)
                 continue
-            for metric in PRESPECIFIED_NEURAL_METRICS:
+            for metric in CORE_NEURAL_METRICS:
                 if metric not in clinical_df.columns:
                     continue
                 model_df, metric_z, n_metric_outliers, metric_method = apply_stage29_zscore(clinical_df, metric, clinical_outlier_z)
@@ -210,7 +235,7 @@ def run_aim3(df: pd.DataFrame, feature_space: str, covariates: List[str], clinic
                     row = {"status": "missing_or_constant_neural_metric", "n": 0, "outcome": clinical_z}
                     row.update(
                         {
-                            "analysis": "Aim3_Clinical_Relevance_Groupwise_Placebo_ZOLS",
+                            "analysis": analysis_label,
                             "session": "Placebo",
                             "Group": group,
                             "metric": metric,
@@ -239,7 +264,7 @@ def run_aim3(df: pd.DataFrame, feature_space: str, covariates: List[str], clinic
                 )
                 row.update(
                     {
-                        "analysis": "Aim3_Clinical_Relevance_Groupwise_Placebo_ZOLS",
+                        "analysis": analysis_label,
                         "session": "Placebo",
                         "Group": group,
                         "metric": metric,
@@ -263,19 +288,26 @@ def run_aim3(df: pd.DataFrame, feature_space: str, covariates: List[str], clinic
     return pd.DataFrame(rows)
 
 
-def run_aim4(df: pd.DataFrame, feature_space: str, covariates: List[str], outlier_z: float) -> pd.DataFrame:
+def run_aim4(
+    df: pd.DataFrame,
+    feature_space: str,
+    covariates: List[str],
+    outlier_z: float,
+    scr_indices: List[str],
+    analysis_label: str,
+) -> pd.DataFrame:
     rows = []
     sub = df[(df["FeatureSpace"] == feature_space) & (df["Drug"] == "Placebo")].copy()
     groups = [g for g in ["SAD", "HC"] if g in set(sub["Group"].dropna())]
     for group in groups:
         group_df = sub[sub["Group"] == group].copy()
-        for scr in ALL_SCR_INDICES:
+        for scr in scr_indices:
             scr_df, scr_z, n_scr_outliers, scr_method = apply_stage29_zscore(group_df, scr, outlier_z)
             if scr_z is None:
                 row = {"status": "missing_or_constant_scr_index", "n": 0, "outcome": scr}
                 row.update(
                     {
-                        "analysis": "Aim4_SCR_Convergence_Groupwise_Placebo",
+                        "analysis": analysis_label,
                         "session": "Placebo",
                         "Group": group,
                         "scr_index": scr,
@@ -289,7 +321,7 @@ def run_aim4(df: pd.DataFrame, feature_space: str, covariates: List[str], outlie
                 )
                 rows.append(row)
                 continue
-            for metric in PRESPECIFIED_NEURAL_METRICS:
+            for metric in CORE_NEURAL_METRICS:
                 if metric not in scr_df.columns:
                     continue
                 model_df, metric_z, n_metric_outliers, metric_method = apply_stage29_zscore(scr_df, metric, outlier_z)
@@ -297,7 +329,7 @@ def run_aim4(df: pd.DataFrame, feature_space: str, covariates: List[str], outlie
                     row = {"status": "missing_or_constant_neural_metric", "n": 0, "outcome": scr_z}
                     row.update(
                         {
-                            "analysis": "Aim4_SCR_Convergence_Groupwise_Placebo",
+                            "analysis": analysis_label,
                             "session": "Placebo",
                             "Group": group,
                             "metric": metric,
@@ -326,7 +358,7 @@ def run_aim4(df: pd.DataFrame, feature_space: str, covariates: List[str], outlie
                 )
                 row.update(
                     {
-                        "analysis": "Aim4_SCR_Convergence_Groupwise_Placebo",
+                        "analysis": analysis_label,
                         "session": "Placebo",
                         "Group": group,
                         "metric": metric,
@@ -348,7 +380,7 @@ def run_aim4(df: pd.DataFrame, feature_space: str, covariates: List[str], outlie
     return pd.DataFrame(rows)
 
 
-def run_aim5(df: pd.DataFrame, feature_space: str, covariates: List[str]) -> pd.DataFrame:
+def run_aim5(df: pd.DataFrame, feature_space: str, covariates: List[str], metrics: List[str], analysis_label: str) -> pd.DataFrame:
     rows = []
     sub = df[df["FeatureSpace"] == feature_space].copy()
     expected_cells = [("HC", "Placebo"), ("HC", "Oxytocin"), ("SAD", "Placebo"), ("SAD", "Oxytocin")]
@@ -359,11 +391,11 @@ def run_aim5(df: pd.DataFrame, feature_space: str, covariates: List[str]) -> pd.
         counts = frame.groupby(["Group", "Drug"], dropna=False).size().to_dict()
         return {f"{group}_{drug}": int(counts.get((group, drug), 0)) for group, drug in expected_cells}
 
-    for metric in PRESPECIFIED_NEURAL_METRICS:
+    for metric in metrics:
         needed = [metric, "Group", "Drug"] + [cov for cov in covariates if cov in sub.columns]
         if metric not in sub.columns:
             row = {"status": "missing_outcome", "n": 0, "outcome": metric}
-            row.update({"analysis": "Aim5_Group_x_Drug", "metric": metric, "feature_space": feature_space})
+            row.update({"analysis": analysis_label, "metric": metric, "feature_space": feature_space})
             row.update(neural_question_fields(metric))
             row.update(metric_hierarchy_fields(metric))
             rows.append(row)
@@ -401,7 +433,7 @@ def run_aim5(df: pd.DataFrame, feature_space: str, covariates: List[str]) -> pd.
                     )
                 ),
             }
-            row.update({"analysis": "Aim5_Group_x_Drug", "metric": metric, "feature_space": feature_space})
+            row.update({"analysis": analysis_label, "metric": metric, "feature_space": feature_space})
             row.update(neural_question_fields(metric))
             row.update(metric_hierarchy_fields(metric))
             rows.append(row)
@@ -416,7 +448,7 @@ def run_aim5(df: pd.DataFrame, feature_space: str, covariates: List[str]) -> pd.
         )
         row.update(
             {
-                "analysis": "Aim5_Group_x_Drug",
+                "analysis": analysis_label,
                 "metric": metric,
                 "feature_space": feature_space,
                 "metric_cell_counts": ";".join(f"{cell}:{metric_counts.get(cell, 0)}" for cell in complete_counts),
@@ -463,17 +495,43 @@ def main() -> None:
     print(f"Using covariates: {covariates}")
 
     results = {
-        "aim2_group_difference": run_aim2(df, args.primary_feature_space, covariates),
-        "aim3_clinical_relevance": run_aim3(df, args.primary_feature_space, covariates, args.clinical_outlier_z),
-        "aim4_scr_convergence": run_aim4(df, args.primary_feature_space, covariates, args.clinical_outlier_z),
-        "aim5_oxytocin_modulation": run_aim5(df, args.primary_feature_space, covariates),
+        "aim2_primary_group_difference": run_aim2(
+            df,
+            args.primary_feature_space,
+            covariates,
+            AIM2_QUESTION_METRICS,
+            "Aim2_SAD_HC_Placebo",
+        ),
+        "aim3_primary_clinical_relevance": run_aim3(
+            df,
+            args.primary_feature_space,
+            covariates,
+            args.clinical_outlier_z,
+            PRIMARY_CLINICAL_SCORES,
+            "Aim3_Primary_Clinical_Relevance_Groupwise_Placebo_ZOLS",
+        ),
+        "aim4_primary_scr_convergence": run_aim4(
+            df,
+            args.primary_feature_space,
+            covariates,
+            args.clinical_outlier_z,
+            PRIMARY_SCR_INDICES,
+            "Aim4_Primary_SCR_Convergence_Groupwise_Placebo",
+        ),
+        "aim5_primary_oxytocin_modulation": run_aim5(
+            df,
+            args.primary_feature_space,
+            covariates,
+            CORE_NEURAL_METRICS,
+            "Aim5_Primary_Group_x_Drug",
+        ),
     }
 
     all_rows = []
     for name, table in results.items():
-        if name == "aim2_group_difference" and {"metric", "metric_role"}.issubset(table.columns):
+        if name == "aim2_primary_group_difference" and {"metric", "metric_role"}.issubset(table.columns):
             table = apply_aim_metric_role_fdr(table, "Aim2")
-        elif name == "aim3_clinical_relevance" and {"metric", "metric_role"}.issubset(table.columns):
+        elif name == "aim3_primary_clinical_relevance" and {"metric", "metric_role"}.issubset(table.columns):
             table = apply_aim_metric_role_fdr(table, "Aim3")
             if "clinical_score" in table.columns:
                 clinical_table = add_fdr(table.copy(), family_cols=["analysis", "Group", "clinical_score"])
@@ -481,9 +539,9 @@ def main() -> None:
                 table["aim3_clinical_score_family"] = (
                     table["Group"].astype(str) + " | " + table["clinical_score"].astype(str)
                 )
-        elif name == "aim4_scr_convergence" and {"metric", "metric_role"}.issubset(table.columns):
+        elif name == "aim4_primary_scr_convergence" and {"metric", "metric_role"}.issubset(table.columns):
             table = apply_aim_metric_role_fdr(table, "Aim4")
-        elif name == "aim5_oxytocin_modulation" and {"metric", "metric_role"}.issubset(table.columns):
+        elif name == "aim5_primary_oxytocin_modulation" and {"metric", "metric_role"}.issubset(table.columns):
             table = apply_aim_metric_role_fdr(table, "Aim5")
         else:
             table = add_fdr(table, family_cols=["analysis"])
@@ -492,8 +550,8 @@ def main() -> None:
         all_rows.append(table)
 
     combined = pd.concat(all_rows, ignore_index=True, sort=False)
-    write_csv(combined, args.out_dir / "primary_models_all.csv")
-    print(f"Wrote combined primary model table -> {args.out_dir / 'primary_models_all.csv'}")
+    write_csv(combined, args.out_dir / "aims_primary_models_all.csv")
+    print(f"Wrote combined primary model table -> {args.out_dir / 'aims_primary_models_all.csv'}")
 
 
 if __name__ == "__main__":
