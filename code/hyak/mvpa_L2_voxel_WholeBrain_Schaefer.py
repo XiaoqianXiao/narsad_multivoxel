@@ -5708,7 +5708,6 @@ if stage_active(24):
             df_neural_uncertainty["Neural_ThreatLike_Safety"],
             errors="coerce",
         )
-        # CSS certainty = Neural_Certainty_CSS = 2 * abs(P(safety | CSS) - 0.50).
         df_neural_uncertainty["Neural_Certainty_CSS"] = 2 * (
             df_neural_uncertainty["Neural_SafetyEvidence"] - 0.5
         ).abs()
@@ -5717,7 +5716,6 @@ if stage_active(24):
             df_neural_uncertainty["Neural_Threat_Evidence_CSR"],
             errors="coerce",
         )
-        # CSR certainty = Neural_Certainty_CSR = 2 * abs(P(threat | CSR) - 0.50).
         df_neural_uncertainty["Neural_Certainty_CSR"] = 2 * (
             df_neural_uncertainty["Neural_ThreatEvidence"] - 0.5
         ).abs()

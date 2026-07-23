@@ -6299,7 +6299,7 @@ if cell_active(24):
     print(df_neural_trajectories.head())
 
     # =============================================================================
-    # NEURAL INDEX GENERATION (Analysis 1.4: Decision evidence and certainty)
+    # NEURAL INDEX GENERATION (Analysis 1.4: Decision Uncertainty)
     # =============================================================================
 
     # 1. Access the Dataframes from memory (or cache if just loaded)
@@ -6338,7 +6338,6 @@ if cell_active(24):
             df_neural_uncertainty['Neural_ThreatLike_Safety'],
             errors='coerce',
         )
-        # CSS certainty = Neural_Certainty_CSS = 2 * abs(P(safety | CSS) - 0.50).
         df_neural_uncertainty['Neural_Certainty_CSS'] = 2 * (
             df_neural_uncertainty['Neural_SafetyEvidence'] - 0.5
         ).abs()
@@ -6347,7 +6346,6 @@ if cell_active(24):
             df_neural_uncertainty['Neural_Threat_Evidence_CSR'],
             errors='coerce',
         )
-        # CSR certainty = Neural_Certainty_CSR = 2 * abs(P(threat | CSR) - 0.50).
         df_neural_uncertainty['Neural_Certainty_CSR'] = 2 * (
             df_neural_uncertainty['Neural_ThreatEvidence'] - 0.5
         ).abs()
