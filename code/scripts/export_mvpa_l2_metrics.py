@@ -7,6 +7,7 @@ names used in mvpa_L2.md.
 """
 
 import argparse
+import os
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -16,6 +17,7 @@ import pandas as pd
 from mvpa_l2_common import (
     coalesce_duplicate_columns,
     derive_final_metrics,
+    DERIVED_NEURAL_FEATURE_SPACE_MAP,
     ensure_subject_column,
     find_existing,
     harmonize_group_drug,
@@ -55,6 +57,11 @@ AIM2_SECONDARY_SUBJECT_METRICS = [
     "Neural_Threat_Trajectory_Slope",
 ]
 
+AIM2_SECONDARY_EVIDENCE_COLUMNS = [
+    "Neural_SafetyEvidence",
+    "Neural_ThreatEvidence",
+]
+
 CROSSNOBIS_TOPOLOGY_RENAME = {
     "Neural_Dist_Safety_Background": "Neural_CrossnobisPV_Dist_Safety_Background",
     "Neural_Dist_Threat_Safety": "Neural_CrossnobisPV_Dist_Threat_Safety",
@@ -62,6 +69,27 @@ CROSSNOBIS_TOPOLOGY_RENAME = {
     "Neural_ThreatTriangleOpenness": "Neural_CrossnobisPV_ThreatTriangleOpenness",
     "Neural_Threat_Safety_Distance": "Neural_CrossnobisPV_Threat_Safety_Distance",
 }
+
+DERIVED_NEURAL_INDEX_COLUMNS = [
+    "sub_ID",
+    "Group",
+    "Drug",
+    "FeatureSpace",
+    "feature_space",
+    "phase",
+    "Neural_Threat_Safety_Distance",
+    "Neural_Dist_Safety_Background",
+    "Neural_Dist_Threat_Safety",
+    "Neural_Dist_Threat_Background",
+    "Prototype_Certainty",
+    "Neural_Certainty_CSS",
+    "Neural_Certainty_CSR",
+    "Neural_SafetyEvidence",
+    "Neural_ThreatEvidence",
+    "Neural_ThreatTriangleOpenness",
+    "Neural_ThreatTriangleOpenness_Normalized",
+    "Neural_DynamicDiscrimination_Volatility",
+]
 
 
 def parse_feature_dir(values: Optional[List[str]]) -> Dict[str, Path]:
@@ -553,6 +581,14 @@ def export_aim2_secondary_subject_metrics(subject_df: pd.DataFrame, stats_dir: P
     """Write the exact subject-level metrics needed by Figure S2/Table S2."""
     stats_dir.mkdir(parents=True, exist_ok=True)
     out = derive_final_metrics(ensure_subject_column(subject_df))
+    if "Neural_SafetyEvidence" in out.columns:
+        out["Neural_Certainty_CSS"] = 2 * (
+            pd.to_numeric(out["Neural_SafetyEvidence"], errors="coerce") - 0.50
+        ).abs()
+    if "Neural_ThreatEvidence" in out.columns:
+        out["Neural_Certainty_CSR"] = 2 * (
+            pd.to_numeric(out["Neural_ThreatEvidence"], errors="coerce") - 0.50
+        ).abs()
     if "FeatureSpace" in out.columns:
         out = out[out["FeatureSpace"].astype(str).eq(feature_space)].copy()
     if "Drug" in out.columns:
@@ -563,8 +599,9 @@ def export_aim2_secondary_subject_metrics(subject_df: pd.DataFrame, stats_dir: P
         out["Neural_Dist_Threat_Safe"] = pd.to_numeric(out["Neural_Dist_Threat_Safety"], errors="coerce")
 
     id_cols = [col for col in ["sub_ID", "Group", "Drug", "FeatureSpace"] if col in out.columns]
+    evidence_cols = [col for col in AIM2_SECONDARY_EVIDENCE_COLUMNS if col in out.columns]
     metric_cols = [metric for metric in AIM2_SECONDARY_SUBJECT_METRICS if metric in out.columns]
-    export_cols = id_cols + metric_cols
+    export_cols = id_cols + evidence_cols + metric_cols
     secondary = out[export_cols].copy() if export_cols else pd.DataFrame()
     write_csv(secondary, stats_dir / "aim2_secondary_subject_metrics.csv")
 
@@ -574,6 +611,24 @@ def export_aim2_secondary_subject_metrics(subject_df: pd.DataFrame, stats_dir: P
     if missing:
         print(f"[WARN] Aim 2 secondary subject export is missing columns: {', '.join(missing)}")
     print(f"Aim 2 secondary nonmissing counts: {valid_counts}")
+
+
+def export_workflow_derived_neural_index(subject_df: pd.DataFrame, out_path: Path) -> None:
+    """Write representative neural indices from Hyak feature-space caches."""
+    out = derive_final_metrics(ensure_subject_column(subject_df))
+    if "FeatureSpace" not in out.columns:
+        raise ValueError("Cannot export derived neural indices without a FeatureSpace column.")
+    out["feature_space"] = out["FeatureSpace"].astype(str).map(
+        lambda value: DERIVED_NEURAL_FEATURE_SPACE_MAP.get(value, value)
+    )
+    out["phase"] = "phase2_extinction"
+    keep_cols = [col for col in DERIVED_NEURAL_INDEX_COLUMNS if col in out.columns]
+    derived = out[keep_cols].copy()
+    derived = derived.drop_duplicates(
+        [col for col in ["sub_ID", "FeatureSpace", "feature_space", "Drug"] if col in derived.columns]
+    )
+    write_csv(derived, out_path)
+    print(f"Wrote workflow-derived representative neural indices -> {out_path}")
 
 
 def load_clinical(base_dir: Path) -> Optional[pd.DataFrame]:
@@ -661,7 +716,15 @@ def main() -> None:
         default=None,
         help="Directory for notebook-facing auxiliary inputs such as Aim 2 geometry/trajectory panels.",
     )
+    parser.add_argument(
+        "--derived-neural-index-out",
+        type=Path,
+        default=Path(os.environ["DERIVED_NEURAL_INDEX_PATH"]) if os.environ.get("DERIVED_NEURAL_INDEX_PATH") else None,
+        help="Write workflow-derived representative neural indices for downstream models.",
+    )
     args = parser.parse_args()
+
+    os.environ["MVPA_L2_DISABLE_DERIVED_MERGE"] = "1"
 
     feature_dirs = parse_feature_dir(args.feature_dir)
     frames = []
@@ -682,6 +745,8 @@ def main() -> None:
     out = coalesce_duplicate_columns(out)
     out = out.sort_values(["FeatureSpace", "Group", "Drug", "sub_ID"], na_position="last")
     write_csv(out, args.out)
+    if args.derived_neural_index_out is not None:
+        export_workflow_derived_neural_index(out, args.derived_neural_index_out)
     stats_out_dir = args.stats_out_dir or args.out.parent.parent / "stats"
     export_aim2_panel_inputs(out, feature_dirs, stats_out_dir)
     export_aim2_secondary_subject_metrics(out, stats_out_dir)

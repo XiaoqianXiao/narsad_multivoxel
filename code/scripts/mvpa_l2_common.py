@@ -293,8 +293,7 @@ def coalesce_duplicate_columns(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def derived_neural_index_candidates() -> List[Path]:
-    """Candidate locations for trialwise-derived representative neural indices."""
-    script_root = Path(__file__).resolve().parents[2]
+    """Candidate locations for workflow-derived representative neural indices."""
     candidates = []
     env_path = os.environ.get("DERIVED_NEURAL_INDEX_PATH")
     if env_path:
@@ -310,13 +309,6 @@ def derived_neural_index_candidates() -> List[Path]:
                 Path(out_base) / "mvpa_l2" / "representative_neural_index" / "derived_subject_neural_indices.csv",
             ]
         )
-    candidates.extend(
-        [
-        Path.cwd() / "results" / "representative_neural_index" / "derived_subject_neural_indices.csv",
-        Path.cwd().parent / "results" / "representative_neural_index" / "derived_subject_neural_indices.csv",
-        script_root / "results" / "representative_neural_index" / "derived_subject_neural_indices.csv",
-        ]
-    )
     return candidates
 
 
@@ -329,6 +321,8 @@ def find_derived_neural_index_path() -> Optional[Path]:
 
 def merge_derived_primary_neural_metrics(df: pd.DataFrame, phase: str = "phase2_extinction") -> pd.DataFrame:
     """Merge primary metrics from the trialwise representative-index export."""
+    if os.environ.get("MVPA_L2_DISABLE_DERIVED_MERGE") == "1":
+        return df
     path = find_derived_neural_index_path()
     if path is None or df.empty:
         return df

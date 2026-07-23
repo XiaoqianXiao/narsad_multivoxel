@@ -264,17 +264,12 @@ for required_dir in "$FEAR_DIR" "$MEMORY_DIR"; do
 done
 
 if [[ "$feature_roots_available" == "1" ]]; then
-  "$PYTHON_BIN" scripts/explore_representative_neural_index.py \
-    --input-dir "$PROJECT_ROOT/MRI/derivatives/fMRI_analysis/LSS/firstLevel/all_subjects/group_level" \
-    --metadata "$PROJECT_ROOT/MRI/source_data/behav/drug_order.csv" \
-    --output-dir "$OUT_ROOT/representative_neural_index" \
-    --skip-roi
-
   DERIVED_NEURAL_INDEX_PATH="$DERIVED_NEURAL_INDEX_PATH" "$PYTHON_BIN" scripts/export_mvpa_l2_metrics.py \
     "${FEATURE_ARGS[@]}" \
     --scr-flags "$SCR_FLAGS_OUT" \
     --out "$SUBJECT_METRICS" \
-    --stats-out-dir "$OUT_ROOT/stats"
+    --stats-out-dir "$OUT_ROOT/stats" \
+    --derived-neural-index-out "$DERIVED_NEURAL_INDEX_PATH"
 elif [[ "$REUSE_EXISTING_STATS" == "auto" && -s "$SUBJECT_METRICS" ]]; then
   echo "Feature roots are missing, so reusing existing harmonized metrics -> $SUBJECT_METRICS"
 else

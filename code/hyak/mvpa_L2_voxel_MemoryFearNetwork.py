@@ -2027,7 +2027,7 @@ def softmax_threat_evidence(d_background, d_threat):
 
 
 def prototype_decision_metrics(X_sub, y_sub, cond_threat, cond_safe, cond_background="CS-"):
-    """Match explore_representative_neural_index.py prototype evidence metrics."""
+    """Match the representative-index prototype evidence metric definitions."""
     needed = (cond_background, cond_safe, cond_threat)
     if any(np.sum(y_sub == label) == 0 for label in needed):
         return np.nan, np.nan, np.nan
@@ -2450,7 +2450,7 @@ def calc_metrics_for_subject(X, y, sub_id, feature_mask, C_param=1.0):
         # C. Variance (Spread)
         val_var = np.var(probs_css)
 
-        # D. Prototype evidence measures used by explore_representative_neural_index.py
+        # D. Prototype evidence measures used by representative-index workflow exports
         decision_margin_css = float(0.5 - p_csr_css) if np.isfinite(p_csr_css) else np.nan
         decision_margin_csr = float(p_csr_csr - 0.5) if np.isfinite(p_csr_csr) else np.nan
         decision_margin_all = float(np.mean(np.abs(probs_all[:, idx_threat] - 0.5)))

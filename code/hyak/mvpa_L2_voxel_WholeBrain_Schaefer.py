@@ -1296,7 +1296,7 @@ def softmax_threat_evidence(d_background, d_threat):
 
 
 def prototype_decision_metrics(X_sub, y_sub, cond_threat, cond_safe, cond_background="CS-"):
-    """Match explore_representative_neural_index.py prototype evidence metrics."""
+    """Match the representative-index prototype evidence metric definitions."""
     needed = (cond_background, cond_safe, cond_threat)
     if any(np.sum(y_sub == label) == 0 for label in needed):
         return np.nan, np.nan, np.nan
