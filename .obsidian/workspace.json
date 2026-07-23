@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "task_Visualization-Aim2-sensitivity.md",
+                "file": "PROJECT_CONTEXT.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "task_Visualization-Aim2-sensitivity"
+              "title": "PROJECT_CONTEXT"
             }
           }
         ]
@@ -185,7 +185,6 @@
   },
   "active": "1aca9b68d520de81",
   "lastOpenFiles": [
-    "PROJECT_CONTEXT.md",
     "results/representative_neural_index_fresh_skip_roi/fear_network_neural_profile_report.md",
     "results/representative_neural_index_fresh_skip_roi/fear_network_profile_top_metrics.csv",
     "results/representative_neural_index_fresh_skip_roi/fear_network_representative_neural_index_rankings.csv",
@@ -199,6 +198,7 @@
     "code/Figure_Aim2_Sensitivity.png",
     "code/Table_Aim2_Sensitivity_Stats.csv",
     "task_Visualization-Aim2-sensitivity.md",
+    "PROJECT_CONTEXT.md",
     "task_Visualization-Aim2-secondary.md",
     "code/figure_aim2_secondary.png",
     "code/figure_aim2_secondary.pdf",
