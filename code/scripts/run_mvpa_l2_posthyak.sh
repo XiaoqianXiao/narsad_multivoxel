@@ -338,6 +338,9 @@ fi
   --input "$SUBJECT_METRICS" \
   --out "$OUT_ROOT/stats/aims_sensitivity_models_all.csv"
 
+"$PYTHON_BIN" scripts/export_mvpa_l2_notebook_artifacts.py \
+  --stats-dir "$OUT_ROOT/stats"
+
 "$PYTHON_BIN" scripts/export_mvpa_l2_manuscript_artifacts.py \
   --input "$SUBJECT_METRICS" \
   --stats-dir "$OUT_ROOT/stats" \
