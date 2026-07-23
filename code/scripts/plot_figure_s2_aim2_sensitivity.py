@@ -36,6 +36,7 @@ METRIC_ORDER = [
 MASK_ORDER = ["FearNetwork", "MemoryFearNetwork", "Schaefer", "Tian", "WholeBrain"]
 SUBGROUP_ORDER = [
     "AllPlacebo",
+    "FullSample:DrugAdjusted",
     "SCR_Physiological_Responder",
     "SCR_Simple_Acquisition_Differential_Learner",
     "SCR_Habituation_Adjusted_Learner",
@@ -44,6 +45,7 @@ SUBGROUP_ORDER = [
 
 DISPLAY_LABELS = {
     "AllPlacebo": "All placebo",
+    "FullSample:DrugAdjusted": "Entire dataset\nDrug factor",
     "SCR_Physiological_Responder": "Physiological\nresponder",
     "SCR_Simple_Acquisition_Differential_Learner": "Simple acquisition\nlearner",
     "SCR_Habituation_Adjusted_Learner": "Habituation adjusted\nlearner",
@@ -75,8 +77,12 @@ def convert_pipeline_sensitivity(data: pd.DataFrame, source: Path) -> pd.DataFra
 
     sensitivity = aim2["sensitivity"].astype(str)
     aim2["sensitivity_type"] = np.select(
-        [sensitivity.str.startswith("FeatureSpace:"), sensitivity.str.startswith("SCRCohort:")],
-        ["Mask", "Subgroup"],
+        [
+            sensitivity.str.startswith("FeatureSpace:"),
+            sensitivity.str.startswith("SCRCohort:"),
+            sensitivity.isin(["AllPlacebo", "FullSample:DrugAdjusted"]),
+        ],
+        ["Mask", "Subgroup", "Subgroup"],
         default=None,
     )
     aim2["specification"] = sensitivity.str.replace(r"^(FeatureSpace|SCRCohort):", "", regex=True)
@@ -95,7 +101,7 @@ def convert_pipeline_sensitivity(data: pd.DataFrame, source: Path) -> pd.DataFra
             "effect_size": aim2["estimate"],
             "ci_low": aim2["ci_low"],
             "ci_high": aim2["ci_high"],
-            "p_value": aim2["p"],
+            "p_value": aim2["model_family_p"] if "model_family_p" in aim2.columns else aim2["p"],
             "q_value": aim2["q"],
         }
     )
@@ -104,47 +110,27 @@ def convert_pipeline_sensitivity(data: pd.DataFrame, source: Path) -> pd.DataFra
 
 def normalize_input_data(data: pd.DataFrame, source: Path) -> pd.DataFrame:
     if is_summary_format(data):
-        return data[REQUIRED_COLUMNS].copy()
+        out = data[REQUIRED_COLUMNS].copy()
+        if "model_family_p" in data.columns:
+            out["p_value"] = pd.to_numeric(data["model_family_p"], errors="coerce")
+        return out
     if is_pipeline_sensitivity_format(data):
         return convert_pipeline_sensitivity(data, source)
     missing = [col for col in REQUIRED_COLUMNS if col not in data.columns]
     raise ValueError(f"{source} is missing required columns: {', '.join(missing)}")
 
 
-def load_or_create_data(input_path: Path, fallback_paths: Sequence[Path]) -> Tuple[pd.DataFrame, Path | None]:
-    """Load Aim 2 sensitivity results from the current pipeline or legacy table."""
-    for path in [input_path, *fallback_paths]:
-        if path.exists() and path.stat().st_size > 0:
-            data = pd.read_csv(path)
-            if not data.empty:
-                return normalize_input_data(data, path), path
-    return create_mock_data(), None
-
-
-def create_mock_data() -> pd.DataFrame:
-    """Create visibly mock data only when no real input table is available."""
-    rng = np.random.default_rng(20240622)
-    rows = []
-    for family, metric in METRIC_ORDER[:6]:
-        for sensitivity_type, specifications in [("Mask", MASK_ORDER), ("Subgroup", SUBGROUP_ORDER)]:
-            for specification in specifications:
-                effect = float(rng.normal(0.0, 0.08))
-                rows.append(
-                    {
-                        "metric_family": family,
-                        "metric_name": metric,
-                        "sensitivity_type": sensitivity_type,
-                        "specification": specification,
-                        "n_sad": 10,
-                        "n_hc": 10,
-                        "effect_size": effect,
-                        "ci_low": effect - 0.4,
-                        "ci_high": effect + 0.4,
-                        "p_value": 0.99,
-                        "q_value": 1.0,
-                    }
-                )
-    return pd.DataFrame(rows)
+def load_data(input_path: Path) -> Tuple[pd.DataFrame, Path]:
+    """Load Aim 2 sensitivity results from the post-Hyak pipeline."""
+    if not input_path.exists() or input_path.stat().st_size == 0:
+        raise FileNotFoundError(
+            f"{input_path} is missing or empty; run scripts/run_mvpa_l2_posthyak.sh "
+            "to generate stats/sensitivity_models_all.csv."
+        )
+    data = pd.read_csv(input_path)
+    if data.empty:
+        raise ValueError(f"{input_path} contains no rows")
+    return normalize_input_data(data, input_path), input_path
 
 
 def complete_summary_columns(data: pd.DataFrame, near_zero: float = 0.10) -> pd.DataFrame:
@@ -158,11 +144,10 @@ def complete_summary_columns(data: pd.DataFrame, near_zero: float = 0.10) -> pd.
     )
     out["robustness_label"] = np.select(
         [
-            out["q_value"] < 0.05,
-            (out["p_value"] < 0.05) & ~(out["q_value"] < 0.05),
+            out["p_value"] < 0.05,
             out["effect_size"].abs() >= near_zero,
         ],
-        ["FDR significant", "Nominal", "Direction only"],
+        ["Model-family p < .05", "Direction only"],
         default="Weak / inconsistent",
     )
     return out
@@ -201,8 +186,8 @@ def make_annotation_matrix(
     sub = data[data["sensitivity_type"].astype(str).eq(sensitivity_type)].copy()
     sub["metric_key"] = list(zip(sub["metric_family"].astype(str), sub["metric_name"].astype(str)))
     sub["symbol"] = np.select(
-        [sub["q_value"] < 0.05, (sub["p_value"] < 0.05) & ~(sub["q_value"] < 0.05)],
-        ["\u2020", "*"],
+        [sub["p_value"] < 0.05],
+        ["*"],
         default="",
     )
     sub["annotation"] = sub.apply(
@@ -265,7 +250,7 @@ def plot_heatmap_panel(
     return image
 
 
-def make_figure(data: pd.DataFrame, output_png: Path, output_svg: Path, mock: bool = False) -> None:
+def make_figure(data: pd.DataFrame, output_png: Path, output_svg: Path) -> None:
     metrics = ordered_metrics(data)
     mask_matrix = prepare_heatmap_matrix(data, "Mask", MASK_ORDER, metrics)
     subgroup_matrix = prepare_heatmap_matrix(data, "Subgroup", SUBGROUP_ORDER, metrics)
@@ -297,14 +282,12 @@ def make_figure(data: pd.DataFrame, output_png: Path, output_svg: Path, mock: bo
     cbar = fig.colorbar(image, ax=axes.ravel().tolist(), fraction=0.025, pad=0.02)
     cbar.set_label("SAD-HC effect size", fontsize=9)
     title = "Figure S2. Sensitivity analysis of SAD-HC differences in neural representations of vicarious learning"
-    if mock:
-        title += " (mock data)"
     fig.suptitle(title, fontsize=13, fontweight="bold", y=0.96)
     fig.text(
         0.20,
         0.04,
         "Positive values indicate SAD > HC; negative values indicate SAD < HC. "
-        "\u2020 FDR q < .05; * nominal p < .05.",
+        "* model-family p < .05.",
         fontsize=9,
     )
     fig.text(
@@ -324,18 +307,6 @@ def write_summary_table(data: pd.DataFrame, output_csv: Path) -> None:
     summary.to_csv(output_csv, index=False)
 
 
-def default_fallback_paths(input_path: Path) -> List[Path]:
-    return [
-        input_path.with_name("sensitivity_models_all.csv"),
-        Path("outputs/mvpa_l2/stats/sensitivity_models_all.csv"),
-        Path("results/outputs/mvpa_l2/stats/sensitivity_models_all.csv"),
-        Path("aim2_sensitivity_results.csv"),
-        input_path.with_name("TableS2_Aim2_Sensitivity_Stats.csv"),
-        Path("TableS2_Aim2_Sensitivity_Stats.csv"),
-        Path("code/TableS2_Aim2_Sensitivity_Stats.csv"),
-    ]
-
-
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input", type=Path, default=Path("outputs/mvpa_l2/stats/sensitivity_models_all.csv"))
@@ -348,15 +319,14 @@ def main() -> None:
     table_dir = args.table_dir or args.out_dir
     figure_dir.mkdir(parents=True, exist_ok=True)
     table_dir.mkdir(parents=True, exist_ok=True)
-    data, source = load_or_create_data(args.input, default_fallback_paths(args.input))
+    data, source = load_data(args.input)
     data = complete_summary_columns(data)
     output_csv = table_dir / "TableS2_Aim2_Sensitivity_Stats.csv"
     output_png = figure_dir / "FigureS2_Aim2_Sensitivity_RobustnessHeatmap.png"
     output_svg = figure_dir / "FigureS2_Aim2_Sensitivity_RobustnessHeatmap.svg"
     write_summary_table(data, output_csv)
-    make_figure(data, output_png, output_svg, mock=source is None)
-    source_label = "deterministic mock data" if source is None else str(source)
-    print(f"Loaded {len(data)} rows from {source_label}")
+    make_figure(data, output_png, output_svg)
+    print(f"Loaded {len(data)} rows from {source}")
     print(f"Wrote {output_png}")
     print(f"Wrote {output_svg}")
     print(f"Wrote {output_csv}")

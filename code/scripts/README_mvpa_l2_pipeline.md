@@ -137,7 +137,9 @@ python3 scripts/export_aim1_scr_sensitivity.py \
 - `outputs/mvpa_l2/stats/aim3_clinical_relevance.csv`: placebo groupwise anxiety-symptom association models for primary and secondary clinical scores crossed with prespecified neural metrics.
 - `outputs/mvpa_l2/stats/aim4_scr_convergence.csv`: placebo groupwise neural-SCR convergence models for primary and secondary SCR indices crossed with prespecified neural metrics.
 - `outputs/mvpa_l2/stats/aim5_oxytocin_modulation.csv`: `Group * Drug` modulation models for prespecified neural metrics.
-- `outputs/mvpa_l2/stats/sensitivity_models_all.csv`: full-sample Drug-adjusted Aim 2-4 sensitivity models, alternative feature-space sensitivity models, SCR-cohort sensitivity models, and available `Group * Drug` sensitivity models. Without `SCHAEFER_DIR`, this includes MemoryFearNetwork and SCR-cohort sensitivities only.
+- `outputs/mvpa_l2/stats/sensitivity_models_all.csv`: Aim 2 primary and secondary metric sensitivity rows for the FearNetwork placebo baseline, all-placebo baseline, full-sample Drug-adjusted baseline, alternative feature spaces, SCR-cohort subsets, plus Aim 3-4 sensitivity models and available `Group * Drug` sensitivity models. Without `SCHAEFER_DIR`, feature-space sensitivity includes FearNetwork and MemoryFearNetwork only.
+- `outputs/mvpa_l2/stats/TableS2_Aim2_Sensitivity_Stats.csv`: Figure S2 source table derived only from `sensitivity_models_all.csv`.
+- `outputs/mvpa_l2/stats/figures/FigureS2_Aim2_Sensitivity_RobustnessHeatmap.png/.svg`: Aim 2 sensitivity heatmap derived only from `sensitivity_models_all.csv`.
 - `outputs/mvpa_l2/stats/manuscript_primary_results.csv`: single manuscript-ready primary results table spanning Aim 2-5.
 - `outputs/mvpa_l2/stats/manuscript_primary_results.md`: compact Markdown version of the primary results table.
 - `outputs/mvpa_l2/stats/aim4_convergence_matrix.csv`: long-form primary neural metric by primary SCR index convergence table.

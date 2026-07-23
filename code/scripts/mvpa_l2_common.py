@@ -7,7 +7,6 @@ the names, model families, and light statistical helpers in one place.
 """
 
 import math
-import os
 import re
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional
@@ -54,14 +53,6 @@ NEURAL_METRIC_LABELS = {
     "Neural_Threat_Safety_Distance": "Normalized threat-safety CS- distance diff",
     "Prototype_Certainty": "Prototype certainty",
     "Neural_DynamicDiscrimination_Volatility": "Dynamic discrimination volatility",
-}
-
-DERIVED_NEURAL_FEATURE_SPACE_MAP = {
-    "FearNetwork": "phase2_ext_roi",
-    "MemoryFearNetwork": "phase2_ext_memory_fear_network",
-    "Schaefer_Tian": "phase2_ext_schaefer_tian",
-    "Schaefer": "phase2_ext_schaefer_tian",
-    "Tian": "phase2_ext_schaefer_tian",
 }
 
 PRIMARY_CLINICAL_SCORES = [
@@ -292,125 +283,6 @@ def coalesce_duplicate_columns(df: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
-def derived_neural_index_candidates() -> List[Path]:
-    """Candidate locations for trialwise-derived representative neural indices."""
-    script_root = Path(__file__).resolve().parents[2]
-    candidates = []
-    env_path = os.environ.get("DERIVED_NEURAL_INDEX_PATH")
-    if env_path:
-        candidates.append(Path(env_path))
-    out_root = os.environ.get("OUT_ROOT")
-    if out_root:
-        candidates.append(Path(out_root) / "representative_neural_index" / "derived_subject_neural_indices.csv")
-    out_base = os.environ.get("OUT_BASE")
-    if out_base:
-        candidates.extend(
-            [
-                Path(out_base) / "representative_neural_index" / "derived_subject_neural_indices.csv",
-                Path(out_base) / "mvpa_l2" / "representative_neural_index" / "derived_subject_neural_indices.csv",
-            ]
-        )
-    candidates.extend(
-        [
-        Path.cwd() / "results" / "representative_neural_index" / "derived_subject_neural_indices.csv",
-        Path.cwd().parent / "results" / "representative_neural_index" / "derived_subject_neural_indices.csv",
-        script_root / "results" / "representative_neural_index" / "derived_subject_neural_indices.csv",
-        ]
-    )
-    return candidates
-
-
-def find_derived_neural_index_path() -> Optional[Path]:
-    for path in derived_neural_index_candidates():
-        if path.exists() and path.stat().st_size > 0:
-            return path
-    return None
-
-
-def merge_derived_primary_neural_metrics(df: pd.DataFrame, phase: str = "phase2_extinction") -> pd.DataFrame:
-    """Merge primary metrics from the trialwise representative-index export."""
-    path = find_derived_neural_index_path()
-    if path is None or df.empty:
-        return df
-    derived = pd.read_csv(path)
-    if derived.empty or "sub_ID" not in derived.columns:
-        return df
-    if phase and "phase" in derived.columns:
-        derived = derived[derived["phase"].astype(str).eq(phase)].copy()
-    if "FeatureSpace" not in df.columns and "feature_space" in derived.columns and derived["feature_space"].nunique(dropna=True) > 1:
-        return df
-    value_cols = [
-        col
-        for col in [
-            "Neural_Threat_Safety_Distance",
-            "Neural_Dist_Safety_Background",
-            "Neural_Dist_Threat_Safety",
-            "Neural_Dist_Threat_Background",
-            "Prototype_Certainty",
-            "Neural_Certainty_CSS",
-            "Neural_Certainty_CSR",
-            "Neural_SafetyEvidence",
-            "Neural_ThreatEvidence",
-            "Neural_ThreatTriangleOpenness",
-            "Neural_ThreatTriangleOpenness_Normalized",
-            "Neural_DynamicDiscrimination_Volatility",
-        ]
-        if col in derived.columns
-    ]
-    if not value_cols:
-        return df
-
-    out = df.copy()
-    out["_subject_key"] = coalesced_string_series(out, ["sub_ID", "Subject", "subject_id", "sub", "participant_id"]).map(normalize_subject_id)
-    if out["_subject_key"].eq("").all():
-        return out.drop(columns=["_subject_key"])
-
-    derived = derived[["sub_ID"] + value_cols + [col for col in ["feature_space", "Drug", "drug", "drug_condition"] if col in derived.columns]].copy()
-    derived["_subject_key"] = derived["sub_ID"].map(normalize_subject_id)
-    merge_keys = ["_subject_key"]
-
-    if "FeatureSpace" in out.columns and "feature_space" in derived.columns:
-        out["_derived_feature_space_key"] = out["FeatureSpace"].astype("string").map(
-            lambda value: DERIVED_NEURAL_FEATURE_SPACE_MAP.get(str(value), str(value))
-        )
-        derived["_derived_feature_space_key"] = derived["feature_space"].astype("string")
-        merge_keys.append("_derived_feature_space_key")
-
-    out_drug = coalesced_string_series(out, ["Drug", "drug", "drug_condition"]).str.lower()
-    derived_drug = coalesced_string_series(derived, ["Drug", "drug", "drug_condition"]).str.lower()
-    if out_drug.notna().any() and derived_drug.notna().any():
-        out["_drug_key"] = out_drug
-        derived["_drug_key"] = derived_drug
-        merge_keys.append("_drug_key")
-
-    drop_cols = ["sub_ID", "feature_space", "Drug", "drug", "drug_condition"]
-    derived = derived.drop_duplicates(merge_keys)
-    merged = out.merge(derived.drop(columns=drop_cols, errors="ignore"), on=merge_keys, how="left", suffixes=("", "_derived"))
-    for col in value_cols:
-        derived_col = f"{col}_derived" if f"{col}_derived" in merged.columns else col
-        if derived_col not in merged.columns:
-            continue
-        values = pd.to_numeric(merged[derived_col], errors="coerce")
-        if (
-            col in CORE_NEURAL_METRICS
-            or col in {
-                "Neural_Dist_Safety_Background",
-                "Neural_Dist_Threat_Safety",
-                "Neural_Dist_Threat_Background",
-                "Neural_ThreatTriangleOpenness",
-                "Neural_ThreatTriangleOpenness_Normalized",
-            }
-        ):
-            merged[col] = values.combine_first(pd.to_numeric(merged[col], errors="coerce")) if col in merged.columns else values
-        elif col in out.columns:
-            merged[col] = pd.to_numeric(merged[col], errors="coerce").fillna(values)
-        else:
-            merged[col] = values
-        if derived_col != col:
-            merged = merged.drop(columns=[derived_col])
-    return merged.drop(columns=["_subject_key", "_derived_feature_space_key", "_drug_key"], errors="ignore")
-
-
 def derive_final_metrics(df: pd.DataFrame) -> pd.DataFrame:
     """Add final mvpa_L2.md metric names from legacy/script-specific names."""
     out = df.copy()
@@ -449,21 +321,57 @@ def derive_final_metrics(df: pd.DataFrame) -> pd.DataFrame:
     if "Neural_ThreatLike_Threat" in out.columns and "Neural_SafetyLike_Threat" not in out.columns:
         out["Neural_SafetyLike_Threat"] = 1 - pd.to_numeric(out["Neural_ThreatLike_Threat"], errors="coerce")
     if "Neural_ThreatLike_Safety" in out.columns:
-        out["Neural_SafetyEvidence"] = 1 - pd.to_numeric(out["Neural_ThreatLike_Safety"], errors="coerce")
+        safety_evidence = 1 - pd.to_numeric(out["Neural_ThreatLike_Safety"], errors="coerce")
+        if "Neural_SafetyEvidence" in out.columns:
+            out["Neural_SafetyEvidence"] = pd.to_numeric(out["Neural_SafetyEvidence"], errors="coerce").combine_first(
+                safety_evidence
+            )
+        else:
+            out["Neural_SafetyEvidence"] = safety_evidence
     if "Neural_ThreatLike_Threat" in out.columns:
-        out["Neural_ThreatEvidence"] = pd.to_numeric(out["Neural_ThreatLike_Threat"], errors="coerce")
+        threat_evidence = pd.to_numeric(out["Neural_ThreatLike_Threat"], errors="coerce")
+        if "Neural_ThreatEvidence" in out.columns:
+            out["Neural_ThreatEvidence"] = pd.to_numeric(out["Neural_ThreatEvidence"], errors="coerce").combine_first(
+                threat_evidence
+            )
+        else:
+            out["Neural_ThreatEvidence"] = threat_evidence
     if "Neural_SafetyEvidence" in out.columns:
-        out["Neural_Certainty_CSS"] = 2 * (
+        derived_css_certainty = 2 * (
             pd.to_numeric(out["Neural_SafetyEvidence"], errors="coerce") - 0.5
         ).abs()
+        if "Neural_Certainty_CSS" in out.columns:
+            out["Neural_Certainty_CSS"] = pd.to_numeric(out["Neural_Certainty_CSS"], errors="coerce").combine_first(
+                derived_css_certainty
+            )
+        else:
+            out["Neural_Certainty_CSS"] = derived_css_certainty
     elif "Neural_SafetyEvidenceCertainty" in out.columns:
-        out["Neural_Certainty_CSS"] = pd.to_numeric(out["Neural_SafetyEvidenceCertainty"], errors="coerce")
+        derived_css_certainty = pd.to_numeric(out["Neural_SafetyEvidenceCertainty"], errors="coerce")
+        if "Neural_Certainty_CSS" in out.columns:
+            out["Neural_Certainty_CSS"] = pd.to_numeric(out["Neural_Certainty_CSS"], errors="coerce").combine_first(
+                derived_css_certainty
+            )
+        else:
+            out["Neural_Certainty_CSS"] = derived_css_certainty
     if "Neural_ThreatEvidence" in out.columns:
-        out["Neural_Certainty_CSR"] = 2 * (
+        derived_csr_certainty = 2 * (
             pd.to_numeric(out["Neural_ThreatEvidence"], errors="coerce") - 0.5
         ).abs()
+        if "Neural_Certainty_CSR" in out.columns:
+            out["Neural_Certainty_CSR"] = pd.to_numeric(out["Neural_Certainty_CSR"], errors="coerce").combine_first(
+                derived_csr_certainty
+            )
+        else:
+            out["Neural_Certainty_CSR"] = derived_csr_certainty
     elif "Neural_ThreatEvidenceCertainty" in out.columns:
-        out["Neural_Certainty_CSR"] = pd.to_numeric(out["Neural_ThreatEvidenceCertainty"], errors="coerce")
+        derived_csr_certainty = pd.to_numeric(out["Neural_ThreatEvidenceCertainty"], errors="coerce")
+        if "Neural_Certainty_CSR" in out.columns:
+            out["Neural_Certainty_CSR"] = pd.to_numeric(out["Neural_Certainty_CSR"], errors="coerce").combine_first(
+                derived_csr_certainty
+            )
+        else:
+            out["Neural_Certainty_CSR"] = derived_csr_certainty
     if {"Neural_Certainty_CSS", "Neural_Certainty_CSR"}.issubset(out.columns):
         prototype_certainty = out[["Neural_Certainty_CSS", "Neural_Certainty_CSR"]].mean(axis=1)
         if "Prototype_Certainty" in out.columns:
@@ -500,23 +408,6 @@ def derive_final_metrics(df: pd.DataFrame) -> pd.DataFrame:
         out["Neural_Decoder_Entropy_CSR"] = out["probabilities_csr"].map(mean_binary_entropy)
     elif "Neural_ThreatLike_Threat" in out.columns and "Neural_Decoder_Entropy_CSR" not in out.columns:
         out["Neural_Decoder_Entropy_CSR"] = binary_entropy(pd.to_numeric(out["Neural_ThreatLike_Threat"], errors="coerce"))
-    out = merge_derived_primary_neural_metrics(out)
-    if "Neural_SafetyEvidence" in out.columns:
-        out["Neural_Certainty_CSS"] = 2 * (
-            pd.to_numeric(out["Neural_SafetyEvidence"], errors="coerce") - 0.5
-        ).abs()
-    if "Neural_ThreatEvidence" in out.columns:
-        out["Neural_Certainty_CSR"] = 2 * (
-            pd.to_numeric(out["Neural_ThreatEvidence"], errors="coerce") - 0.5
-        ).abs()
-    if {"Neural_Certainty_CSS", "Neural_Certainty_CSR"}.issubset(out.columns):
-        prototype_certainty = out[["Neural_Certainty_CSS", "Neural_Certainty_CSR"]].mean(axis=1)
-        if "Prototype_Certainty" in out.columns:
-            out["Prototype_Certainty"] = pd.to_numeric(out["Prototype_Certainty"], errors="coerce").combine_first(
-                prototype_certainty
-            )
-        else:
-            out["Prototype_Certainty"] = prototype_certainty
     if {"Neural_Dist_Threat_Background", "Neural_Dist_Safety_Background"}.issubset(out.columns):
         threat_bg = pd.to_numeric(out["Neural_Dist_Threat_Background"], errors="coerce")
         safety_bg = pd.to_numeric(out["Neural_Dist_Safety_Background"], errors="coerce")

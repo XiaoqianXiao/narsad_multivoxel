@@ -34,6 +34,7 @@ from run_mvpa_l2_primary_models import (
 GROUP_TERM = "C(Group, Treatment(reference='HC'))[T.SAD]"
 DRUG_TERM = "C(Drug, Treatment(reference='Placebo'))"
 DRUG_INTERACTION_TERM = "C(Group, Treatment(reference='HC'))[T.SAD]:C(Drug, Treatment(reference='Placebo'))[T.Oxytocin]"
+AIM2_GROUP_METRICS = AIM2_PRIMARY_METRICS + AIM2_SECONDARY_METRICS
 
 
 def run_group_model(
@@ -53,7 +54,7 @@ def run_group_model(
     elif sub["Drug"].dropna().nunique() > 1:
         predictor_terms.append(DRUG_TERM)
 
-    for metric in AIM2_SECONDARY_METRICS:
+    for metric in AIM2_GROUP_METRICS:
         row = fit_lm(
             sub,
             outcome=metric,
@@ -317,6 +318,10 @@ def main() -> None:
     covariates = available_covariates(df, args.covariates)
     rows = []
 
+    primary_feature_label = f"FeatureSpace:{args.primary_feature_space}"
+    rows.extend(run_group_model(df, primary_feature_label, args.primary_feature_space, covariates, drug_scope="placebo"))
+    rows.extend(run_group_model(df, "AllPlacebo", args.primary_feature_space, covariates, drug_scope="placebo"))
+
     full_sample_label = "FullSample:DrugAdjusted"
     rows.extend(run_group_model(df, full_sample_label, args.primary_feature_space, covariates, drug_scope="pooled"))
     rows.extend(run_clinical_model(df, full_sample_label, args.primary_feature_space, covariates, args.outlier_z, drug_scope="pooled"))
@@ -352,7 +357,7 @@ def main() -> None:
     if not out.empty:
         if "metric" in out.columns:
             metric = out["metric"].astype("string")
-            out = out[metric.isna() | metric.isin(AIM2_PRIMARY_METRICS + AIM2_SECONDARY_METRICS)].copy()
+            out = out[metric.isna() | metric.isin(AIM2_GROUP_METRICS)].copy()
             metric_fields = out["metric"].map(metric_hierarchy_fields).apply(pd.Series)
             for col in metric_fields.columns:
                 if col not in out.columns:
@@ -365,7 +370,7 @@ def main() -> None:
             out.loc[aim2, "analysis"].astype(str)
             + " | "
             + out.loc[aim2, "sensitivity"].astype(str)
-            + " | Aim2 secondary 7-metric family"
+            + " | Aim2 planned metric family"
         )
         other_aims = ~aim2
         out.loc[other_aims, "correction_family"] = (
