@@ -45,6 +45,16 @@ FEATURE_SPACE_ALIASES = {
 
 AIM2_TRAJECTORY_METRIC = "early_to_target_normalized_projection"
 
+AIM2_SECONDARY_SUBJECT_METRICS = [
+    "Neural_Dist_Safety_Background",
+    "Neural_Dist_Threat_Background",
+    "Neural_Dist_Threat_Safe",
+    "Neural_Certainty_CSS",
+    "Neural_Certainty_CSR",
+    "Neural_Safety_Trajectory_Slope",
+    "Neural_Threat_Trajectory_Slope",
+]
+
 CROSSNOBIS_TOPOLOGY_RENAME = {
     "Neural_Dist_Safety_Background": "Neural_CrossnobisPV_Dist_Safety_Background",
     "Neural_Dist_Threat_Safety": "Neural_CrossnobisPV_Dist_Threat_Safety",
@@ -539,6 +549,33 @@ def export_aim2_panel_inputs(subject_df: pd.DataFrame, feature_dirs: Dict[str, P
     print(f"Wrote Aim 2 panel inputs -> {stats_dir / 'aim2_geometry_panel.csv'} and {stats_dir / 'aim2_trajectory_panel.csv'}")
 
 
+def export_aim2_secondary_subject_metrics(subject_df: pd.DataFrame, stats_dir: Path, feature_space: str = "FearNetwork", drug: str = "Placebo") -> None:
+    """Write the exact subject-level metrics needed by Figure S2/Table S2."""
+    stats_dir.mkdir(parents=True, exist_ok=True)
+    out = derive_final_metrics(ensure_subject_column(subject_df))
+    if "FeatureSpace" in out.columns:
+        out = out[out["FeatureSpace"].astype(str).eq(feature_space)].copy()
+    if "Drug" in out.columns:
+        out = out[out["Drug"].astype(str).eq(drug)].copy()
+    if "Group" in out.columns:
+        out = out[out["Group"].astype(str).isin(["SAD", "HC"])].copy()
+    if "Neural_Dist_Threat_Safe" not in out.columns and "Neural_Dist_Threat_Safety" in out.columns:
+        out["Neural_Dist_Threat_Safe"] = pd.to_numeric(out["Neural_Dist_Threat_Safety"], errors="coerce")
+
+    id_cols = [col for col in ["sub_ID", "Group", "Drug", "FeatureSpace"] if col in out.columns]
+    metric_cols = [metric for metric in AIM2_SECONDARY_SUBJECT_METRICS if metric in out.columns]
+    export_cols = id_cols + metric_cols
+    secondary = out[export_cols].copy() if export_cols else pd.DataFrame()
+    write_csv(secondary, stats_dir / "aim2_secondary_subject_metrics.csv")
+
+    missing = [metric for metric in AIM2_SECONDARY_SUBJECT_METRICS if metric not in metric_cols]
+    valid_counts = {metric: int(pd.to_numeric(secondary[metric], errors="coerce").notna().sum()) for metric in metric_cols}
+    print(f"Wrote Aim 2 secondary subject metrics -> {stats_dir / 'aim2_secondary_subject_metrics.csv'}")
+    if missing:
+        print(f"[WARN] Aim 2 secondary subject export is missing columns: {', '.join(missing)}")
+    print(f"Aim 2 secondary nonmissing counts: {valid_counts}")
+
+
 def load_clinical(base_dir: Path) -> Optional[pd.DataFrame]:
     # This table can include clinical/SCR subjects outside the analyzed neural
     # sample and usually does not carry Group/Drug. The later outer merge keeps
@@ -647,6 +684,7 @@ def main() -> None:
     write_csv(out, args.out)
     stats_out_dir = args.stats_out_dir or args.out.parent.parent / "stats"
     export_aim2_panel_inputs(out, feature_dirs, stats_out_dir)
+    export_aim2_secondary_subject_metrics(out, stats_out_dir)
     print(f"Wrote {len(out)} rows x {len(out.columns)} columns -> {args.out}")
     print(out.groupby(["FeatureSpace", "Group", "Drug"], dropna=False).size())
 

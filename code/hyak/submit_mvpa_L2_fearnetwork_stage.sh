@@ -121,7 +121,7 @@ Stage / cell reference:
   12  Analysis 1.2: Static representational topology with crossnobis RDMs.
   13  Analysis 1.3: Dynamic representational drift.
   14  Analysis 1.3 part 2: Single-trial safety/threat trajectories.
-  15  Analysis 1.4: Decision boundary/self-network uncertainty statistics.
+  15  Analysis 1.4: Decision boundary/self-network evidence and certainty statistics.
   16  Analysis 2.1: Safety restoration and threat discrimination, per-voxel normalized.
   17  Analysis 2.1: Safety restoration and threat discrimination, raw mixed-effects metrics.
   18  Analysis 2.2: Drift efficiency for safety and threat maintenance.
@@ -129,7 +129,7 @@ Stage / cell reference:
   20  Analysis 2.4: Spatial re-alignment, applying the HC model to SAD PLC/OXT.
   21  Analysis 2.5: Reverse cross-decoding, applying the SAD model to HC PLC/OXT.
   23  Load and score clinical LSAS, ECR, and DASS data.
-  24  Build neural topology, trajectory, and uncertainty indices for clinical merge.
+  24  Build neural topology, trajectory, and decision-certainty indices for clinical merge.
   26  Merge clinical and neural indices into the master analysis dataframe.
   27  Group-wise neural-clinical Pearson correlations.
   28  Group-wise partial correlations adjusted for covariates.
