@@ -65,6 +65,7 @@ fi
 PYTHON_BIN="${PYTHON_BIN:-python3}"
 SCR_FLAGS="${SCR_FLAGS:-}"
 SCR_FLAGS_OUT="$OUT_ROOT/harmonized/scr_sensitivity_groups.csv"
+DERIVED_NEURAL_INDEX_PATH="${DERIVED_NEURAL_INDEX_PATH:-$OUT_ROOT/representative_neural_index/derived_subject_neural_indices.csv}"
 CLINICAL_OUTLIER_Z="${CLINICAL_OUTLIER_Z:-3.0}"
 RUN_AIM1_SCR="${RUN_AIM1_SCR:-1}"
 REUSE_EXISTING_STATS="${REUSE_EXISTING_STATS:-0}"
@@ -175,6 +176,7 @@ EOF
       SCR_DIR="$CONTAINER_SCR_DIR" \
       OUT_ROOT="$CONTAINER_OUT_ROOT" \
       SCR_FLAGS="$CONTAINER_SCR_FLAGS" \
+      DERIVED_NEURAL_INDEX_PATH="$CONTAINER_OUT_ROOT/representative_neural_index/derived_subject_neural_indices.csv" \
       CLINICAL_OUTLIER_Z="$CLINICAL_OUTLIER_Z" \
       RUN_AIM1_SCR="$RUN_AIM1_SCR" \
       PROJECT_ROOT="$PROJECT_ROOT" \
@@ -202,7 +204,7 @@ print(f"Using Python: {sys.executable} ({sys.version.split()[0]})")
 PY
 
 echo "Stage 11 mask mode: $STAGE11_MASK_MODE"
-echo "Feature roots: Fear=$FEAR_DIR | Memory=$MEMORY_DIR | Schaefer+Tian=${SCHAEFER_DIR:-skipped}"
+echo "Feature roots: Fear=$FEAR_DIR | Memory=$MEMORY_DIR | Schaefer=${SCHAEFER_DIR:-skipped}"
 echo "Post-Hyak output root: $OUT_ROOT"
 
 validate_scr_flags() {
@@ -250,7 +252,7 @@ FEATURE_ARGS=(
 )
 
 if [[ -n "$SCHAEFER_DIR" ]]; then
-  FEATURE_ARGS+=(--feature-dir "Schaefer_Tian=$SCHAEFER_DIR")
+  FEATURE_ARGS+=(--feature-dir "Schaefer=$SCHAEFER_DIR")
 fi
 
 SUBJECT_METRICS="$OUT_ROOT/harmonized/mvpa_l2_subject_metrics.csv"
@@ -262,7 +264,13 @@ for required_dir in "$FEAR_DIR" "$MEMORY_DIR"; do
 done
 
 if [[ "$feature_roots_available" == "1" ]]; then
-  "$PYTHON_BIN" scripts/export_mvpa_l2_metrics.py \
+  "$PYTHON_BIN" scripts/explore_representative_neural_index.py \
+    --input-dir "$PROJECT_ROOT/MRI/derivatives/fMRI_analysis/LSS/firstLevel/all_subjects/group_level" \
+    --metadata "$PROJECT_ROOT/MRI/source_data/behav/drug_order.csv" \
+    --output-dir "$OUT_ROOT/representative_neural_index" \
+    --skip-roi
+
+  DERIVED_NEURAL_INDEX_PATH="$DERIVED_NEURAL_INDEX_PATH" "$PYTHON_BIN" scripts/export_mvpa_l2_metrics.py \
     "${FEATURE_ARGS[@]}" \
     --scr-flags "$SCR_FLAGS_OUT" \
     --out "$SUBJECT_METRICS" \
@@ -294,7 +302,7 @@ FEATURE_AIM1_ARGS=(
 )
 
 if [[ -n "$SCHAEFER_DIR" ]]; then
-  FEATURE_AIM1_ARGS+=(--feature-dir "Schaefer_Tian=$SCHAEFER_DIR")
+  FEATURE_AIM1_ARGS+=(--feature-dir "Schaefer=$SCHAEFER_DIR")
 fi
 
 if [[ "$feature_roots_available" == "1" ]]; then
@@ -324,104 +332,21 @@ elif [[ "$RUN_AIM1_SCR" == "1" && "$REUSE_EXISTING_STATS" == "auto" && -s "$OUT_
   echo "FearNetwork feature root is missing, so reusing existing Aim 1 SCR sensitivity export -> $OUT_ROOT/stats/aim1_scr_sensitivity.csv"
 fi
 
-"$PYTHON_BIN" scripts/run_mvpa_l2_primary_models.py \
+DERIVED_NEURAL_INDEX_PATH="$DERIVED_NEURAL_INDEX_PATH" "$PYTHON_BIN" scripts/run_mvpa_l2_primary_models.py \
   --input "$SUBJECT_METRICS" \
   --clinical-outlier-z "$CLINICAL_OUTLIER_Z" \
   --out-dir "$OUT_ROOT/stats"
 
-"$PYTHON_BIN" scripts/run_mvpa_l2_sensitivity_models.py \
+DERIVED_NEURAL_INDEX_PATH="$DERIVED_NEURAL_INDEX_PATH" "$PYTHON_BIN" scripts/run_mvpa_l2_sensitivity_models.py \
   --input "$SUBJECT_METRICS" \
   --out "$OUT_ROOT/stats/sensitivity_models_all.csv"
-
-"$PYTHON_BIN" - "$OUT_ROOT/stats/sensitivity_models_all.csv" <<'PY'
-import sys
-from pathlib import Path
-
-import pandas as pd
-
-path = Path(sys.argv[1])
-if not path.exists() or path.stat().st_size == 0:
-    raise SystemExit(f"ERROR: Missing sensitivity model output: {path}")
-
-data = pd.read_csv(path)
-required_columns = {
-    "analysis",
-    "sensitivity",
-    "metric",
-    "metric_role",
-    "estimate",
-    "effect_size",
-    "effect_size_scale",
-    "n_sad",
-    "n_hc",
-    "ci_low",
-    "ci_high",
-    "p",
-    "q",
-}
-missing_columns = sorted(required_columns - set(data.columns))
-if missing_columns:
-    raise SystemExit(f"ERROR: {path} is missing required sensitivity columns: {missing_columns}")
-
-ambiguous_wholebrain_labels = {
-    "FeatureSpace:Schaefer",
-    "FeatureSpace:Tian",
-    "FeatureSpace:WholeBrain",
-    "FeatureSpace:WholeBrain_Schaefer",
-    "FeatureSpace:WholeBrain_Parcellation",
-}
-bad_labels = sorted(ambiguous_wholebrain_labels & set(data["sensitivity"].astype(str)))
-if bad_labels:
-    raise SystemExit(
-        "ERROR: Whole-brain/parcellation sensitivity rows must be labeled "
-        f"FeatureSpace:Schaefer_Tian, not {bad_labels}"
-    )
-
-aim2_primary = data[
-    data["analysis"].astype(str).eq("Sensitivity_Aim2_Group")
-    & data["metric_role"].astype(str).eq("primary")
-]
-required_sensitivities = {"FeatureSpace:FearNetwork", "FeatureSpace:MemoryFearNetwork", "AllPlacebo", "FullSample:DrugAdjusted"}
-missing_sensitivities = sorted(required_sensitivities - set(aim2_primary["sensitivity"].astype(str)))
-if missing_sensitivities:
-    raise SystemExit(f"ERROR: {path} is missing Aim 2 primary sensitivity rows for: {missing_sensitivities}")
-
-required_metrics = {
-    "Neural_Threat_Safety_Distance",
-    "Prototype_Certainty",
-    "Neural_DynamicDiscrimination_Volatility",
-}
-missing_metrics = sorted(required_metrics - set(aim2_primary["metric"].astype(str)))
-if missing_metrics:
-    raise SystemExit(f"ERROR: {path} is missing Aim 2 primary sensitivity metrics: {missing_metrics}")
-
-required_primary = aim2_primary[
-    aim2_primary["sensitivity"].astype(str).isin(required_sensitivities)
-    & aim2_primary["metric"].astype(str).isin(required_metrics)
-].copy()
-required_pairs = {(sensitivity, metric) for sensitivity in required_sensitivities for metric in required_metrics}
-observed_pairs = set(zip(required_primary["sensitivity"].astype(str), required_primary["metric"].astype(str)))
-missing_pairs = sorted(required_pairs - observed_pairs)
-if missing_pairs:
-    raise SystemExit(f"ERROR: {path} is missing Aim 2 primary sensitivity cells: {missing_pairs}")
-
-finite_effect = pd.to_numeric(required_primary["effect_size"], errors="coerce").notna()
-if not finite_effect.all():
-    bad = required_primary.loc[~finite_effect, ["sensitivity", "metric"]].drop_duplicates()
-    raise SystemExit(
-        "ERROR: Aim 2 primary sensitivity rows must include finite effect_size values: "
-        f"{bad.to_dict(orient='records')}"
-    )
-
-print(f"Validated Aim 2 primary sensitivity effect-size rows in {path}")
-PY
 
 "$PYTHON_BIN" scripts/plot_figure_s2_aim2_sensitivity.py \
   --input "$OUT_ROOT/stats/sensitivity_models_all.csv" \
   --figure-dir "$OUT_ROOT/stats/figures" \
   --table-dir "$OUT_ROOT/stats"
 
-"$PYTHON_BIN" scripts/export_mvpa_l2_manuscript_artifacts.py \
+DERIVED_NEURAL_INDEX_PATH="$DERIVED_NEURAL_INDEX_PATH" "$PYTHON_BIN" scripts/export_mvpa_l2_manuscript_artifacts.py \
   --input "$SUBJECT_METRICS" \
   --stats-dir "$OUT_ROOT/stats" \
   --repo-root "."
