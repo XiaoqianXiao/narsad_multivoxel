@@ -27,7 +27,7 @@ CORE_NEURAL_METRICS = [
 COMPANION_NEURAL_METRICS = [
     "Neural_Dist_Safety_Background",
     "Neural_Dist_Threat_Background",
-    "Neural_Dist_Threat_Safe",
+    "Neural_Dist_Threat_Safety",
     "Neural_Certainty_CSS",
     "Neural_Certainty_CSR",
     "Neural_Safety_Trajectory_Slope",
@@ -37,7 +37,10 @@ COMPANION_NEURAL_METRICS = [
 PRESPECIFIED_NEURAL_METRICS = CORE_NEURAL_METRICS + COMPANION_NEURAL_METRICS
 
 CONTEXTUAL_NEURAL_METRICS = [
-    "Neural_Dist_Threat_Safety",
+    "SafetyPrototypeEvidence",
+    "ThreatPrototypeEvidence",
+    "Neural_ThreatLike_Safety",
+    "Neural_ThreatLike_Threat",
     "Neural_SafetyEvidence",
     "Neural_ThreatEvidence",
     "Neural_Decoder_Entropy_CSS",
@@ -49,7 +52,7 @@ CONTEXTUAL_NEURAL_METRICS = [
 PROJECT_CONTEXT_SECONDARY_NEURAL_METRICS = [
     "Neural_Dist_Safety_Background",
     "Neural_Dist_Threat_Background",
-    "Neural_Dist_Threat_Safe",
+    "Neural_Dist_Threat_Safety",
     "Neural_Certainty_CSS",
     "Neural_Certainty_CSR",
     "Neural_Safety_Trajectory_Slope",
@@ -58,6 +61,7 @@ PROJECT_CONTEXT_SECONDARY_NEURAL_METRICS = [
 
 PROJECT_CONTEXT_SECONDARY_NEURAL_METRIC_ALIASES = {
     "Neural_Dist_Threat_Safe": "Neural_Dist_Threat_Safety",
+    "Neural_Dist_Threat_Safety": "Neural_Dist_Threat_Safe",
 }
 
 NEURAL_METRIC_FAMILIES = {
@@ -70,6 +74,10 @@ NEURAL_METRIC_FAMILIES = {
     "Neural_Dist_Threat_Safe": "Geometry",
     "Neural_Certainty_CSS": "Certainty",
     "Neural_Certainty_CSR": "Certainty",
+    "SafetyPrototypeEvidence": "Certainty",
+    "ThreatPrototypeEvidence": "Certainty",
+    "Neural_ThreatLike_Safety": "Certainty",
+    "Neural_ThreatLike_Threat": "Certainty",
     "Neural_Safety_Trajectory_Slope": "Trajectory",
     "Neural_Threat_Trajectory_Slope": "Trajectory",
     "Neural_SafetyEvidence": "Certainty",
@@ -350,6 +358,8 @@ def derive_final_metrics(df: pd.DataFrame) -> pd.DataFrame:
         "p_csr_css": "Neural_ThreatLike_Safety",
         "p_csr_csr": "Neural_ThreatLike_Threat",
         "Neural_Threat_Evidence_CSR": "Neural_ThreatLike_Threat",
+        "Neural_SafetyLike_Safety": "SafetyPrototypeEvidence",
+        "Neural_ThreatLike_Threat": "ThreatPrototypeEvidence",
         "Prototype_P_CSR_CSS": "Neural_PrototypeThreatLike_Safety",
         "Prototype_P_CSR_CSR": "Neural_PrototypeThreatLike_Threat",
         "Prototype_Boundary_Separation": "Neural_PrototypeBoundary_Separation",
@@ -368,6 +378,12 @@ def derive_final_metrics(df: pd.DataFrame) -> pd.DataFrame:
         out["Neural_SafetyEvidence"] = 1 - pd.to_numeric(out["Neural_ThreatLike_Safety"], errors="coerce")
     if "Neural_ThreatLike_Threat" in out.columns:
         out["Neural_ThreatEvidence"] = pd.to_numeric(out["Neural_ThreatLike_Threat"], errors="coerce")
+    if "Neural_SafetyEvidence" in out.columns and "SafetyPrototypeEvidence" not in out.columns:
+        out["SafetyPrototypeEvidence"] = pd.to_numeric(out["Neural_SafetyEvidence"], errors="coerce")
+    if "Neural_ThreatEvidence" in out.columns and "ThreatPrototypeEvidence" not in out.columns:
+        out["ThreatPrototypeEvidence"] = pd.to_numeric(out["Neural_ThreatEvidence"], errors="coerce")
+    if "Neural_ThreatLike_Threat" in out.columns and "Neural_Threat_Evidence_CSR" not in out.columns:
+        out["Neural_Threat_Evidence_CSR"] = pd.to_numeric(out["Neural_ThreatLike_Threat"], errors="coerce")
     if "Neural_SafetyEvidence" in out.columns:
         out["Neural_Certainty_CSS"] = 2 * (
             pd.to_numeric(out["Neural_SafetyEvidence"], errors="coerce") - 0.5

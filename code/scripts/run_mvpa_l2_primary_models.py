@@ -41,7 +41,7 @@ AIM2_SECONDARY_QUESTION_METRICS = {
     "Q1_geometry": [
         "Neural_Dist_Safety_Background",
         "Neural_Dist_Threat_Background",
-        "Neural_Dist_Threat_Safe",
+        "Neural_Dist_Threat_Safety",
     ],
     "Q2_decision_certainty": [
         "Neural_Certainty_CSS",

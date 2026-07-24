@@ -107,6 +107,14 @@ COMPANION_NEURAL_METRICS = [
     "Shock_Anchor_Trajectory_Slope",
     "Residualized_Shock_Anchor_Trajectory_Slope",
 ]
+NOTEBOOK_DERIVED_NEURAL_METRICS = [
+    "SafetyPrototypeEvidence",
+    "ThreatPrototypeEvidence",
+    "Neural_ThreatLike_Safety",
+    "Neural_ThreatLike_Threat",
+    "Neural_SafetyEvidence",
+    "Neural_ThreatEvidence",
+]
 PRIMARY_CLINICAL_SCORES = ["dass_anxiety", "lsas_total"]
 SECONDARY_CLINICAL_SCORES = ["lsas_fear", "lsas_avoid", "dass_stress", "dass_depression", "ecr_total"]
 PRIMARY_SCR_INDICES = ["SCR_Safety_Trajectory_Slope", "SCR_Threat_Trajectory_Slope"]
@@ -115,6 +123,7 @@ NOTEBOOK_REQUIRED_SUBJECT_COLUMNS = (
     ["sub_ID", "FeatureSpace", "Group", "Drug"]
     + CORE_NEURAL_METRICS
     + COMPANION_NEURAL_METRICS
+    + NOTEBOOK_DERIVED_NEURAL_METRICS
     + PRIMARY_CLINICAL_SCORES
     + SECONDARY_CLINICAL_SCORES
     + PRIMARY_SCR_INDICES
@@ -2111,7 +2120,10 @@ def heldout_decoder_evidence_metrics(X_sub, y_sub, cond_threat="CSR", cond_safe=
     return {
         "Neural_SafetyEvidence": p_safety_css,
         "Neural_ThreatEvidence": p_threat_csr,
+        "SafetyPrototypeEvidence": p_safety_css,
+        "ThreatPrototypeEvidence": p_threat_csr,
         "Neural_ThreatLike_Safety": p_threat_css,
+        "Neural_ThreatLike_Threat": p_threat_csr,
         "Neural_Threat_Evidence_CSR": p_threat_csr,
         "Neural_Certainty_CSS": css_certainty,
         "Neural_Certainty_CSR": csr_certainty,
@@ -2169,9 +2181,12 @@ def representative_core_neural_metrics(X_sub, y_sub):
         "Neural_PrototypeThreatLike_Safety": p_proto_threat_css,
         "Neural_PrototypeThreatLike_Threat": p_proto_threat_csr,
         "Neural_PrototypeBoundary_Separation": p_proto_threat_csr - p_proto_threat_css,
+        "SafetyPrototypeEvidence": np.nan,
+        "ThreatPrototypeEvidence": np.nan,
         "Neural_SafetyEvidence": np.nan,
         "Neural_ThreatEvidence": np.nan,
         "Neural_ThreatLike_Safety": np.nan,
+        "Neural_ThreatLike_Threat": np.nan,
         "Neural_Threat_Evidence_CSR": np.nan,
         "Neural_Boundary_Separation": np.nan,
         "Neural_Certainty_CSS": np.nan,
@@ -6107,7 +6122,12 @@ if cell_active(24):
         df_neural_uncertainty['Neural_Certainty_CSS'] = 2 * (
             df_neural_uncertainty['Neural_SafetyEvidence'] - 0.5
         ).abs()
+        df_neural_uncertainty['SafetyPrototypeEvidence'] = df_neural_uncertainty['Neural_SafetyEvidence']
     if 'Neural_Threat_Evidence_CSR' in df_neural_uncertainty.columns:
+        df_neural_uncertainty['Neural_ThreatLike_Threat'] = pd.to_numeric(
+            df_neural_uncertainty['Neural_Threat_Evidence_CSR'],
+            errors='coerce',
+        )
         df_neural_uncertainty['Neural_ThreatEvidence'] = pd.to_numeric(
             df_neural_uncertainty['Neural_Threat_Evidence_CSR'],
             errors='coerce',
@@ -6115,6 +6135,7 @@ if cell_active(24):
         df_neural_uncertainty['Neural_Certainty_CSR'] = 2 * (
             df_neural_uncertainty['Neural_ThreatEvidence'] - 0.5
         ).abs()
+        df_neural_uncertainty['ThreatPrototypeEvidence'] = df_neural_uncertainty['Neural_ThreatEvidence']
     if {'Neural_Certainty_CSS', 'Neural_Certainty_CSR'}.issubset(df_neural_uncertainty.columns):
         df_neural_uncertainty['Prototype_Certainty'] = df_neural_uncertainty[
             ['Neural_Certainty_CSS', 'Neural_Certainty_CSR']
@@ -6151,8 +6172,11 @@ if cell_active(24):
         uncertainty_core_cols = [
             'sub_ID', 'Group', 'Drug',
             'Neural_ThreatLike_Safety',
+            'Neural_ThreatLike_Threat',
             'Neural_Threat_Evidence_CSR',
             'Neural_Boundary_Separation',
+            'SafetyPrototypeEvidence',
+            'ThreatPrototypeEvidence',
             'Neural_SafetyEvidence',
             'Neural_ThreatEvidence',
             'Neural_Certainty_CSS',
@@ -6163,8 +6187,11 @@ if cell_active(24):
             columns=[
                 'Group', 'Drug',
                 'Neural_ThreatLike_Safety',
+                'Neural_ThreatLike_Threat',
                 'Neural_Threat_Evidence_CSR',
                 'Neural_Boundary_Separation',
+                'SafetyPrototypeEvidence',
+                'ThreatPrototypeEvidence',
                 'Neural_SafetyEvidence',
                 'Neural_ThreatEvidence',
                 'Neural_Certainty_CSS',
